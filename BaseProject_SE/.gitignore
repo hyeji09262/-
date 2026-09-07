@@ -1,0 +1,17 @@
+# Visual Studio workspace and per-user settings
+.vs/
+*.vcxproj.user
+
+# Visual C++ build artifacts
+/SimpleGame/x64/
+*.exe
+*.ilk
+*.pdb
+*.obj
+*.log
+*.pch
+*.idb
+*.tlog
+*.lastbuildstate
+*.suo
+*.db
