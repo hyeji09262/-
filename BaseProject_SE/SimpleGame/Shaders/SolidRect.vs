@@ -1,13 +1,10 @@
 #version 330
-
-in vec3 a_Position;
-uniform vec4 u_Trans;
-
-void main()
-{
-	vec4 newPosition;
-	newPosition.xy = a_Position.xy*u_Trans.w + u_Trans.xy;
-	newPosition.z = 0;
-	newPosition.w= 1;
-	gl_Position = newPosition;
+layout(location=0) in vec2 a_Position;
+layout(location=1) in vec2 a_UV;
+layout(location=2) in vec4 a_Color;
+out vec2 v_UV;
+out vec4 v_Color;
+void main() {
+    gl_Position=vec4(a_Position,0.0,1.0);
+    v_UV=a_UV; v_Color=a_Color;
 }

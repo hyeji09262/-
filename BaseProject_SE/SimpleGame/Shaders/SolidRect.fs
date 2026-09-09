@@ -1,10 +1,10 @@
 #version 330
-
-layout(location=0) out vec4 FragColor;
-
-uniform vec4 u_Color;
-
-void main()
-{
-	FragColor = vec4(u_Color.r, u_Color.g, u_Color.b, u_Color.a);
+in vec2 v_UV;
+in vec4 v_Color;
+uniform sampler2D u_Atlas;
+uniform bool u_Textured;
+out vec4 FragColor;
+void main() {
+    FragColor=v_Color;
+    if(u_Textured) FragColor.a*=texture(u_Atlas,v_UV).a;
 }

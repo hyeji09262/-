@@ -4,6 +4,10 @@
 
 # Visual C++ build artifacts
 /SimpleGame/x64/
+/x64/Debug/Shaders/
+/x64/Release/Shaders/
+/Debug/Shaders/
+/Release/Shaders/
 *.exe
 *.ilk
 *.pdb

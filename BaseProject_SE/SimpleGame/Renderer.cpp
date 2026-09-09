@@ -1,196 +1,187 @@
 #include "stdafx.h"
+#define NOMINMAX
+#include <windows.h>
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <unordered_map>
 #include "Renderer.h"
 
-Renderer::Renderer(int windowSizeX, int windowSizeY)
-{
-	Initialize(windowSizeX, windowSizeY);
+struct Renderer::Font {
+    struct Glyph { int slot; float advance; };
+    HDC dc=nullptr; HBITMAP bitmap=nullptr; HFONT font=nullptr;
+    HGDIOBJ oldBitmap=nullptr,oldFont=nullptr;
+    void* pixels=nullptr;
+    GLuint texture=0;
+    std::unordered_map<wchar_t,Glyph> glyphs;
+    static const int Cell=40, Atlas=2048, Columns=Atlas/Cell;
+    bool Initialize() {
+        dc=CreateCompatibleDC(nullptr);
+        if(!dc)return false;
+        BITMAPINFO info={};
+        info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);
+        info.bmiHeader.biWidth=Cell;info.bmiHeader.biHeight=-Cell;
+        info.bmiHeader.biPlanes=1;info.bmiHeader.biBitCount=32;info.bmiHeader.biCompression=BI_RGB;
+        bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);
+        font=CreateFontW(-28,0,0,0,FW_MEDIUM,FALSE,FALSE,FALSE,HANGUL_CHARSET,
+            OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY,DEFAULT_PITCH,L"ÎßëÏùÄ Í≥†Îîï");
+        if(!bitmap||!font)return false;
+        oldBitmap=SelectObject(dc,bitmap);oldFont=SelectObject(dc,font);
+        SetTextColor(dc,RGB(255,255,255));SetBkColor(dc,RGB(0,0,0));
+        glGenTextures(1,&texture);glBindTexture(GL_TEXTURE_2D,texture);
+        std::vector<unsigned char> empty(Atlas*Atlas*4,0);
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,Atlas,Atlas,0,GL_RGBA,GL_UNSIGNED_BYTE,empty.data());
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+        return true;
+    }
+    Glyph Get(wchar_t c) {
+        auto found=glyphs.find(c);if(found!=glyphs.end())return found->second;
+        if(glyphs.size()>=Columns*Columns)return glyphs.begin()->second;
+        GdiFlush();ZeroMemory(pixels,Cell*Cell*4);
+        TextOutW(dc,2,2,&c,1);GdiFlush();
+        SIZE size={};GetTextExtentPoint32W(dc,&c,1,&size);
+        unsigned char* src=static_cast<unsigned char*>(pixels);
+        std::vector<unsigned char> rgba(Cell*Cell*4);
+        for(int i=0;i<Cell*Cell;++i) {
+            rgba[i*4]=rgba[i*4+1]=rgba[i*4+2]=255;
+            rgba[i*4+3]=(std::max)(src[i*4],(std::max)(src[i*4+1],src[i*4+2]));
+        }
+        Glyph g={static_cast<int>(glyphs.size()),static_cast<float>(size.cx)};
+        glBindTexture(GL_TEXTURE_2D,texture);
+        glTexSubImage2D(GL_TEXTURE_2D,0,(g.slot%Columns)*Cell,(g.slot/Columns)*Cell,
+            Cell,Cell,GL_RGBA,GL_UNSIGNED_BYTE,rgba.data());
+        glyphs.emplace(c,g);return g;
+    }
+    ~Font() {
+        if(oldBitmap)SelectObject(dc,oldBitmap);
+        if(oldFont)SelectObject(dc,oldFont);
+        if(bitmap)DeleteObject(bitmap);if(font)DeleteObject(font);if(dc)DeleteDC(dc);
+        if(texture)glDeleteTextures(1,&texture);
+    }
+};
+Renderer::Renderer(int w,int h) {
+    m_Shader=CompileShaders("Shaders/SolidRect.vs","Shaders/SolidRect.fs");
+    m_Post=CompileShaders("Shaders/Screen.vs","Shaders/Post.fs");
+    if(!m_Shader||!m_Post)return;
+    glGenVertexArrays(1,&m_VAO);glBindVertexArray(m_VAO);
+    glGenBuffers(1,&m_Buffer);
+    m_Textured=glGetUniformLocation(m_Shader,"u_Textured");
+    glUseProgram(m_Shader);glUniform1i(glGetUniformLocation(m_Shader,"u_Atlas"),0);
+    glUseProgram(m_Post);glUniform1i(glGetUniformLocation(m_Post,"u_Scene"),0);
+    m_PostTime=glGetUniformLocation(m_Post,"u_Time");m_PostTexel=glGetUniformLocation(m_Post,"u_Texel");
+    m_Font=new Font();
+    if(!m_Font->Initialize()){std::cerr<<"ÌïúÍ∏Ä Í∏ÄÍº¥ Ï¥àÍ∏∞Ìôî Ïã§Ìå®\n";return;}
+    glGenFramebuffers(1,&m_Framebuffer);glGenTextures(1,&m_Scene);
+    Resize(w,h);m_Initialized=m_TargetValid;
+    m_Vertices.reserve(32768);
 }
-
-
-Renderer::~Renderer()
-{
+Renderer::~Renderer() {
+    delete m_Font;
+    glDeleteTextures(1,&m_Scene);glDeleteFramebuffers(1,&m_Framebuffer);
+    glDeleteBuffers(1,&m_Buffer);glDeleteVertexArrays(1,&m_VAO);
+    if(m_Shader)glDeleteProgram(m_Shader);if(m_Post)glDeleteProgram(m_Post);
 }
-
-void Renderer::Initialize(int windowSizeX, int windowSizeY)
-{
-	//Set window size
-	m_WindowSizeX = windowSizeX;
-	m_WindowSizeY = windowSizeY;
-
-	//Load shaders
-	m_SolidRectShader = CompileShaders("./Shaders/SolidRect.vs", "./Shaders/SolidRect.fs");
-	
-	//Create VBOs
-	CreateVertexBufferObjects();
-
-	if (m_SolidRectShader > 0 && m_VBORect > 0)
-	{
-		m_Initialized = true;
-	}
+bool Renderer::ReadFile(const char* name,std::string& out) {
+    std::ifstream file(name);
+    if(!file) {
+        wchar_t module[32768]={};GetModuleFileNameW(nullptr,module,32768);
+        std::wstring path(module);path=path.substr(0,path.find_last_of(L"\\/")+1);
+        while(*name)path+=static_cast<wchar_t>(*name++);
+        file.clear();file.open(path.c_str());
+    }
+    if(!file)return false;
+    out.assign(std::istreambuf_iterator<char>(file),std::istreambuf_iterator<char>());return true;
 }
-
-bool Renderer::IsInitialized()
-{
-	return m_Initialized;
+GLuint Renderer::CompileShaders(const char* vn,const char* fn) {
+    std::string sources[2];
+    if(!ReadFile(vn,sources[0])||!ReadFile(fn,sources[1])){std::cerr<<"ÏÖ∞Ïù¥Îçî ÌååÏùºÏùÑ Ï∞æÏùÑ Ïàò ÏóÜÏäµÎãàÎã§: "<<vn<<" / "<<fn<<"\n";return 0;}
+    GLuint program=glCreateProgram();
+    for(int i=0;i<2;++i) {
+        GLuint shader=glCreateShader(i==0?GL_VERTEX_SHADER:GL_FRAGMENT_SHADER);
+        const char* src=sources[i].c_str();glShaderSource(shader,1,&src,nullptr);glCompileShader(shader);
+        GLint ok=0;glGetShaderiv(shader,GL_COMPILE_STATUS,&ok);
+        if(!ok) {
+            char log[4096]={};glGetShaderInfoLog(shader,sizeof(log),nullptr,log);
+            std::cerr<<log;glDeleteShader(shader);glDeleteProgram(program);return 0;
+        }
+        glAttachShader(program,shader);glDeleteShader(shader);
+    }
+    glLinkProgram(program);GLint ok=0;glGetProgramiv(program,GL_LINK_STATUS,&ok);
+    if(!ok) {
+        char log[4096]={};glGetProgramInfoLog(program,sizeof(log),nullptr,log);
+        std::cerr<<log;glDeleteProgram(program);return 0;
+    }
+    return program;
 }
-
-void Renderer::CreateVertexBufferObjects()
-{
-	float rect[]
-		=
-	{
-		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f, -1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, 1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, //Triangle1
-		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f,  1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, 1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f, //Triangle2
-	};
-
-	glGenBuffers(1, &m_VBORect);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(rect), rect, GL_STATIC_DRAW);
+void Renderer::Resize(int w,int h) {
+    Flush();m_Width=(std::max)(1,w);m_Height=(std::max)(1,h);
+    glBindTexture(GL_TEXTURE_2D,m_Scene);
+    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA8,m_Width,m_Height,0,GL_RGBA,GL_UNSIGNED_BYTE,nullptr);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    glBindFramebuffer(GL_FRAMEBUFFER,m_Framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D,m_Scene,0);
+    m_TargetValid=glCheckFramebufferStatus(GL_FRAMEBUFFER)==GL_FRAMEBUFFER_COMPLETE;
+    if(!m_TargetValid)std::cerr<<"ÌõÑÏ≤òÎ¶¨ ÌîÑÎ†àÏûÑÎ≤ÑÌçº ÏÉùÏÑ± Ïã§Ìå®\n";
+    glBindFramebuffer(GL_FRAMEBUFFER,0);glViewport(0,0,m_Width,m_Height);
 }
-
-void Renderer::AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
-{
-	//Ω¶¿Ã¥ı ø¿∫Í¡ß∆Æ ª˝º∫
-	GLuint ShaderObj = glCreateShader(ShaderType);
-
-	if (ShaderObj == 0) {
-		fprintf(stderr, "Error creating shader type %d\n", ShaderType);
-	}
-
-	const GLchar* p[1];
-	p[0] = pShaderText;
-	GLint Lengths[1];
-
-	size_t slen = strlen(pShaderText);
-	if (slen > INT_MAX) {
-		// Handle error
-	}
-	GLint len = (GLint)slen;
-
-	Lengths[0] = len;
-	//Ω¶¿Ã¥ı ƒ⁄µÂ∏¶ Ω¶¿Ã¥ı ø¿∫Í¡ß∆Æø° «“¥Á
-	glShaderSource(ShaderObj, 1, p, Lengths);
-
-	//«“¥Áµ» Ω¶¿Ã¥ı ƒ⁄µÂ∏¶ ƒƒ∆ƒ¿œ
-	glCompileShader(ShaderObj);
-
-	GLint success;
-	// ShaderObj ∞° º∫∞¯¿˚¿∏∑Œ ƒƒ∆ƒ¿œ µ«æ˙¥¬¡ˆ »Æ¿Œ
-	glGetShaderiv(ShaderObj, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		GLchar InfoLog[1024];
-
-		//OpenGL ¿« shader log µ•¿Ã≈Õ∏¶ ∞°¡Æø»
-		glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
-		fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
-		printf("%s \n", pShaderText);
-	}
-
-	// ShaderProgram ø° attach!!
-	glAttachShader(ShaderProgram, ShaderObj);
+void Renderer::BeginWorld() {
+    Flush();glBindFramebuffer(GL_FRAMEBUFFER,m_TargetValid?m_Framebuffer:0);
+    glViewport(0,0,m_Width,m_Height);glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glClearColor(.08f,.09f,.14f,1);glClear(GL_COLOR_BUFFER_BIT);
 }
-
-bool Renderer::ReadFile(char* filename, std::string *target)
-{
-	std::ifstream file(filename);
-	if (file.fail())
-	{
-		std::cout << filename << " file loading failed.. \n";
-		file.close();
-		return false;
-	}
-	std::string line;
-	while (getline(file, line)) {
-		target->append(line.c_str());
-		target->append("\n");
-	}
-	return true;
+void Renderer::EndWorld(float time) {
+    Flush();if(!m_TargetValid)return;
+    glBindFramebuffer(GL_FRAMEBUFFER,0);glDisable(GL_BLEND);
+    glUseProgram(m_Post);glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,m_Scene);
+    glUniform1f(m_PostTime,time);glUniform2f(m_PostTexel,1.f/m_Width,1.f/m_Height);
+    glBindVertexArray(m_VAO);glDrawArrays(GL_TRIANGLES,0,3);glEnable(GL_BLEND);
 }
-
-GLuint Renderer::CompileShaders(char* filenameVS, char* filenameFS)
-{
-	GLuint ShaderProgram = glCreateProgram(); //∫Û Ω¶¿Ã¥ı «¡∑Œ±◊∑• ª˝º∫
-
-	if (ShaderProgram == 0) { //Ω¶¿Ã¥ı «¡∑Œ±◊∑•¿Ã ∏∏µÈæÓ¡≥¥¬¡ˆ »Æ¿Œ
-		fprintf(stderr, "Error creating shader program\n");
-	}
-
-	std::string vs, fs;
-
-	//shader.vs ∞° vs æ»¿∏∑Œ ∑Œµ˘µ 
-	if (!ReadFile(filenameVS, &vs)) {
-		printf("Error compiling vertex shader\n");
-		return -1;
-	};
-
-	//shader.fs ∞° fs æ»¿∏∑Œ ∑Œµ˘µ 
-	if (!ReadFile(filenameFS, &fs)) {
-		printf("Error compiling fragment shader\n");
-		return -1;
-	};
-
-	// ShaderProgram ø° vs.c_str() πˆ≈ÿΩ∫ Ω¶¿Ã¥ı∏¶ ƒƒ∆ƒ¿œ«— ∞·∞˙∏¶ attach«‘
-	AddShader(ShaderProgram, vs.c_str(), GL_VERTEX_SHADER);
-
-	// ShaderProgram ø° fs.c_str() «¡∑π±◊∏’∆Æ Ω¶¿Ã¥ı∏¶ ƒƒ∆ƒ¿œ«— ∞·∞˙∏¶ attach«‘
-	AddShader(ShaderProgram, fs.c_str(), GL_FRAGMENT_SHADER);
-
-	GLint Success = 0;
-	GLchar ErrorLog[1024] = { 0 };
-
-	//Attach øœ∑·µ» shaderProgram ¿ª ∏µ≈∑«‘
-	glLinkProgram(ShaderProgram);
-
-	//∏µ≈©∞° º∫∞¯«ﬂ¥¬¡ˆ »Æ¿Œ
-	glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
-
-	if (Success == 0) {
-		// shader program ∑Œ±◊∏¶ πﬁæ∆ø»
-		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
-		std::cout << filenameVS << ", " << filenameFS << " Error linking shader program\n" << ErrorLog;
-		return -1;
-	}
-
-	glValidateProgram(ShaderProgram);
-	glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
-	if (!Success) {
-		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
-		std::cout << filenameVS << ", " << filenameFS << " Error validating shader program\n" << ErrorLog;
-		return -1;
-	}
-
-	glUseProgram(ShaderProgram);
-	std::cout << filenameVS << ", " << filenameFS << " Shader compiling is done.";
-
-	return ShaderProgram;
+void Renderer::Upload(const std::vector<Vertex>& v,bool textured) {
+    if(v.empty())return;
+    glUseProgram(m_Shader);glUniform1i(m_Textured,textured?1:0);
+    glBindVertexArray(m_VAO);glBindBuffer(GL_ARRAY_BUFFER,m_Buffer);
+    glBufferData(GL_ARRAY_BUFFER,v.size()*sizeof(Vertex),v.data(),GL_STREAM_DRAW);
+    glEnableVertexAttribArray(0);glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(Vertex),nullptr);
+    glEnableVertexAttribArray(1);glVertexAttribPointer(1,2,GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(2*sizeof(float)));
+    glEnableVertexAttribArray(2);glVertexAttribPointer(2,4,GL_FLOAT,GL_FALSE,sizeof(Vertex),reinterpret_cast<void*>(4*sizeof(float)));
+    glDrawArrays(GL_TRIANGLES,0,static_cast<GLsizei>(v.size()));
 }
-
-void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, float g, float b, float a)
-{
-	float newX, newY;
-
-	GetGLPosition(x, y, &newX, &newY);
-
-	//Program select
-	glUseProgram(m_SolidRectShader);
-
-	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Trans"), newX, newY, 0, size);
-	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Color"), r, g, b, a);
-
-	int attribPosition = glGetAttribLocation(m_SolidRectShader, "a_Position");
-	glEnableVertexAttribArray(attribPosition);
-	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
-	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
-	glDisableVertexAttribArray(attribPosition);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+void Renderer::Flush() { Upload(m_Vertices,false);m_Vertices.clear(); }
+void Renderer::Triangle(float x1,float y1,float x2,float y2,float x3,float y3,float r,float g,float b,float a) {
+    m_Vertices.push_back({x1*2/m_Width-1,1-y1*2/m_Height,0,0,r,g,b,a});
+    m_Vertices.push_back({x2*2/m_Width-1,1-y2*2/m_Height,0,0,r,g,b,a});
+    m_Vertices.push_back({x3*2/m_Width-1,1-y3*2/m_Height,0,0,r,g,b,a});
+    if(m_Vertices.size()>60000)Flush();
 }
-
-void Renderer::GetGLPosition(float x, float y, float *newX, float *newY)
-{
-	*newX = x * 2.f / m_WindowSizeX;
-	*newY = y * 2.f / m_WindowSizeY;
+void Renderer::DrawSolidRect(float x,float y,float z,float size,float r,float g,float b,float a) {
+    (void)z;float sx=m_Width*.5f+x,sy=m_Height*.5f-y,h=size*.5f;
+    Triangle(sx-h,sy-h,sx+h,sy-h,sx+h,sy+h,r,g,b,a);Triangle(sx-h,sy-h,sx+h,sy+h,sx-h,sy+h,r,g,b,a);
+}
+void Renderer::Text(float x,float baseline,const std::string& utf8,float size,float r,float g,float b,float a) {
+    Flush();if(!m_Font||!m_Font->texture||utf8.empty())return;
+    int count=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,utf8.data(),static_cast<int>(utf8.size()),nullptr,0);
+    if(count<=0)return;
+    std::wstring text(count,L' ');MultiByteToWideChar(CP_UTF8,0,utf8.data(),static_cast<int>(utf8.size()),&text[0],count);
+    std::vector<Vertex> vertices;vertices.reserve(count*6);
+    float scale=size/28.f,start=x;
+    for(wchar_t ch:text) {
+        if(ch==L'\n'){x=start;baseline+=size*1.5f;continue;}
+        auto glyph=m_Font->Get(ch);
+        float u=float(glyph.slot%Font::Columns*Font::Cell)/Font::Atlas;
+        float v=float(glyph.slot/Font::Columns*Font::Cell)/Font::Atlas;
+        float span=float(Font::Cell)/Font::Atlas;
+        float left=(x-2*scale)*2/m_Width-1,right=(x+38*scale)*2/m_Width-1;
+        float top=1-(baseline-size-2*scale)*2/m_Height,bottom=top-40*scale*2/m_Height;
+        Vertex q[4]={{left,top,u,v,r,g,b,a},{right,top,u+span,v,r,g,b,a},
+            {right,bottom,u+span,v+span,r,g,b,a},{left,bottom,u,v+span,r,g,b,a}};
+        for(int i:{0,1,2,0,2,3})vertices.push_back(q[i]);
+        x+=(glyph.advance+1)*scale;
+    }
+    glActiveTexture(GL_TEXTURE0);glBindTexture(GL_TEXTURE_2D,m_Font->texture);Upload(vertices,true);
 }
