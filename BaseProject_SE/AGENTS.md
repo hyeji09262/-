@@ -40,6 +40,14 @@
 - Use delta-time-based updates for real-time gameplay.
 - Keep project assets and runtime dependencies intentional. Do not commit Visual Studio workspace files or generated build artifacts.
 
+## Code formatting
+
+- Follow the project's .clang-format for first-party C++ code (four spaces, Allman braces, approximately 100 columns).
+- Put statements on separate lines; avoid compressed single-line functions and control flow.
+- Separate function definitions and logical phases with blank lines so initialization, updates, rendering, and cleanup are easy to scan.
+- Preserve existing names and behavior during formatting-only changes.
+- Do not format vendored files under SimpleGame/Dependencies or generated build files.
+
 ## Working agreements
 
 - The user normally performs builds and verifies runtime results. Do not build or run the game unless the user explicitly requests it or it is necessary to resolve a specific issue.

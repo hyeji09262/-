@@ -158,12 +158,22 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Tutorial.h" />
     <ClInclude Include="TutorialArt.h" />
+    <ClInclude Include="LevelOne.h" />
+    <ClInclude Include="HuntingMap.h" />
+    <ClInclude Include="RpgProgress.h" />
+    <ClInclude Include="PrimitiveModels.h" />
+    <ClInclude Include="RuntimeFiles.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SimpleGame.cpp" />
+    <ClCompile Include="LevelOne.cpp" />
+    <ClCompile Include="HuntingMap.cpp" />
+    <ClCompile Include="RpgProgress.cpp" />
+    <ClCompile Include="PrimitiveModels.cpp" />
+    <ClCompile Include="RuntimeFiles.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -176,6 +186,8 @@
     <None Include="Shaders\SolidRect.vs" />
     <None Include="Shaders\Screen.vs" />
     <None Include="Shaders\Post.fs" />
+    <None Include="Shaders\Effect.vs" />
+    <None Include="Shaders\Effect.fs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ItemDefinitionGroup>
