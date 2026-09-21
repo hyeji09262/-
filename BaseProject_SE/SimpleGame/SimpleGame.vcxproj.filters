@@ -30,6 +30,15 @@
     <ClInclude Include="PrimitiveModels.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Actor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneGraph.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterVisual.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="RuntimeFiles.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

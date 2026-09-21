@@ -247,6 +247,73 @@ void Renderer::Resize(int w, int h)
     glViewport(0, 0, m_Width, m_Height);
 }
 
+void Renderer::BeginFrame()
+{
+    m_FrameStats = {};
+    m_FrameStats.frame = m_LastFrameStats.frame + 1;
+    m_FrameActive = true;
+}
+
+void Renderer::EndFrame()
+{
+    if (!m_FrameActive)
+    {
+        return;
+    }
+    Flush();
+    m_LastFrameStats = m_FrameStats;
+    m_FrameActive = false;
+}
+
+void Renderer::SubmitDrawArrays(GLenum mode, GLint first, GLsizei count, DrawCategory category)
+{
+    // Count actual API submissions, not actors, triangles, or empty Flush() calls.
+    glDrawArrays(mode, first, count);
+    if (!m_FrameActive)
+    {
+        return;
+    }
+    switch (category)
+    {
+    case DrawCategory::Geometry:
+        ++m_FrameStats.geometry;
+        break;
+    case DrawCategory::Text:
+        ++m_FrameStats.text;
+        break;
+    case DrawCategory::Effect:
+        ++m_FrameStats.effects;
+        break;
+    case DrawCategory::PostProcess:
+        ++m_FrameStats.postProcess;
+        break;
+    }
+}
+
+void Renderer::DrawFrameStats()
+{
+    // Show a completed frame so this overlay's own draw calls are included without prediction.
+    float sx = m_Width / 1280.f;
+    float sy = m_Height / 800.f;
+    float left = 850 * sx, right = 1260 * sx, top = 238 * sy, bottom = 310 * sy;
+    Triangle(left, top, right, top, right, bottom, .03f, .04f, .07f, .94f);
+    Triangle(left, top, right, bottom, left, bottom, .03f, .04f, .07f, .94f);
+
+    if (m_LastFrameStats.frame == 0)
+    {
+        Text(862 * sx, 266 * sy, "Draw call: 첫 프레임 집계 중", 17 * sy, 1, .85f, .5f);
+        return;
+    }
+    const FrameStats& stats = m_LastFrameStats;
+    std::string total = "이전 프레임 #" + std::to_string(stats.frame) +
+                        " | Draw call: " + std::to_string(stats.Total());
+    std::string detail = "도형 " + std::to_string(stats.geometry) + " / 글자 " +
+                         std::to_string(stats.text) + " / 효과 " + std::to_string(stats.effects) +
+                         " / 후처리 " + std::to_string(stats.postProcess);
+    Text(862 * sx, 265 * sy, total, 16 * sy, 1, .85f, .5f);
+    Text(862 * sx, 292 * sy, detail, 14 * sy, .86f, .90f, 1);
+}
+
 void Renderer::BeginWorld()
 {
     Flush();
@@ -272,7 +339,7 @@ void Renderer::EndWorld(float time)
     glUniform1f(m_PostTime, time);
     glUniform2f(m_PostTexel, 1.f / m_Width, 1.f / m_Height);
     glBindVertexArray(m_VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    SubmitDrawArrays(GL_TRIANGLES, 0, 3, DrawCategory::PostProcess);
     glEnable(GL_BLEND);
 }
 
@@ -293,7 +360,8 @@ void Renderer::Upload(const std::vector<Vertex>& v, bool textured)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           reinterpret_cast<void*>(4 * sizeof(float)));
-    glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(v.size()));
+    SubmitDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(v.size()),
+                     textured ? DrawCategory::Text : DrawCategory::Geometry);
 }
 
 void Renderer::Flush()
@@ -331,7 +399,7 @@ void Renderer::Effect(float x, float y, float width, float height, float time, i
     glUniform1f(m_EffectTime, time);
     glUniform1i(m_EffectKind, kind);
     glUniform1f(m_EffectPhase, phase);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    SubmitDrawArrays(GL_TRIANGLES, 0, 6, DrawCategory::Effect);
 }
 
 void Renderer::Triangle(float x1, float y1, float x2, float y2, float x3, float y3, float r,

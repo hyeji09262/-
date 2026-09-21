@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cstdint>
 #include <vector>
 #include "Dependencies/glew.h"
 
@@ -7,6 +8,20 @@
 class Renderer
 {
   public:
+    struct FrameStats
+    {
+        std::uint64_t frame = 0;
+        std::uint64_t geometry = 0;
+        std::uint64_t text = 0;
+        std::uint64_t effects = 0;
+        std::uint64_t postProcess = 0;
+
+        std::uint64_t Total() const
+        {
+            return geometry + text + effects + postProcess;
+        }
+    };
+
     struct ModelVertex
     {
         float x, y, r, g, b, a;
@@ -23,6 +38,15 @@ class Renderer
     }
 
     void Resize(int width, int height);
+    void BeginFrame();
+    void EndFrame();
+    void DrawFrameStats();
+
+    const FrameStats& LastFrameStats() const
+    {
+        return m_LastFrameStats;
+    }
+
     void BeginWorld();
     void EndWorld(float time);
     void Flush();
@@ -37,6 +61,19 @@ class Renderer
               float b, float a = 1.f);
 
   private:
+    enum class DrawCategory
+    {
+        Geometry,
+        Text,
+        Effect,
+        PostProcess
+    };
+
+    FrameStats m_FrameStats;
+    FrameStats m_LastFrameStats;
+    bool m_FrameActive = false;
+    void SubmitDrawArrays(GLenum mode, GLint first, GLsizei count, DrawCategory category);
+
     struct Vertex
     {
         float x, y, u, v, r, g, b, a;

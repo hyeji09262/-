@@ -162,6 +162,9 @@
     <ClInclude Include="HuntingMap.h" />
     <ClInclude Include="RpgProgress.h" />
     <ClInclude Include="PrimitiveModels.h" />
+    <ClInclude Include="Actor.h" />
+    <ClInclude Include="SceneGraph.h" />
+    <ClInclude Include="CharacterVisual.h" />
     <ClInclude Include="RuntimeFiles.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

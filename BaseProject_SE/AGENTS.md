@@ -4,8 +4,8 @@
 
 - This repository is for the Game Software Engineering course.
 - Build a single-player, real-time-rendered 2.5D quarter-view open-world RPG.
-- The player is a growing wizard who defeats regional bosses and ultimately the final boss.
-- The setting is dark fantasy in a long-twilight world, balanced with black comedy and eccentric characters.
+- The player is a student who suddenly becomes a magical girl and grows through regional boss battles.
+- The setting is a contemporary fantasy school and coastal town threatened by nightmares. The story expands from saving the school to saving the town and ultimately Earth. Use pink/lilac magical-girl costumes, star motifs, modern buildings and cherry blossoms, with danger balanced by school-life humor.
 
 ## Core player loop
 
@@ -13,7 +13,7 @@
 2. Defeat the boss to gain a magic core and skill points.
 3. Spend skill points in a magic branch. The core's base traversal ability is always unlocked so the main story cannot be blocked.
 4. Use new traversal magic to access new regions, optional rewards, lore, equipment, and upgrades.
-5. Become stronger, uncover the truth behind the twilight world, and progress toward the final boss.
+5. Become stronger, uncover the origin of the nightmares threatening Earth, and progress toward the final boss.
 
 ## Game and world rules
 
@@ -37,6 +37,8 @@
 - The current stack is C++ with OpenGL, FreeGLUT, and GLEW in a Visual Studio solution.
 - Extend the existing renderer incrementally; do not replace the engine, graphics library, or project structure without explicit approval.
 - Keep rendering, input, game state, world/chunk data, and entity behavior separated as the codebase grows.
+- Route placed world objects and HUD composites through Actor and SceneGraph; keep child effects and shadows attached to their owner, and let the graph handle render layers and ground-depth sorting. Do not add a second ad-hoc object sorting list.
+- Define character attachment points in CharacterVisual.h; wand meshes and spell origins must share the same socket coordinates, including mirrored cast poses.
 - Use delta-time-based updates for real-time gameplay.
 - Keep project assets and runtime dependencies intentional. Do not commit Visual Studio workspace files or generated build artifacts.
 

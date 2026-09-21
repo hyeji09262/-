@@ -5,6 +5,7 @@
 #include <fstream>
 #include "PrimitiveModels.h"
 #include "RuntimeFiles.h"
+#include "CharacterVisual.h"
 
 namespace Hunting
 {
@@ -41,6 +42,19 @@ void Ellipse(Mesh& mesh, float x, float y, float width, float height, Color colo
     }
 }
 
+void Star(Mesh& mesh, float x, float y, float radius, Color color)
+{
+    for (int i = 0; i < 10; ++i)
+    {
+        float a = -1.5707963f + i * .6283185f;
+        float b = a + .6283185f;
+        float r1 = i % 2 == 0 ? radius : radius * .45f;
+        float r2 = i % 2 == 0 ? radius * .45f : radius;
+        Triangle(mesh, x, y, x + std::cos(a) * r1, y + std::sin(a) * r1, x + std::cos(b) * r2,
+                 y + std::sin(b) * r2, color);
+    }
+}
+
 std::uint32_t Hash(std::uint32_t value, const void* data, size_t size)
 {
     const auto* bytes = static_cast<const unsigned char*>(data);
@@ -74,7 +88,7 @@ void PrimitiveModels::Initialize()
 
 bool PrimitiveModels::Load()
 {
-    const auto path = RuntimeFiles::Path(L"primitive_models_v3.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
     if (path.empty())
     {
         return false;
@@ -82,7 +96,7 @@ bool PrimitiveModels::Load()
     std::ifstream file(path.c_str(), std::ios::binary);
     char magic[8] = {};
     file.read(magic, sizeof(magic));
-    if (!file || std::memcmp(magic, "EWMDL003", 8) != 0)
+    if (!file || std::memcmp(magic, "EWMDL005", 8) != 0)
     {
         return false;
     }
@@ -128,7 +142,7 @@ bool PrimitiveModels::Load()
 
 bool PrimitiveModels::Save() const
 {
-    const auto path = RuntimeFiles::Path(L"primitive_models_v3.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
     if (path.empty())
     {
         return false;
@@ -136,7 +150,7 @@ bool PrimitiveModels::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::binary | std::ios::trunc);
-        file.write("EWMDL003", 8);
+        file.write("EWMDL005", 8);
         std::uint32_t hash = 2166136261u;
         for (const auto& mesh : m_Models)
         {
@@ -158,28 +172,74 @@ bool PrimitiveModels::Save() const
 
 void PrimitiveModels::Generate()
 {
-    const Color robe = {.40f, .29f, .64f, 1}, dark = {.19f, .15f, .28f, 1};
-    const Color gold = {1, .76f, .35f, 1}, skin = {.83f, .63f, .46f, 1};
+    const Color robe = {.96f, .32f, .62f, 1}, dark = {.27f, .20f, .45f, 1};
+    const Color gold = {1, .86f, .48f, 1}, skin = {1, .81f, .73f, 1};
+    const Color white = {1, .95f, .98f, 1};
+    const Color hair = {.57f, .32f, .68f, 1};
     for (int frame = 0; frame < 6; ++frame)
     {
         auto& mesh = m_Models[frame];
         float step = frame >= 1 && frame <= 4 ? std::sin((frame - 1) * 1.570796f) * 4 : 0;
-        float hand = frame == 5 ? -40.f : -27.f;
-        Rect(mesh, -8 + step, -14, 6, 14, dark);
-        Rect(mesh, 3 - step, -14, 6, 14, dark);
+        float hand = frame == 5 ? CharacterVisual::CastHandY : CharacterVisual::IdleHandY;
+        // Twin tails, pleated skirt, ribbons and boots share all six cached poses.
+        Ellipse(mesh, -13 - step * .3f, -38, 6, 18, hair);
+        Ellipse(mesh, 13 + step * .3f, -38, 6, 18, hair);
+        Ellipse(mesh, -14 - step * .3f, -41, 2, 12, {.78f, .51f, .83f, 1});
+        Ellipse(mesh, 12 + step * .3f, -41, 2, 12, {.78f, .51f, .83f, 1});
+        Rect(mesh, -8 + step, -14, 6, 14, white);
+        Rect(mesh, 3 - step, -14, 6, 14, white);
+        Rect(mesh, -8 + step, -8, 6, 2, robe);
+        Rect(mesh, 3 - step, -8, 6, 2, robe);
+        Ellipse(mesh, -6 + step, -2, 4, 2, dark);
+        Ellipse(mesh, 6 - step, -2, 4, 2, dark);
         Triangle(mesh, -9, -38, 9, -38, 14, -10, robe);
         Triangle(mesh, -9, -38, 14, -10, -13, -10, robe);
-        Triangle(mesh, -9, -38, -13, -10, -2, -10, dark);
-        Rect(mesh, -11, -21, 22, 3, gold);
-        Rect(mesh, 9, hand, 10, 6, robe);
+        Rect(mesh, -8, -38, 16, 15, white);
+        Triangle(mesh, -8, -24, -13, -10, -2, -10, {.73f, .23f, .53f, 1});
+        for (int pleat = -6; pleat <= 6; pleat += 4)
+        {
+            Triangle(mesh, float(pleat), -24, float(pleat + 1), -11, float(pleat + 4), -11,
+                     {1, .54f, .74f, 1});
+        }
+        Rect(mesh, -13, -12, 27, 3, white);
+        for (int lace = -11; lace <= 11; lace += 4)
+        {
+            Ellipse(mesh, float(lace), -10, 2, 1.5f, white);
+        }
+        Triangle(mesh, -8, -38, 0, -30, -2, -38, {.67f, .66f, .86f, 1});
+        Triangle(mesh, 8, -38, 0, -30, 2, -38, {.67f, .66f, .86f, 1});
+        Rect(mesh, -8, -24, 16, 2, gold);
+        Triangle(mesh, 0, -33, -9, -38, -9, -29, robe);
+        Triangle(mesh, 0, -33, 9, -38, 9, -29, robe);
+        Ellipse(mesh, 0, -33, 3, 3, gold);
+        Rect(mesh, 9, hand, 10, 6, white);
+        Rect(mesh, 14, hand, 2, 6, robe);
+        Ellipse(mesh, -11, -32, 4, 5, white);
+        Rect(mesh, -14, -29, 5, 8, skin);
+        Rect(mesh, -14, -23, 5, 4, white);
         Ellipse(mesh, 18, hand + 3, 3, 3, skin);
         Ellipse(mesh, 0, -45, 8, 10, skin);
-        Rect(mesh, 3, -46, 2, 2, dark);
-        Ellipse(mesh, 0, -54, 15, 4, dark);
-        Triangle(mesh, -10, -54, -2, -79, 10, -54, robe);
-        Rect(mesh, -8, -57, 16, 3, gold);
-        Rect(mesh, 19, hand - 22, 3, 52, {.47f, .31f, .19f, 1});
-        Ellipse(mesh, 20, hand - 25, 4, 6, {.25f, .93f, .84f, 1});
+        Ellipse(mesh, 0, -53, 9, 5, hair);
+        Ellipse(mesh, -3, -55, 5, 1.5f, {.83f, .60f, .88f, 1});
+        Triangle(mesh, -9, -53, -2, -53, -7, -44, hair);
+        Rect(mesh, -5, -46, 3, 4, dark);
+        Rect(mesh, 3, -46, 3, 4, dark);
+        Rect(mesh, -5, -46, 1, 1, white);
+        Rect(mesh, 3, -46, 1, 1, white);
+        Ellipse(mesh, -6, -41, 2, 1, {1, .57f, .66f, .7f});
+        Ellipse(mesh, 6, -41, 2, 1, {1, .57f, .66f, .7f});
+        Rect(mesh, -1, -39, 2, 1, {.66f, .33f, .44f, 1});
+        Triangle(mesh, -12, -52, -20, -59, -20, -48, robe);
+        Triangle(mesh, 12, -52, 20, -59, 20, -48, robe);
+        Rect(mesh, 19, hand - 22, 3, 40, white);
+        Rect(mesh, 19, hand - 4, 3, 4, robe);
+        float tipY = hand + CharacterVisual::WandHeadOffset;
+        Star(mesh, CharacterVisual::WandX, tipY, 11, {.66f, .40f, .24f, 1});
+        Star(mesh, CharacterVisual::WandX, tipY, 9, gold);
+        Ellipse(mesh, CharacterVisual::WandX, tipY, 3, 3, robe);
+        Ellipse(mesh, CharacterVisual::WandX - 1, tipY - 1, 1, 1, white);
+        Triangle(mesh, 19, hand - 15, 12, hand - 9, 17, hand - 3, robe);
+        Triangle(mesh, 22, hand - 15, 29, hand - 10, 24, hand - 2, robe);
     }
 
     for (int kind = 0; kind < 2; ++kind)
@@ -190,13 +250,16 @@ void PrimitiveModels::Generate()
             float bob = std::sin(frame * 1.570796f) * 2;
             if (kind == 0)
             {
-                Ellipse(mesh, 0, -13 + bob, 18 + bob, 14 - bob, {.33f, .52f, .32f, 1});
-                Ellipse(mesh, -6, -20 + bob, 6, 3, {.60f, .73f, .45f, .7f});
+                Ellipse(mesh, 0, -13 + bob, 18 + bob, 14 - bob, {.48f, .39f, .72f, 1});
+                Ellipse(mesh, -6, -20 + bob, 6, 3, {.86f, .68f, .94f, .7f});
             }
             else
             {
                 Triangle(mesh, -17, 0, 0, -43 + bob, 17, 0, {.40f, .31f, .48f, 1});
                 Triangle(mesh, -13, -28, -17, -47 + bob, -1, -32, {.59f, .43f, .54f, 1});
+                Ellipse(mesh, -9, -39 + bob, 5, 17, hair);
+                Ellipse(mesh, 9, -39 + bob, 5, 17, hair);
+                Ellipse(mesh, 0, -21 + bob, 15, 16, dark);
                 Rect(mesh, -14, -4 + bob, 5, 5, dark);
                 Rect(mesh, 9, -4 - bob, 5, 5, dark);
             }
@@ -207,33 +270,71 @@ void PrimitiveModels::Generate()
 
     auto& tree = m_Models[static_cast<int>(ModelId::Tree)];
     Rect(tree, -4, -45, 8, 45, {.32f, .23f, .16f, 1});
+    Triangle(tree, -9, 0, -2, -24, 0, 0, {.43f, .28f, .24f, 1});
+    Triangle(tree, 0, 0, 3, -22, 12, 0, {.27f, .19f, .22f, 1});
+    Rect(tree, -2, -40, 2, 34, {.57f, .37f, .30f, 1});
+    Triangle(tree, -2, -28, -20, -49, -13, -28, {.35f, .23f, .22f, 1});
+    Triangle(tree, 2, -30, 21, -58, 13, -31, {.40f, .27f, .23f, 1});
     for (int layer = 0; layer < 3; ++layer)
     {
         float w = 28.f - layer * 5;
         float y = -18.f - layer * 23;
-        Triangle(tree, -w, y, 0, y - 55, w, y, {.14f, .32f, .28f, 1});
-        Triangle(tree, 0, y - 55, w, y, 3, y - 4, {.10f, .23f, .25f, 1});
+        Ellipse(tree, 0, y - 15, w, 20, {.67f, .32f, .53f, 1});
+        for (int cluster = 0; cluster < 5; ++cluster)
+        {
+            float angle = cluster * 1.256637f;
+            float cx = std::cos(angle) * w * .60f;
+            float cy = y - 17 + std::sin(angle) * 9;
+            Ellipse(tree, cx, cy, 12, 11, {.88f, .49f + layer * .04f, .68f, 1});
+            Ellipse(tree, cx - 3, cy - 4, 8, 6, {1, .73f, .83f, 1});
+            Star(tree, cx - 4, cy - 5, 2.5f, {1, .91f, .89f, 1});
+        }
+    }
+    for (int petal = 0; petal < 7; ++petal)
+    {
+        Ellipse(tree, -15.f + petal * 5, float(petal % 3), 2, 1, {.94f, .62f, .74f, .8f});
     }
 
     auto& rock = m_Models[static_cast<int>(ModelId::Rock)];
     Triangle(rock, -23, -3, -10, -26, 20, -3, {.37f, .42f, .45f, 1});
     Triangle(rock, -10, -26, 10, -24, 20, -3, {.52f, .55f, .53f, 1});
+    Triangle(rock, -23, -3, -10, -26, -6, -12, {.47f, .50f, .58f, 1});
+    Triangle(rock, -10, -26, 10, -24, -6, -12, {.68f, .68f, .73f, 1});
+    Triangle(rock, -6, -12, 10, -24, 8, -4, {.53f, .53f, .64f, 1});
+    Triangle(rock, 10, -24, 20, -3, 8, -4, {.30f, .33f, .43f, 1});
+    Triangle(rock, -23, -3, -6, -12, 8, -4, {.36f, .38f, .47f, 1});
+    Triangle(rock, -4, -21, -7, -14, -5, -8, {.27f, .30f, .38f, 1});
+    Ellipse(rock, -14, -5, 6, 2, {.36f, .51f, .40f, 1});
+    Ellipse(rock, 6, -4, 4, 1.5f, {.45f, .61f, .44f, 1});
+    Ellipse(rock, -25, 0, 4, 2, {.54f, .54f, .63f, 1});
+    Ellipse(rock, 23, 1, 3, 2, {.42f, .44f, .52f, 1});
 
     auto& shelter = m_Models[static_cast<int>(ModelId::Shelter)];
-    Rect(shelter, -39, -59, 78, 54, {.52f, .41f, .31f, 1});
-    for (int y = -55; y < -5; y += 10)
+    // Modern school facade with flat roof, classroom windows and entrance clock.
+    Rect(shelter, -49, -95, 98, 90, {.89f, .83f, .79f, 1});
+    Rect(shelter, -53, -100, 106, 7, {.39f, .48f, .68f, 1});
+    for (int y = -82; y < -20; y += 25)
     {
-        Rect(shelter, -39, float(y), 78, 2, {.28f, .21f, .16f, 1});
+        for (int x = -41; x <= 31; x += 24)
+        {
+            Rect(shelter, float(x), float(y), 16, 17, {.40f, .68f, .84f, 1});
+            Rect(shelter, float(x + 7), float(y), 2, 17, white);
+            Rect(shelter, float(x), float(y + 16), 18, 2, {.57f, .55f, .65f, 1});
+            Triangle(shelter, float(x + 1), float(y + 1), float(x + 6), float(y + 1), float(x + 1),
+                     float(y + 10), {.79f, .90f, .96f, 1});
+        }
     }
-    Triangle(shelter, -50, -58, 0, -105, 50, -58, {.43f, .28f, .25f, 1});
-    Triangle(shelter, -50, -58, 0, -105, -3, -58, {.58f, .40f, .29f, 1});
-    Rect(shelter, -9, -33, 18, 28, dark);
-    Rect(shelter, -31, -43, 14, 16, gold);
-    Rect(shelter, 17, -43, 14, 16, gold);
+    Rect(shelter, -11, -28, 22, 23, dark);
+    Rect(shelter, -16, -32, 32, 5, robe);
+    Rect(shelter, -15, -5, 30, 3, {.70f, .68f, .74f, 1});
+    Rect(shelter, -19, -2, 38, 3, {.57f, .56f, .66f, 1});
+    Ellipse(shelter, 0, -109, 11, 11, white);
+    Rect(shelter, -1, -117, 2, 8, dark);
+    Rect(shelter, 0, -110, 6, 2, dark);
 
     auto& fire = m_Models[static_cast<int>(ModelId::Campfire)];
     Ellipse(fire, 0, -1, 17, 8, {.35f, .35f, .35f, 1});
-    Rect(fire, -12, -5, 24, 5, {.28f, .17f, .1f, 1});
+    Ellipse(fire, 0, -4, 13, 6, {.92f, .63f, .89f, 1});
 
     auto& coin = m_Models[static_cast<int>(ModelId::Coin)];
     Ellipse(coin, 0, -7, 7, 5, gold);

@@ -10,6 +10,8 @@
 #include "HuntingMap.h"
 #include "PrimitiveModels.h"
 #include "RpgProgress.h"
+#include "SceneGraph.h"
+#include "CharacterVisual.h"
 
 namespace LevelOne
 {
@@ -39,11 +41,14 @@ struct Enemy
     float animation = 0;
 };
 
+unsigned int nextVisualId = 0;
+
 struct Drop
 {
     Position position;
     int kind;
     int quantity;
+    unsigned int visualId = nextVisualId++;
 };
 
 struct Projectile
@@ -52,6 +57,9 @@ struct Projectile
     Position direction;
     int damage;
     float lifetime;
+    Position muzzleOffset;
+    float age = 0;
+    unsigned int visualId = nextVisualId++;
 };
 
 struct FloatingText
@@ -65,6 +73,8 @@ struct FloatingText
 Renderer* graphics = nullptr;
 Hunting::Map map;
 Hunting::PrimitiveModels models;
+Game::SceneGraph scene;
+bool castMirror = false;
 Rpg::Progress progress;
 std::vector<Enemy> enemies;
 std::vector<Drop> drops;
@@ -135,7 +145,7 @@ void Text(float x, float y, const std::string& label, Color color = white, float
 void Model(ModelId id, Position world, float scale = 1, float elevation = 0, bool mirror = false)
 {
     Position screen = Project(world, elevation);
-    if (Visible(screen))
+    if (Visible(screen, 140 * scale))
     {
         graphics->DrawModel(
             models.Get(id), screen.x * screenWidth / 1280, screen.y * screenHeight / 800,
@@ -172,6 +182,7 @@ void FloatText(Position p, const std::string& text, Color color)
 
 void NewMap()
 {
+    scene.Clear();
     map.Generate(random());
     player = map.camp;
     enemies.clear();
@@ -212,7 +223,7 @@ void NewMap()
         }
     }
     navigation = map.Distances(player);
-    Notify("첫 사냥터입니다. 스페이스로 공격하고 E로 전리품을 획득하세요.");
+    Notify("마법소녀의 첫 임무! 학교를 지켜요. 스페이스 공격 / E 획득");
 }
 
 bool LineOfSight(Position a, Position b)
@@ -253,7 +264,10 @@ void Attack()
     mana -= 4;
     attackTimer = .5f;
     castTimer = .25f;
-    projectiles.push_back({player, direction, progress.stats.attack, .85f});
+    castMirror = direction.x - direction.y < 0;
+    auto socket = CharacterVisual::WandSocket(true, castMirror);
+    // Keep the original collision path/range; only the initial visual segment uses the socket.
+    projectiles.push_back({player, direction, progress.stats.attack, .85f, {socket.x, socket.y}});
 }
 
 void Kill(Enemy& enemy)
@@ -287,6 +301,7 @@ void UpdateProjectiles(float dt)
     for (auto& shot : projectiles)
     {
         shot.lifetime -= dt;
+        shot.age += dt;
         int steps = (std::max)(1, static_cast<int>(std::ceil(9 * dt / .10f)));
         for (int step = 0; step < steps && shot.lifetime > 0; ++step)
         {
@@ -339,7 +354,7 @@ void ReceiveDamage(int attack)
         mana = static_cast<float>(progress.stats.maxMana);
         navigationTimer = 0;
         projectiles.clear();
-        Notify("캠프에서 회복했습니다. 경험치와 소지품은 잃지 않습니다.");
+        Notify("학교에서 회복했습니다. 경험치와 소지품은 잃지 않습니다.");
     }
 }
 
@@ -469,144 +484,145 @@ void PickUp()
     }
 }
 
+void PlaceModel(const std::string& name, ModelId model, Game::Transform pose, Game::Actor* parent,
+                bool mirror = false, Game::RenderLayer layer = Game::RenderLayer::World)
+{
+    scene.Place(
+        name, pose, layer,
+        [model, mirror](const Game::Actor&, const Game::Transform& world)
+        {
+            Model(model, {world.x, world.y}, world.scale, world.z, mirror);
+        },
+        parent);
+}
+
+void PlaceEffect(const std::string& name, Game::Transform pose, float width, float height, int kind,
+                 Game::Actor* parent)
+{
+    scene.Place(
+        name, pose, Game::RenderLayer::World,
+        [width, height, kind](const Game::Actor&, const Game::Transform& world)
+        {
+            // Effect() takes the bottom edge; Actor.z describes the effect center.
+            Effect({world.x, world.y}, width * world.scale, height * world.scale, kind,
+                   world.z - height * world.scale * .5f);
+        },
+        parent);
+}
+
 void DrawMap()
 {
-    // Ground is dynamic tile placement. Reusable scenery / actor meshes come from disk cache.
-    for (int sum = 0; sum < Hunting::Map::Width + Hunting::Map::Height; ++sum)
+    auto& terrain = scene.Place("terrain", {}, Game::RenderLayer::Ground);
+    auto& scenery = scene.Place("scenery", {}, Game::RenderLayer::World);
+    for (int y = 0; y < Hunting::Map::Height; ++y)
     {
         for (int x = 0; x < Hunting::Map::Width; ++x)
         {
-            int y = sum - x;
-            if (y < 0 || y >= Hunting::Map::Height)
-            {
-                continue;
-            }
+            auto tile = map.tiles[Hunting::Map::Index(x, y)];
             Position p = {x + .5f, y + .5f};
-            Position s = Project(p);
-            if (!Visible(s, 36))
-            {
-                continue;
-            }
-            auto tile = map.tiles[Hunting::Map::Index(x, y)];
-            if (tile == Hunting::Tile::Water)
-            {
-                // UV movement / ripples are entirely in Effect.fs.
-                Effect(p, 65, 33, 0, -16.5f, x * .63f + y * .91f);
-            }
-            else
-            {
-                float noise = ((x * 7 + y * 13) % 5) * .007f;
-                Color ground = map.Safe(p) ? Color{.38f + noise, .33f + noise, .27f + noise, 1}
-                                           : Color{.18f + noise, .28f + noise, .24f + noise, 1};
-                Diamond(s, 32.5f, 16.5f, ground);
-            }
-        }
-    }
-
-    for (int y = 1; y < Hunting::Map::Height - 1; ++y)
-    {
-        for (int x = 1; x < Hunting::Map::Width - 1; ++x)
-        {
-            auto tile = map.tiles[Hunting::Map::Index(x, y)];
+            float noise = ((x * 7 + y * 13) % 5) * .007f;
+            Color ground = map.Safe(p) ? Color{.67f + noise, .60f + noise, .64f + noise, 1}
+                                       : Color{.34f + noise, .48f + noise, .40f + noise, 1};
+            std::string key = std::to_string(Hunting::Map::Index(x, y));
+            scene.Place(
+                "tile/" + key, {p.x, p.y}, Game::RenderLayer::Ground,
+                [tile, ground, x, y](const Game::Actor&, const Game::Transform& world)
+                {
+                    Position screen = Project({world.x, world.y}, world.z);
+                    if (!Visible(screen, 36 * world.scale))
+                    {
+                        return;
+                    }
+                    if (tile == Hunting::Tile::Water)
+                    {
+                        Effect({world.x, world.y}, 65 * world.scale, 33 * world.scale, 0,
+                               world.z - 16.5f * world.scale, x * .63f + y * .91f);
+                    }
+                    else
+                    {
+                        Diamond(screen, 32.5f * world.scale, 16.5f * world.scale, ground);
+                    }
+                },
+                &terrain);
             if (tile == Hunting::Tile::Tree || tile == Hunting::Tile::Rock)
             {
-                Model(ModelId::Shadow, {x + .5f, y + .5f}, tile == Hunting::Tile::Tree ? 1.4f : 1);
+                std::string prop = "prop/" + key;
+                PlaceModel(prop, tile == Hunting::Tile::Tree ? ModelId::Tree : ModelId::Rock,
+                           {p.x, p.y}, &scenery);
+                PlaceModel(prop + "/shadow", ModelId::Shadow,
+                           {0, 0, 0, tile == Hunting::Tile::Tree ? 1.4f : 1.f}, scene.Find(prop),
+                           false, Game::RenderLayer::Shadow);
             }
         }
     }
-    Model(ModelId::Shadow, player);
-    for (const auto& enemy : enemies)
-    {
-        if (enemy.health > 0)
-        {
-            Model(ModelId::Shadow, enemy.position);
-        }
-    }
+    PlaceModel("school", ModelId::Shelter, {map.camp.x - 2, map.camp.y - 2}, &scenery);
+    PlaceModel("beacon", ModelId::Campfire, {map.camp.x + 1, map.camp.y - 1}, &scenery);
+    PlaceEffect("beacon/flame", {0, 0, 31.5f}, 42, 63, 1, scene.Find("beacon"));
 }
 
 void DrawActors()
 {
-    struct Item
-    {
-        Position position;
-        ModelId model;
-        float scale;
-        bool mirror;
-    };
-
-    std::vector<Item> items;
-    for (int y = 1; y < Hunting::Map::Height - 1; ++y)
-    {
-        for (int x = 1; x < Hunting::Map::Width - 1; ++x)
-        {
-            auto tile = map.tiles[Hunting::Map::Index(x, y)];
-            Position p = {x + .5f, y + .5f};
-            if (!Visible(Project(p)))
-            {
-                continue;
-            }
-            if (tile == Hunting::Tile::Tree || tile == Hunting::Tile::Rock)
-            {
-                items.push_back(
-                    {p, tile == Hunting::Tile::Tree ? ModelId::Tree : ModelId::Rock, 1, false});
-            }
-        }
-    }
-
-    // These camp props are decorative; no hidden collision is added over the connected floor grid.
-    items.push_back({{map.camp.x - 2, map.camp.y - 2}, ModelId::Shelter, 1, false});
-    items.push_back({{map.camp.x + 1, map.camp.y - 1}, ModelId::Campfire, 1, false});
+    auto& dynamic = scene.Place("characters", {}, Game::RenderLayer::World);
     ModelId playerModel = castTimer > 0 ? ModelId::PlayerCast : ModelId::PlayerIdle;
     if (castTimer <= 0 && moving)
     {
         playerModel = static_cast<ModelId>(static_cast<int>(ModelId::PlayerWalk0) +
                                            static_cast<int>(walkFrame) % 4);
     }
-    if (damageTimer <= 0 || static_cast<int>(time * 14) % 2 == 0)
+    bool mirror = castTimer > 0 ? castMirror : facing.x - facing.y < 0;
+    // Root remains visible during damage flicker, so its shadow/socket are not lost.
+    auto& heroine =
+        scene.Place("player", {player.x, player.y}, Game::RenderLayer::World, {}, &dynamic);
+    PlaceModel("player/body", playerModel, {}, &heroine, mirror);
+    scene.Find("player/body")->visible = damageTimer <= 0 || static_cast<int>(time * 14) % 2 == 0;
+    PlaceModel("player/shadow", ModelId::Shadow, {}, &heroine, false, Game::RenderLayer::Shadow);
+    auto& socket = scene.Place("player/wand", CharacterVisual::WandSocket(castTimer > 0, mirror),
+                               Game::RenderLayer::World, {}, &heroine);
+    if (castTimer > 0)
     {
-        items.push_back({player, playerModel, 1, facing.x - facing.y < 0});
+        PlaceEffect("player/wand/flash", {}, 24, 24, 2, &socket);
     }
-    for (const auto& enemy : enemies)
+    for (size_t i = 0; i < enemies.size(); ++i)
     {
-        if (enemy.health > 0)
+        const auto& enemy = enemies[i];
+        if (enemy.health <= 0)
         {
-            int frame = static_cast<int>(enemy.animation) % 4;
-            int base = static_cast<int>(enemy.kind == 0 ? ModelId::Slime0 : ModelId::Shade0);
-            items.push_back({enemy.position, static_cast<ModelId>(base + frame), 1, false});
+            continue;
         }
+        std::string name = "enemy/" + std::to_string(i);
+        int frame = static_cast<int>(enemy.animation) % 4;
+        int base = static_cast<int>(enemy.kind == 0 ? ModelId::Slime0 : ModelId::Shade0);
+        PlaceModel(name, static_cast<ModelId>(base + frame), {enemy.position.x, enemy.position.y},
+                   &dynamic);
+        PlaceModel(name + "/shadow", ModelId::Shadow, {}, scene.Find(name), false,
+                   Game::RenderLayer::Shadow);
     }
+    auto& loot = scene.Place("loot", {}, Game::RenderLayer::World);
     for (const auto& drop : drops)
     {
         ModelId model = drop.kind == 0   ? ModelId::Coin
                         : drop.kind == 1 ? ModelId::Potion
                                          : ModelId::Crystal;
-        items.push_back({drop.position, model, 1, false});
+        PlaceModel("drop/" + std::to_string(drop.visualId), model,
+                   {drop.position.x, drop.position.y}, &loot);
     }
-    std::stable_sort(items.begin(), items.end(),
-                     [](const Item& a, const Item& b)
-                     {
-                         return a.position.x + a.position.y < b.position.x + b.position.y;
-                     });
-    for (const auto& item : items)
-    {
-        Model(item.model, item.position, item.scale, 0, item.mirror);
-    }
-
-    Effect({map.camp.x + 1, map.camp.y - 1}, 42, 63, 1);
+    auto& spells = scene.Place("spells", {}, Game::RenderLayer::World);
     for (const auto& shot : projectiles)
     {
-        Effect(shot.position, 30, 30, 2, 12);
-    }
-    if (castTimer > 0)
-    {
-        Effect(player, 38, 38, 2, 24);
+        float blend = 1.f - (std::min)(1.f, shot.age / .18f);
+        float wandHeight = CharacterVisual::WandSocket(true, false).z;
+        PlaceEffect("shot/" + std::to_string(shot.visualId),
+                    {shot.position.x + shot.muzzleOffset.x * blend,
+                     shot.position.y + shot.muzzleOffset.y * blend,
+                     27.f + (wandHeight - 27.f) * blend},
+                    30, 30, 2, &spells);
     }
 }
 
 void DrawHud()
 {
     Box(18, 18, 820, 136, panel);
-    Text(35, 48, "첫 번째 레벨 · 황혼의 사냥터", gold, 25);
+    Text(35, 48, "마법소녀 · 방과 후 첫 임무", gold, 25);
     char line[320];
     sprintf_s(line, "레벨 %d   체력 %.0f / %d   마나 %.0f / %d   공격력 %d   방어력 %d",
               progress.stats.level, health, progress.stats.maxHealth, mana, progress.stats.maxMana,
@@ -637,7 +653,7 @@ void DrawHud()
     Box(18, 166, 600, 40, panel);
     sprintf_s(line, "골드 %d    회복 물약 %d [Q]    마력석 %d    %s", progress.coins,
               progress.potions, progress.crystals,
-              map.Safe(player) ? "캠프: 회복 중" : "야생 사냥 지역");
+              map.Safe(player) ? "학교: 회복 중" : "학교 주변 · 악몽 출현");
     Text(35, 193, line, gold, 17);
 
     Box(1030, 20, 230, 170, panel);
@@ -668,8 +684,7 @@ void DrawHud()
         Position s = Project(enemy.position, 50);
         if (enemy.health > 0 && Distance(player, enemy.position) < 7 && Visible(s))
         {
-            sprintf_s(line, "레벨 %d %s", enemy.level,
-                      enemy.kind == 0 ? "이끼 괴물" : "그림자 짐승");
+            sprintf_s(line, "레벨 %d %s", enemy.level, enemy.kind == 0 ? "걱정 방울" : "악몽 토끼");
             Text(s.x - 45, s.y, line, white, 13);
             Box(s.x - 25, s.y + 5, 50, 4, panel);
             Box(s.x - 25, s.y + 5, 50.f * enemy.health / enemy.maxHealth, 4, {.9f, .27f, .35f, 1});
@@ -690,8 +705,8 @@ void DrawHud()
     }
     Box(18, 710, 1244, 74, panel);
     Text(35, 738,
-         "WASD 이동   스페이스 공격   E 획득   Q 물약   ESC 메뉴   F1 튜토리얼 / F2 사냥터", gold,
-         17);
+         "WASD 이동   스페이스 공격   E 획득   Q 물약   ESC 메뉴   F1 튜토리얼 / F2 학교 주변",
+         gold, 17);
     std::string cache = models.loadedFromFile ? "모델: 파일 캐시 로딩"
                         : models.storedToFile ? "모델: 최초 생성·캐시 저장 완료"
                                               : "모델: 캐시 쓰기 실패";
@@ -706,7 +721,7 @@ void DrawHud()
     {
         Box(0, 0, 1280, 800, {.02f, .025f, .04f, .78f});
         Box(270, 250, 740, 275, panel);
-        Text(307, 298, "사냥터 메뉴", gold, 26);
+        Text(307, 298, "학교 주변 메뉴", gold, 26);
         Text(307, 347, "ESC: 계속하기   |   R: 새로운 랜덤 맵");
         Text(307, 391, "새 맵에서도 경험치와 소지품은 유지됩니다.", teal);
         Text(307, 427, "단, 바닥에 남은 전리품과 몬스터 배치는 초기화됩니다.", white, 16);
@@ -850,11 +865,27 @@ void Update(float dt)
 
 void Draw()
 {
-    graphics->BeginWorld();
+    scene.BeginSync();
     DrawMap();
     DrawActors();
+    scene.Place("ui", {}, Game::RenderLayer::UserInterface,
+                [](const Game::Actor&, const Game::Transform&)
+                {
+                    DrawHud();
+                });
+    scene.Place(
+        "ui/draw-calls", {}, Game::RenderLayer::UserInterface,
+        [](const Game::Actor&, const Game::Transform&)
+        {
+            graphics->DrawFrameStats();
+        },
+        scene.Find("ui"));
+    scene.EndSync();
+
+    graphics->BeginWorld();
+    scene.Render(Game::RenderLayer::Background, Game::RenderLayer::Overlay);
     graphics->EndWorld(time);
-    DrawHud();
+    scene.Render(Game::RenderLayer::UserInterface, Game::RenderLayer::UserInterface);
     graphics->Flush();
 }
 } // namespace LevelOne

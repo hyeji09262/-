@@ -19,6 +19,7 @@ static bool showTutorial = false;
 
 void RenderScene()
 {
+    g_Renderer->BeginFrame();
     if (showTutorial)
     {
         Tutorial::Draw();
@@ -27,6 +28,7 @@ void RenderScene()
     {
         LevelOne::Draw();
     }
+    g_Renderer->EndFrame();
     glutSwapBuffers();
 }
 
@@ -93,7 +95,7 @@ void SpecialKey(int key, int, int)
     Tutorial::paused = true;
     showTutorial = key == GLUT_KEY_F1;
     SetWindowTextW(GetActiveWindow(),
-                   showTutorial ? L"잔불 마을 - 튜토리얼" : L"첫 번째 레벨 - 황혼의 사냥터");
+                   showTutorial ? L"별빛 학교 - 마법소녀의 첫날" : L"마법소녀 - 방과 후 첫 임무");
 }
 
 void Visibility(int state)
@@ -124,7 +126,7 @@ int main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(1280, 800);
     glutCreateWindow("Emberwick");
-    SetWindowTextW(GetActiveWindow(), L"첫 번째 레벨 - 황혼의 사냥터");
+    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 방과 후 첫 임무");
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
     if (glewInit() != GLEW_OK || !GLEW_VERSION_3_3)
