@@ -4,6 +4,7 @@
 #include <queue>
 #include <random>
 #include "HuntingMap.h"
+#include "Profiler.h"
 
 namespace Hunting
 {
@@ -26,6 +27,7 @@ bool Map::Floor(int x, int y) const
 
 bool Map::Walkable(Position p, float radius) const
 {
+    Performance::Profiler::Get().Count("collision.walkable_checks");
     // Four corners enforce clearance for an actor, not just connectivity for a point.
     if (!std::isfinite(p.x) || !std::isfinite(p.y))
     {
@@ -52,6 +54,7 @@ bool Map::Safe(Position p) const
 
 void Map::Move(Position& p, Position delta) const
 {
+    Performance::Scope scope("cpu.collision.move_ms");
     // Substeps also prevent tunneling when movement speed is increased later.
     int steps = (std::max)(
         1, static_cast<int>(std::ceil((std::max)(std::abs(delta.x), std::abs(delta.y)) / 0.15f)));
@@ -72,6 +75,8 @@ void Map::Move(Position& p, Position delta) const
 
 std::array<int, Map::Count> Map::Distances(Position origin) const
 {
+    Performance::Scope scope("cpu.navigation.bfs_ms");
+    Performance::Profiler::Get().Count("navigation.bfs_requests");
     std::array<int, Count> result;
     result.fill(-1);
     int ox = static_cast<int>(origin.x);
@@ -119,6 +124,7 @@ bool Map::AllFloorConnected() const
 
 void Map::Generate(std::uint32_t newSeed)
 {
+    Performance::Scope scope("cpu.map.generate_ms");
     seed = newSeed;
     std::mt19937 random(seed);
     tiles.fill(Tile::Water);

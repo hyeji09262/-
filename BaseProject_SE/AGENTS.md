@@ -40,6 +40,9 @@
 - Route placed world objects and HUD composites through Actor and SceneGraph; keep child effects and shadows attached to their owner, and let the graph handle render layers and ground-depth sorting. Do not add a second ad-hoc object sorting list.
 - Define character attachment points in CharacterVisual.h; wand meshes and spell origins must share the same socket coordinates, including mirrored cast poses.
 - Use delta-time-based updates for real-time gameplay.
+- Keep static terrain/scenery actors retained until the map changes, and cull before sorting the scene render queue. Preserve transparent painter order when batching.
+- Keep immutable model meshes in the renderer GPU cache. Batch compatible geometry, text, and shader effects; do not flush per text label or water tile.
+- Instrument new potentially expensive systems with Performance::Scope, Count, or Gauge using stable dotted English names and explicit units. Compare Release builds using JSONL performance windows; distinguish CPU inclusive time, asynchronous GPU timeline time, presentation wait, and frame interval. Never claim a measured improvement without runtime evidence.
 - Keep project assets and runtime dependencies intentional. Do not commit Visual Studio workspace files or generated build artifacts.
 
 ## Code formatting

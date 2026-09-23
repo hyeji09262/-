@@ -30,7 +30,7 @@ inline void Person(Vec p, Color cloak, bool wizard = false, int variant = 0)
         return;
     if (wizard)
     {
-        int frame = castPose > 0 ? 5 : moving ? 1 + int(walkCycle / 1.570796f) % 4 : 0;
+        int frame = CharacterVisual::FrameIndex(castPose, moving, walkCycle / 1.570796f);
         CachedArt(static_cast<Hunting::ModelId>(frame), s, 1.f,
                   castPose > 0 ? castMirror : facing < 0);
         if (hurtCD > 0)
@@ -75,8 +75,6 @@ inline void Building(const Prop& p)
 {
     Vec s = Project(p.p);
     CachedArt(Hunting::ModelId::Shelter, s, p.kind == 1 ? 1.2f : .85f);
-    const char* label = p.kind == 1 ? "별빛 학교" : p.kind == 2 ? "도서관" : "동아리관";
-    Text(s.x - 29, s.y - 17, label, ink, 12);
 }
 
 inline void DrawProp(const Prop& p)
@@ -257,84 +255,117 @@ inline void DrawWorld()
              {
                  Box(0, 0, 1280, 800, {.10f, .14f, .18f, 1});
              });
-    for (int y = 0; y < MapHeight; ++y)
+    if (!scene.Find("tile/0"))
     {
-        for (int x = 0; x < MapWidth; ++x)
+        for (int y = 0; y < MapHeight; ++y)
         {
-            PlaceArt(
-                "tile/" + std::to_string(y * MapWidth + x), {float(x), float(y)},
-                RenderLayer::Ground,
-                [x, y]()
-                {
-                    Vec s = Project({float(x), float(y)});
-                    if (!Visible(s, 40))
-                        return;
-                    float n = ((x * 7 + y * 3) % 5) * .009f;
-                    Color c = {.35f + n, .49f + n, .40f + n, 1};
-                    if (x >= LandWidth)
-                        c = {.14f + n * .5f, .27f + n, .35f + n, 1};
-                    else if (x >= LandWidth - 2)
-                        c = {.53f + n, .47f + n, .36f + n, 1};
-                    else if (Path(x, y))
-                        c = {.68f + n, .62f + n, .65f + n, 1};
-                    Diamond(s, 32.4f, 16.4f, c);
-                    if (x >= LandWidth)
+            for (int x = 0; x < MapWidth; ++x)
+            {
+                PlaceArt(
+                    "tile/" + std::to_string(y * MapWidth + x), {float(x), float(y)},
+                    RenderLayer::Ground,
+                    [x, y]()
                     {
-                        float wave = std::sin(clockTime * 1.6f + x * .6f + y * .8f);
-                        Line({s.x - 18, s.y + wave * 3}, {s.x + 8, s.y + wave * 3 - 2}, 1.4f,
-                             {.53f, .74f, .77f, .15f + wave * .06f});
-                        if (x == LandWidth)
+                        Vec s = Project({float(x), float(y)});
+                        if (!Visible(s, 40))
+                            return;
+                        float n = ((x * 7 + y * 3) % 5) * .009f;
+                        Color c = {.35f + n, .49f + n, .40f + n, 1};
+                        if (x >= LandWidth)
+                            c = {.14f + n * .5f, .27f + n, .35f + n, 1};
+                        else if (x >= LandWidth - 2)
+                            c = {.53f + n, .47f + n, .36f + n, 1};
+                        else if (Path(x, y))
+                            c = {.68f + n, .62f + n, .65f + n, 1};
+                        Diamond(s, 32.4f, 16.4f, c);
+                        if (x >= LandWidth)
                         {
-                            float tide = std::sin(clockTime * 1.2f + y * .5f) * 4;
-                            Line({s.x - 30 + tide, s.y}, {s.x + tide, s.y - 15}, 2.4f,
-                                 {.80f, .86f, .79f, .50f});
-                            Line({s.x - 27 + tide, s.y + 3}, {s.x + 3 + tide, s.y - 12}, 1,
-                                 {.80f, .86f, .79f, .18f});
+                            float wave = std::sin(clockTime * 1.6f + x * .6f + y * .8f);
+                            Line({s.x - 18, s.y + wave * 3}, {s.x + 8, s.y + wave * 3 - 2}, 1.4f,
+                                 {.53f, .74f, .77f, .15f + wave * .06f});
+                            if (x == LandWidth)
+                            {
+                                float tide = std::sin(clockTime * 1.2f + y * .5f) * 4;
+                                Line({s.x - 30 + tide, s.y}, {s.x + tide, s.y - 15}, 2.4f,
+                                     {.80f, .86f, .79f, .50f});
+                                Line({s.x - 27 + tide, s.y + 3}, {s.x + 3 + tide, s.y - 12}, 1,
+                                     {.80f, .86f, .79f, .18f});
+                            }
                         }
-                    }
-                    else if (Path(x, y))
-                    {
-                        for (int k = 0; k < 3; ++k)
+                        else if (Path(x, y))
                         {
-                            float ox = ((x * 13 + y * 7 + k * 19) % 35) - 17.f,
-                                  oy = ((x * 3 + y * 11 + k * 7) % 13) - 6.f;
-                            Diamond({s.x + ox, s.y + oy}, 5, 2,
-                                    {.57f + n, .49f + n, .37f + n, .65f});
+                            for (int k = 0; k < 3; ++k)
+                            {
+                                float ox = ((x * 13 + y * 7 + k * 19) % 35) - 17.f,
+                                      oy = ((x * 3 + y * 11 + k * 7) % 13) - 6.f;
+                                Diamond({s.x + ox, s.y + oy}, 5, 2,
+                                        {.57f + n, .49f + n, .37f + n, .65f});
+                            }
                         }
-                    }
-                    else if (x < LandWidth - 2 && (x + y) % 3 == 0)
-                    {
-                        float breeze = std::sin(clockTime * 1.6f + x + y) * 2;
-                        for (int k = 0; k < 3; ++k)
-                            Line({s.x + k * 5 - 5, s.y + 2},
-                                 {s.x + k * 5 - 6 + breeze, s.y - 5 - k % 2 * 3}, 1,
-                                 {.36f, .44f, .27f, .75f});
-                        if ((x * 3 + y) % 17 == 0)
-                            Ellipse({s.x + 7, s.y - 3}, 2, 2, {.78f, .55f, .37f, 1}, 8);
-                    }
-                },
-                &terrain);
+                        else if (x < LandWidth - 2 && (x + y) % 3 == 0)
+                        {
+                            float breeze = std::sin(clockTime * 1.6f + x + y) * 2;
+                            for (int k = 0; k < 3; ++k)
+                                Line({s.x + k * 5 - 5, s.y + 2},
+                                     {s.x + k * 5 - 6 + breeze, s.y - 5 - k % 2 * 3}, 1,
+                                     {.36f, .44f, .27f, .75f});
+                            if ((x * 3 + y) % 17 == 0)
+                                Ellipse({s.x + 7, s.y - 3}, 2, 2, {.78f, .55f, .37f, 1}, 8);
+                        }
+                    },
+                    &terrain);
+            }
         }
+        scene.RetainSubtree(terrain);
     }
-    for (size_t i = 0; i < props.size(); ++i)
+    if (!scene.Find("prop/0"))
     {
-        Prop prop = props[i];
-        std::string name = "prop/" + std::to_string(i);
-        auto& actor = PlaceArt(
-            name, {prop.p.x, prop.p.y}, RenderLayer::World,
-            [prop]()
+        for (size_t i = 0; i < props.size(); ++i)
+        {
+            Prop prop = props[i];
+            std::string name = "prop/" + std::to_string(i);
+            auto& actor = PlaceArt(
+                name, {prop.p.x, prop.p.y}, RenderLayer::World,
+                [prop]()
+                {
+                    DrawProp(prop);
+                },
+                &scenery);
+            if (prop.kind >= 1 && prop.kind <= 3)
             {
-                DrawProp(prop);
-            },
-            &scenery);
-        PlaceArt(
-            name + "/shadow", {}, RenderLayer::Shadow,
-            [prop]()
-            {
-                float size = prop.kind >= 1 && prop.kind <= 3 ? 42.f : prop.kind == 0 ? 19.f : 12.f;
-                Shadow({0, 0}, size, size * .30f, prop.kind <= 3 ? 43.f : 12.f);
-            },
-            &actor);
+                const char* label = prop.kind == 1   ? "별빛 학교"
+                                    : prop.kind == 2 ? "도서관"
+                                                     : "동아리관";
+                float roof = 125.f * (prop.kind == 1 ? 1.2f : .85f);
+                scene.Place(
+                    name + "/label", {0, 0, roof + 12}, RenderLayer::Overlay,
+                    [label](const Game::Actor&, const Game::Transform& world)
+                    {
+                        if (Dist(player, {world.x, world.y}) > 5.5f)
+                        {
+                            return;
+                        }
+                        Vec screen = Project({world.x, world.y}, world.z);
+                        if (Visible(screen, 0))
+                        {
+                            renderer->Nameplate(screen.x * width / 1280, screen.y * height / 800,
+                                                label, 17.f * height / 800);
+                        }
+                    },
+                    &actor);
+            }
+            PlaceArt(
+                name + "/shadow", {}, RenderLayer::Shadow,
+                [prop]()
+                {
+                    float size = prop.kind >= 1 && prop.kind <= 3 ? 42.f
+                                 : prop.kind == 0                 ? 19.f
+                                                                  : 12.f;
+                    Shadow({0, 0}, size, size * .30f, prop.kind <= 3 ? 43.f : 12.f);
+                },
+                &actor);
+        }
+        scene.RetainSubtree(scenery);
     }
     for (int i = 0; i < NPCCount; ++i)
     {
@@ -458,22 +489,33 @@ inline void DrawWorld()
             }
         },
         &scenery);
-    if (beam > 0)
+    auto drawSpell = [](float size)
     {
-        // Endpoints are projected from the actual inherited wand socket, not the face.
-        scene.Place(
-            "beam", {}, RenderLayer::Overlay,
-            [](const Game::Actor&, const Game::Transform& socket)
+        return [size](const Game::Actor&, const Game::Transform& world)
+        {
+            Vec screen = Project({world.x, world.y}, world.z);
+            if (!Visible(screen))
             {
-                Vec a = Project({socket.x, socket.y}, socket.z);
-                Vec b = Project(beamTarget, 24);
-                Line(a, b, 12, {1, .35f, .75f, .12f});
-                Line(a, b, 5, {1, .65f, .85f, .55f});
-                Line(a, b, 1.7f, {.90f, 1, 1, 1});
-                Glow(a, 12, 12, {1, .75f, .85f, .5f});
-                Glow(b, 26, 20, {.25f, .95f, 1, .45f});
-            },
-            scene.Find("player/wand"));
+                return;
+            }
+            renderer->Effect((screen.x - size * .5f) * width / 1280,
+                             (screen.y - size * .5f) * height / 800, size * width / 1280,
+                             size * height / 800, clockTime, 2);
+        };
+    };
+    if (castPose > 0)
+    {
+        scene.Place("player/wand/flash", {}, RenderLayer::World, drawSpell(24),
+                    scene.Find("player/wand"));
+    }
+    for (const auto& spell : spells)
+    {
+        auto pose = CharacterVisual::SpellPose(
+            spell.origin.x + spell.direction.x * CharacterVisual::SpellSpeed * spell.age,
+            spell.origin.y + spell.direction.y * CharacterVisual::SpellSpeed * spell.age, spell.age,
+            spell.mirror);
+        scene.Place("spell/" + std::to_string(spell.id), pose, RenderLayer::World,
+                    drawSpell(CharacterVisual::SpellSize));
     }
     for (size_t i = 0; i < particles.size(); ++i)
     {

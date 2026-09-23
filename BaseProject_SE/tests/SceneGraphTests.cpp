@@ -64,6 +64,25 @@ int main()
     graph.Render(RenderLayer::UserInterface, RenderLayer::UserInterface);
     assert(order.back() == 4);
 
+    order.clear();
+    graph.Render(RenderLayer::World, RenderLayer::World,
+                 [](const Game::Transform& pose)
+                 {
+                     return pose.x < 1;
+                 });
+    assert((order == std::vector<int>{1, 2}));
+
+    auto& terrain = graph.Place("terrain", {}, RenderLayer::Ground);
+    auto& tile = graph.Place("tile", {}, RenderLayer::Ground, {}, &terrain);
+    auto* tileIdentity = &tile;
+    graph.RetainSubtree(terrain);
+    graph.BeginSync();
+    graph.EndSync();
+    assert(graph.Find("tile") == tileIdentity);
+    assert(graph.Find("front") == nullptr);
+    graph.Remove("terrain");
+    assert(graph.Find("tile") == nullptr);
+
     auto& owner = graph.Place("owner", {}, RenderLayer::World);
     auto& socket = graph.Place("socket", {}, RenderLayer::World, {}, &owner);
     graph.Place("flash", {}, RenderLayer::World, {}, &socket);
@@ -81,5 +100,15 @@ int main()
             assert(std::abs(screenX - (mirror ? -20.f : 20.f)) < .001f);
             assert(std::abs(screenY - hand - CharacterVisual::WandHeadOffset) < .001f);
         }
+        auto socket = CharacterVisual::WandSocket(true, mirror);
+        auto start = CharacterVisual::SpellPose(10, 20, 0, mirror);
+        assert(std::abs(start.x - 10 - socket.x) < .001f);
+        assert(std::abs(start.y - 20 - socket.y) < .001f);
+        assert(start.z == socket.z);
+        auto flying = CharacterVisual::SpellPose(10, 20, .18f, mirror);
+        assert(flying.x == 10 && flying.y == 20 && flying.z == 27);
     }
+    assert(CharacterVisual::FrameIndex(CharacterVisual::CastDuration, true, 2) == 5);
+    assert(CharacterVisual::FrameIndex(0, false, 2) == 0);
+    assert(CharacterVisual::FrameIndex(0, true, 2) == 3);
 }

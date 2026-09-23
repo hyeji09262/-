@@ -1,4 +1,5 @@
 #version 330
+// Legacy standalone reference. Runtime effects are batched through SolidRect.vs/fs.
 uniform vec4 u_Rect;
 out vec2 v_UV;
 void main()

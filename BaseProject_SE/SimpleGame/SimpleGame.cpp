@@ -12,6 +12,8 @@ but WITHOUT ANY WARRANTY.
 #include "Renderer.h"
 #include "Tutorial.h"
 #include "LevelOne.h"
+#include "Profiler.h"
+#include "RuntimeFiles.h"
 
 static Renderer* g_Renderer = nullptr;
 static int previousTime = 0;
@@ -19,6 +21,10 @@ static bool showTutorial = false;
 
 void RenderScene()
 {
+    static auto previousFrame = Performance::Clock::now();
+    auto start = Performance::Clock::now();
+    double interval = Performance::Milliseconds(previousFrame, start);
+    previousFrame = start;
     g_Renderer->BeginFrame();
     if (showTutorial)
     {
@@ -29,12 +35,26 @@ void RenderScene()
         LevelOne::Draw();
     }
     g_Renderer->EndFrame();
-    glutSwapBuffers();
+    {
+        Performance::Scope scope("cpu.present.swap_wait_ms");
+        glutSwapBuffers();
+    }
+    auto& profiler = Performance::Profiler::Get();
+    profiler.Sample("cpu.frame_callback_ms", Performance::Milliseconds(start));
+    profiler.Count(showTutorial ? "frame.scene.tutorial" : "frame.scene.level_one");
+    profiler.Frame(interval, showTutorial ? "tutorial" : "level_one",
+                   g_Renderer->LastFrameStats().frame);
 }
 
 void Tick(int)
 {
+    Performance::Scope scope("cpu.gameplay.tick_callback_ms");
     int now = glutGet(GLUT_ELAPSED_TIME);
+    Performance::Profiler::Get().Sample("simulation.tick_interval_ms", now - previousTime);
+    if (now - previousTime > 50)
+    {
+        Performance::Profiler::Get().Count("simulation.delta_time_clamped");
+    }
     float dt = (std::min)((now - previousTime) / 1000.f, .05f);
     previousTime = now;
 
@@ -86,6 +106,11 @@ void KeyUp(unsigned char k, int, int)
 
 void SpecialKey(int key, int, int)
 {
+    if (key == GLUT_KEY_F3)
+    {
+        Performance::Profiler::Get().Toggle();
+        return;
+    }
     if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2)
     {
         return;
@@ -111,6 +136,7 @@ void Visibility(int state)
 void Close()
 {
     LevelOne::Save();
+    Performance::Profiler::Get().FlushWindow();
     delete g_Renderer;
     g_Renderer = nullptr;
 }
@@ -135,6 +161,17 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::wstring logName = L"profile_" + std::to_wstring(GetCurrentProcessId()) + L"_" +
+                           std::to_wstring(GetTickCount64()) + L".jsonl";
+    wchar_t profileSetting[8] = {};
+    GetEnvironmentVariableW(L"EMBERWICK_PROFILE", profileSetting, 8);
+    if (profileSetting[0] != L'0')
+    {
+        Performance::Profiler::Get().Initialize(
+            RuntimeFiles::Path(logName.c_str()),
+            reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
+            reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    }
     g_Renderer = new Renderer(1280, 800);
     if (!g_Renderer->IsInitialized())
     {

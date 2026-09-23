@@ -4,6 +4,7 @@
 #include <string>
 #include "RpgProgress.h"
 #include "RuntimeFiles.h"
+#include "Profiler.h"
 
 namespace Rpg
 {
@@ -55,6 +56,7 @@ bool Progress::Award(int amount)
 
 bool Progress::Load()
 {
+    Performance::Scope scope("cpu.storage.progress_load_ms");
     const std::wstring path = RuntimeFiles::Path(L"level1_progress.txt");
     if (path.empty())
     {
@@ -81,6 +83,8 @@ bool Progress::Load()
 
 bool Progress::Save() const
 {
+    Performance::Scope scope("cpu.storage.progress_save_ms");
+    Performance::Profiler::Get().Count("storage.progress_save_requests");
     const std::wstring path = RuntimeFiles::Path(L"level1_progress.txt");
     if (path.empty())
     {

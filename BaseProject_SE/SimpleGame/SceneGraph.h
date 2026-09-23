@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include "Actor.h"
+#include "Profiler.h"
 
 namespace Game
 {
@@ -27,8 +28,10 @@ class SceneGraph
                  Actor::DrawFunction draw = {}, Actor* parent = nullptr)
     {
         Actor* actor = Find(name);
+        Performance::Profiler::Get().Count("scene.sync_requests");
         if (!actor)
         {
+            Performance::Profiler::Get().Count("scene.actors_created");
             auto owned = std::make_unique<Actor>(name);
             actor = owned.get();
             m_Actors.emplace(name, std::move(owned));
@@ -83,6 +86,16 @@ class SceneGraph
         Detach(*actor);
         m_Order.erase(std::remove(m_Order.begin(), m_Order.end(), actor), m_Order.end());
         m_Actors.erase(key);
+        Performance::Profiler::Get().Count("scene.actors_removed");
+    }
+
+    void RetainSubtree(Actor& actor)
+    {
+        actor.m_Persistent = true;
+        for (Actor* child : actor.m_Children)
+        {
+            RetainSubtree(*child);
+        }
     }
 
     void EndSync()
@@ -90,7 +103,7 @@ class SceneGraph
         std::vector<std::string> retired;
         for (const Actor* actor : m_Order)
         {
-            if (actor->m_LastSync != m_Sync)
+            if (!actor->m_Persistent && actor->m_LastSync != m_Sync)
             {
                 retired.push_back(actor->Name());
             }
@@ -103,27 +116,44 @@ class SceneGraph
 
     void Clear()
     {
+        m_RenderQueue.clear();
         m_Order.clear();
         m_Actors.clear();
     }
 
-    void Render(RenderLayer first, RenderLayer last) const
-    {
-        struct Entry
-        {
-            const Actor* actor;
-            Transform world;
-        };
+    using VisibilityTest = std::function<bool(const Transform&)>;
 
-        std::vector<Entry> visible;
+    void Render(RenderLayer first, RenderLayer last, const VisibilityTest& inView = {})
+    {
+        auto& profiler = Performance::Profiler::Get();
+        auto started = Performance::Clock::now();
+        auto& visible = m_RenderQueue;
+        visible.clear();
         visible.reserve(m_Order.size());
+        size_t culled = 0;
+        profiler.Count("scene.nodes_scanned", double(m_Order.size()));
+        profiler.Gauge("scene.actors_alive", double(m_Order.size()));
+        profiler.Gauge("memory.scene_queue_capacity_bytes",
+                       double(visible.capacity() * sizeof(Entry)));
         for (const Actor* actor : m_Order)
         {
-            if (actor->IsVisible() && actor->draw && actor->layer >= first && actor->layer <= last)
+            if (actor->layer < first || actor->layer > last || !actor->draw || !actor->IsVisible())
             {
-                visible.push_back({actor, actor->WorldTransform()});
+                continue;
             }
+            Transform world = actor->WorldTransform();
+            if (inView && actor->layer != RenderLayer::Background &&
+                actor->layer != RenderLayer::UserInterface && !inView(world))
+            {
+                ++culled;
+                continue;
+            }
+            visible.push_back({actor, world});
         }
+        profiler.Count("scene.actors_culled_before_sort", double(culled));
+        profiler.Count("scene.render_queue_entries", double(visible.size()));
+        profiler.Sample("cpu.scene.collect_cull_ms", Performance::Milliseconds(started));
+        started = Performance::Clock::now();
         std::stable_sort(visible.begin(), visible.end(),
                          [](const Entry& a, const Entry& b)
                          {
@@ -131,17 +161,27 @@ class SceneGraph
                              {
                                  return a.actor->layer < b.actor->layer;
                              }
-                             // UI uses insertion order; world depth ignores height.
                              return a.actor->layer != RenderLayer::UserInterface &&
                                     a.world.x + a.world.y < b.world.x + b.world.y;
                          });
+        profiler.Sample("cpu.scene.sort_ms", Performance::Milliseconds(started));
+        started = Performance::Clock::now();
         for (const Entry& entry : visible)
         {
             entry.actor->draw(*entry.actor, entry.world);
         }
+        profiler.Sample("cpu.scene.dispatch_ms", Performance::Milliseconds(started));
     }
 
   private:
+    struct Entry
+    {
+        const Actor* actor;
+        Transform world;
+    };
+
+    std::vector<Entry> m_RenderQueue;
+
     static void Detach(Actor& actor)
     {
         if (actor.m_Parent)

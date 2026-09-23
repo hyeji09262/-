@@ -2,6 +2,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include "RuntimeFiles.h"
+#include "Profiler.h"
 
 namespace RuntimeFiles
 {
@@ -30,7 +31,10 @@ std::wstring Path(const wchar_t* filename)
 
 bool Commit(const std::wstring& temporary, const std::wstring& destination)
 {
-    return MoveFileExW(temporary.c_str(), destination.c_str(),
-                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    Performance::Scope scope("cpu.storage.atomic_commit_ms");
+    bool committed = MoveFileExW(temporary.c_str(), destination.c_str(),
+                                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+    Performance::Profiler::Get().Count(committed ? "storage.commits_ok" : "storage.commits_failed");
+    return committed;
 }
 } // namespace RuntimeFiles

@@ -182,6 +182,7 @@ void FloatText(Position p, const std::string& text, Color color)
 
 void NewMap()
 {
+    Performance::Scope profileScope("cpu.map.generate_level_ms");
     scene.Clear();
     map.Generate(random());
     player = map.camp;
@@ -263,7 +264,7 @@ void Attack()
 
     mana -= 4;
     attackTimer = .5f;
-    castTimer = .25f;
+    castTimer = CharacterVisual::CastDuration;
     castMirror = direction.x - direction.y < 0;
     auto socket = CharacterVisual::WandSocket(true, castMirror);
     // Keep the original collision path/range; only the initial visual segment uses the socket.
@@ -298,15 +299,18 @@ void Kill(Enemy& enemy)
 
 void UpdateProjectiles(float dt)
 {
+    Performance::Scope profileScope("cpu.gameplay.projectiles_ms");
     for (auto& shot : projectiles)
     {
         shot.lifetime -= dt;
         shot.age += dt;
-        int steps = (std::max)(1, static_cast<int>(std::ceil(9 * dt / .10f)));
+        int steps =
+            (std::max)(1, static_cast<int>(std::ceil(CharacterVisual::SpellSpeed * dt / .10f)));
         for (int step = 0; step < steps && shot.lifetime > 0; ++step)
         {
-            Position next = {shot.position.x + shot.direction.x * 9 * dt / steps,
-                             shot.position.y + shot.direction.y * 9 * dt / steps};
+            Position next = {
+                shot.position.x + shot.direction.x * CharacterVisual::SpellSpeed * dt / steps,
+                shot.position.y + shot.direction.y * CharacterVisual::SpellSpeed * dt / steps};
             if (!map.Walkable(next, .06f))
             {
                 shot.lifetime = 0;
@@ -360,6 +364,7 @@ void ReceiveDamage(int attack)
 
 void UpdateEnemies(float dt)
 {
+    Performance::Scope profileScope("cpu.gameplay.enemy_ai_ms");
     navigationTimer -= dt;
     if (navigationTimer <= 0)
     {
@@ -444,6 +449,7 @@ void UpdateEnemies(float dt)
 
 void PickUp()
 {
+    Performance::Scope profileScope("cpu.gameplay.loot_ms");
     int collected = 0;
     for (auto it = drops.begin(); it != drops.end();)
     {
@@ -512,6 +518,11 @@ void PlaceEffect(const std::string& name, Game::Transform pose, float width, flo
 
 void DrawMap()
 {
+    if (scene.Find("terrain"))
+    {
+        return;
+    }
+    Performance::Scope scope("cpu.scene.static_build_ms");
     auto& terrain = scene.Place("terrain", {}, Game::RenderLayer::Ground);
     auto& scenery = scene.Place("scenery", {}, Game::RenderLayer::World);
     for (int y = 0; y < Hunting::Map::Height; ++y)
@@ -556,19 +567,33 @@ void DrawMap()
         }
     }
     PlaceModel("school", ModelId::Shelter, {map.camp.x - 2, map.camp.y - 2}, &scenery);
+    scene.Place(
+        "school/label", {0, 0, 137}, Game::RenderLayer::Overlay,
+        [](const Game::Actor&, const Game::Transform& world)
+        {
+            if (Distance(player, {world.x, world.y}) > 5.5f)
+            {
+                return;
+            }
+            Position screen = Project({world.x, world.y}, world.z);
+            if (Visible(screen, 0))
+            {
+                graphics->Nameplate(screen.x * screenWidth / 1280, screen.y * screenHeight / 800,
+                                    "별빛 학교", 17.f * screenHeight / 800);
+            }
+        },
+        scene.Find("school"));
     PlaceModel("beacon", ModelId::Campfire, {map.camp.x + 1, map.camp.y - 1}, &scenery);
     PlaceEffect("beacon/flame", {0, 0, 31.5f}, 42, 63, 1, scene.Find("beacon"));
+    scene.RetainSubtree(terrain);
+    scene.RetainSubtree(scenery);
 }
 
 void DrawActors()
 {
     auto& dynamic = scene.Place("characters", {}, Game::RenderLayer::World);
-    ModelId playerModel = castTimer > 0 ? ModelId::PlayerCast : ModelId::PlayerIdle;
-    if (castTimer <= 0 && moving)
-    {
-        playerModel = static_cast<ModelId>(static_cast<int>(ModelId::PlayerWalk0) +
-                                           static_cast<int>(walkFrame) % 4);
-    }
+    ModelId playerModel =
+        static_cast<ModelId>(CharacterVisual::FrameIndex(castTimer, moving, walkFrame));
     bool mirror = castTimer > 0 ? castMirror : facing.x - facing.y < 0;
     // Root remains visible during damage flicker, so its shadow/socket are not lost.
     auto& heroine =
@@ -609,13 +634,10 @@ void DrawActors()
     auto& spells = scene.Place("spells", {}, Game::RenderLayer::World);
     for (const auto& shot : projectiles)
     {
-        float blend = 1.f - (std::min)(1.f, shot.age / .18f);
-        float wandHeight = CharacterVisual::WandSocket(true, false).z;
         PlaceEffect("shot/" + std::to_string(shot.visualId),
-                    {shot.position.x + shot.muzzleOffset.x * blend,
-                     shot.position.y + shot.muzzleOffset.y * blend,
-                     27.f + (wandHeight - 27.f) * blend},
-                    30, 30, 2, &spells);
+                    CharacterVisual::SpellPose(shot.position.x, shot.position.y, shot.age,
+                                               shot.muzzleOffset.x < 0),
+                    CharacterVisual::SpellSize, CharacterVisual::SpellSize, 2, &spells);
     }
 }
 
@@ -757,6 +779,7 @@ void Resize(int width, int height)
 
 void Save()
 {
+    Performance::Scope profileScope("cpu.storage.save_progress_ms");
     if (initialized)
     {
         saveSucceeded = progress.Save();
@@ -814,6 +837,7 @@ void Key(unsigned char key, bool down)
 
 void Update(float dt)
 {
+    Performance::Scope profileScope("cpu.gameplay.level_update_ms");
     if (!initialized || paused)
     {
         return;
@@ -842,7 +866,7 @@ void Update(float dt)
     moving = Distance(before, player) > .001f;
     if (moving)
     {
-        walkFrame += dt * 9;
+        walkFrame += dt * CharacterVisual::WalkFramesPerSecond;
     }
     if (keys[' '])
     {
@@ -865,6 +889,7 @@ void Update(float dt)
 
 void Draw()
 {
+    auto syncStart = Performance::Clock::now();
     scene.BeginSync();
     DrawMap();
     DrawActors();
@@ -881,9 +906,14 @@ void Draw()
         },
         scene.Find("ui"));
     scene.EndSync();
+    Performance::Profiler::Get().Sample("cpu.scene.sync_ms", Performance::Milliseconds(syncStart));
 
     graphics->BeginWorld();
-    scene.Render(Game::RenderLayer::Background, Game::RenderLayer::Overlay);
+    scene.Render(Game::RenderLayer::Background, Game::RenderLayer::Overlay,
+                 [](const Game::Transform& world)
+                 {
+                     return Visible(Project({world.x, world.y}, world.z), 240 * world.scale);
+                 });
     graphics->EndWorld(time);
     scene.Render(Game::RenderLayer::UserInterface, Game::RenderLayer::UserInterface);
     graphics->Flush();

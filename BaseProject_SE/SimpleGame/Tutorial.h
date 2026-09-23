@@ -50,6 +50,17 @@ struct Particle
     Color color;
 };
 
+struct SpellVisual
+{
+    Vec origin, direction;
+    float age, lifetime;
+    bool mirror;
+    unsigned int id;
+};
+
+static std::vector<SpellVisual> spells;
+static unsigned int nextSpellId = 0;
+
 static const int MapWidth = 60, MapHeight = 48, LandWidth = 44;
 static NPC villagers[] = {
     {{32, 24}, "담임 모라", "악몽 교감을 물리치고, 해안 별빛 장치에서 별빛 조각을 되찾아 주세요."},
@@ -77,8 +88,8 @@ static bool castMirror = false;
 static int width = 1280, height = 800, stage = 0, hp = 5, bossHP = 10, upgrade = 0, kills = 0;
 static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26}, beamTarget = {31, 26};
 static bool keys[256] = {}, paused = false, moving = false;
-static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, beam = 0,
-             messageTime = 0, finishTime = 0;
+static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, messageTime = 0,
+             finishTime = 0;
 static float walkCycle = 0, facing = 1, healTimer = 0, castPose = 0;
 static std::string message;
 static std::vector<Prop> props;
@@ -260,12 +271,13 @@ inline void Reset()
     bossHP = 10;
     upgrade = kills = 0;
     paused = moving = false;
-    elapsed = clockTime = attackCD = hurtCD = pulse = beam = finishTime = walkCycle = healTimer =
+    elapsed = clockTime = attackCD = hurtCD = pulse = finishTime = walkCycle = healTimer =
         castPose = 0;
     std::fill(keys, keys + 256, false);
     props.clear();
     monsters.clear();
     particles.clear();
+    spells.clear();
     Say("등교 첫날, 갑자기 마법소녀가 되었어요! WASD로 움직여 금빛 표시 아래 선생님을 찾아가세요.");
     props = {{{27, 27}, 1, 1},    {{35, 23}, 2, 1},    {{25, 22}, 3, 1},    {{38, 31}, 1, 1},
              {{24, 30}, 2, 1},    {{38, 22}, 3, 1},    {{36, 33}, 2, 1},    {{25, 18}, 1, 1},
@@ -411,13 +423,23 @@ inline void Damage()
 
 inline void Update(float dt)
 {
+    Performance::Scope scope("cpu.gameplay.tutorial_update_ms");
     if (paused || stage == 2 || stage == 5)
         return;
     elapsed += dt;
     clockTime += dt;
     attackCD -= dt;
     hurtCD -= dt;
-    beam -= dt;
+    for (auto& spell : spells)
+    {
+        spell.age += dt;
+    }
+    spells.erase(std::remove_if(spells.begin(), spells.end(),
+                                [](const SpellVisual& spell)
+                                {
+                                    return spell.age >= spell.lifetime;
+                                }),
+                 spells.end());
     castPose -= dt;
     messageTime -= dt;
     float sx = float(keys['d']) - float(keys['a']), sy = float(keys['s']) - float(keys['w']);
@@ -432,7 +454,7 @@ inline void Update(float dt)
     }
     moving = Dist(old, player) > .001f;
     if (moving)
-        walkCycle += dt * 10;
+        walkCycle += dt * CharacterVisual::WalkFramesPerSecond * 1.570796f;
     if (Safe(player) && hp < 5)
     {
         healTimer += dt;
@@ -487,8 +509,7 @@ inline void Update(float dt)
     if (keys[' '] && attackCD <= 0)
     {
         attackCD = .5f;
-        castPose = .3f;
-        beam = .16f;
+        castPose = CharacterVisual::CastDuration;
         int target = -1;
         float distance = 6.5f;
         bool hitBoss = false;
@@ -507,8 +528,15 @@ inline void Update(float dt)
         beamTarget = hitBoss       ? boss
                      : target >= 0 ? monsters[target].p
                                    : Vec{player.x + facing * 2, player.y - facing * 2};
-        Burst(player, 10, teal, 40);
         castMirror = beamTarget.x - beamTarget.y < player.x - player.y;
+        float spellDistance = (std::max)(.01f, Dist(player, beamTarget));
+        spells.push_back(
+            {player,
+             {(beamTarget.x - player.x) / spellDistance, (beamTarget.y - player.y) / spellDistance},
+             0,
+             (std::max)(.05f, spellDistance / CharacterVisual::SpellSpeed),
+             castMirror,
+             nextSpellId++});
         Burst(beamTarget, 16, teal, 25);
         if (hitBoss)
         {
@@ -639,6 +667,7 @@ inline void DrawHud()
 
 inline void Draw()
 {
+    auto syncStart = Performance::Clock::now();
     scene.BeginSync();
     DrawWorld();
     scene.Place("ui", {}, Game::RenderLayer::UserInterface,
@@ -654,8 +683,13 @@ inline void Draw()
         },
         scene.Find("ui"));
     scene.EndSync();
+    Performance::Profiler::Get().Sample("cpu.scene.sync_ms", Performance::Milliseconds(syncStart));
     renderer->BeginWorld();
-    scene.Render(Game::RenderLayer::Background, Game::RenderLayer::Overlay);
+    scene.Render(Game::RenderLayer::Background, Game::RenderLayer::Overlay,
+                 [](const Game::Transform& world)
+                 {
+                     return Visible(Project({world.x, world.y}, world.z), 240 * world.scale);
+                 });
     renderer->EndWorld(clockTime);
     scene.Render(Game::RenderLayer::UserInterface, Game::RenderLayer::UserInterface);
     renderer->Flush();

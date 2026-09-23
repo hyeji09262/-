@@ -81,5 +81,6 @@ class Actor
     Actor* m_Parent = nullptr;
     std::vector<Actor*> m_Children;
     unsigned long long m_LastSync = 0;
+    bool m_Persistent = false;
 };
 } // namespace Game

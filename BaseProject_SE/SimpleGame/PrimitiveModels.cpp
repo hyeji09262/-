@@ -77,6 +77,7 @@ void PrimitiveModels::Initialize()
     {
         return;
     }
+    Performance::Scope scope("cpu.assets.models_initialize_ms");
     loadedFromFile = Load();
     if (!loadedFromFile)
     {
@@ -88,6 +89,7 @@ void PrimitiveModels::Initialize()
 
 bool PrimitiveModels::Load()
 {
+    Performance::Scope scope("cpu.assets.model_disk_load_ms");
     const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
     if (path.empty())
     {
@@ -142,6 +144,7 @@ bool PrimitiveModels::Load()
 
 bool PrimitiveModels::Save() const
 {
+    Performance::Scope scope("cpu.assets.model_disk_save_ms");
     const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
     if (path.empty())
     {
@@ -172,6 +175,7 @@ bool PrimitiveModels::Save() const
 
 void PrimitiveModels::Generate()
 {
+    Performance::Scope scope("cpu.assets.model_generate_ms");
     const Color robe = {.96f, .32f, .62f, 1}, dark = {.27f, .20f, .45f, 1};
     const Color gold = {1, .86f, .48f, 1}, skin = {1, .81f, .73f, 1};
     const Color white = {1, .95f, .98f, 1};

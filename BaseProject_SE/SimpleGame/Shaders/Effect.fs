@@ -1,4 +1,5 @@
 #version 330
+// Legacy standalone reference. Runtime effects are batched through SolidRect.vs/fs.
 in vec2 v_UV;
 uniform float u_Time;
 uniform float u_Phase;

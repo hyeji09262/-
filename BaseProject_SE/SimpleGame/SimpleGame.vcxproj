@@ -156,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Profiler.h" />
     <ClInclude Include="Tutorial.h" />
     <ClInclude Include="TutorialArt.h" />
     <ClInclude Include="LevelOne.h" />
@@ -189,6 +190,9 @@
     <None Include="Shaders\SolidRect.vs" />
     <None Include="Shaders\Screen.vs" />
     <None Include="Shaders\Post.fs" />
+    <None Include="Shaders\Bloom.fs" />
+    <None Include="Shaders\Model.vs" />
+    <None Include="Shaders\Model.fs" />
     <None Include="Shaders\Effect.vs" />
     <None Include="Shaders\Effect.fs" />
   </ItemGroup>

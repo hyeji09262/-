@@ -2,6 +2,9 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <array>
+#include <unordered_map>
+#include "Profiler.h"
 #include "Dependencies/glew.h"
 
 // Batched 2D geometry, cached Unicode glyph atlas, and a world-only post pass.
@@ -15,10 +18,11 @@ class Renderer
         std::uint64_t text = 0;
         std::uint64_t effects = 0;
         std::uint64_t postProcess = 0;
+        std::uint64_t mixed = 0;
 
         std::uint64_t Total() const
         {
-            return geometry + text + effects + postProcess;
+            return geometry + text + effects + postProcess + mixed;
         }
     };
 
@@ -41,6 +45,7 @@ class Renderer
     void BeginFrame();
     void EndFrame();
     void DrawFrameStats();
+    void Nameplate(float centerX, float baseline, const std::string& label, float size);
 
     const FrameStats& LastFrameStats() const
     {
@@ -66,7 +71,8 @@ class Renderer
         Geometry,
         Text,
         Effect,
-        PostProcess
+        PostProcess,
+        Mixed
     };
 
     FrameStats m_FrameStats;
@@ -77,17 +83,56 @@ class Renderer
     struct Vertex
     {
         float x, y, u, v, r, g, b, a;
+        float kind = 0, time = 0, phase = 0;
     };
     struct Font;
     Font* m_Font = nullptr;
     std::vector<Vertex> m_Vertices;
     int m_Width = 1, m_Height = 1;
     GLuint m_Buffer = 0, m_VAO = 0, m_Shader = 0, m_Post = 0, m_Framebuffer = 0, m_Scene = 0;
-    GLuint m_Effect = 0;
-    GLint m_EffectRect = -1, m_EffectTime = -1, m_EffectKind = -1, m_EffectPhase = -1;
-    GLint m_Textured = -1, m_PostTime = -1, m_PostTexel = -1;
+    GLuint m_ModelShader = 0, m_ModelVAO = 0, m_ModelBuffer = 0, m_ModelTexture = 0;
+    GLuint m_InstanceBuffer = 0, m_BloomShader = 0;
+    GLuint m_BloomBuffers[2] = {}, m_BloomTextures[2] = {};
+    GLint m_ModelViewport = -1, m_PostTime = -1;
+    GLint m_BloomPass = -1, m_BloomTexel = -1;
+    int m_BloomWidth = 1, m_BloomHeight = 1;
+
+    struct MeshRange
+    {
+        int first;
+        int count;
+    };
+
+    struct ModelInstance
+    {
+        float x, y, scaleX, scaleY, first, count;
+    };
+
+    std::unordered_map<const void*, MeshRange> m_ModelCache;
+    std::vector<float> m_ModelData;
+    std::vector<ModelInstance> m_Instances;
+    int m_MaxInstanceVertices = 0;
+    GLint m_MaxModelTexels = 0;
+    bool m_ModelDataDirty = false;
+    unsigned int m_StreamKinds = 0;
+
+    struct GpuQuery
+    {
+        GLuint timestamps[4] = {};
+        bool pending = false;
+        std::uint64_t frame = 0;
+    };
+
+    std::array<GpuQuery, 8> m_GpuQueries;
+    int m_ActiveGpuQuery = -1;
+    double m_FrameIntervalMs = 0;
+    Performance::Clock::time_point m_PreviousFrameStart = Performance::Clock::now();
+    void BeginStream();
+    void FlushModels();
+    void PollGpuQueries();
+    void GpuTimestamp(int index);
     bool m_Initialized = false, m_TargetValid = false;
     bool ReadFile(const char* name, std::string& out);
     GLuint CompileShaders(const char* vertex, const char* fragment);
-    void Upload(const std::vector<Vertex>& vertices, bool textured);
+    void Upload(const std::vector<Vertex>& vertices);
 };
