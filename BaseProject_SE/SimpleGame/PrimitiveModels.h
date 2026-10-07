@@ -28,6 +28,11 @@ enum class ModelId
     Potion,
     Crystal,
     Shadow,
+    StudentIdle,
+    StudentWalk0,
+    StudentWalk1,
+    StudentWalk2,
+    StudentWalk3,
     Count
 };
 

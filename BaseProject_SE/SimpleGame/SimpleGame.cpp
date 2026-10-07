@@ -14,10 +14,18 @@ but WITHOUT ANY WARRANTY.
 #include "LevelOne.h"
 #include "Profiler.h"
 #include "RuntimeFiles.h"
+#include "Prologue.h"
 
 static Renderer* g_Renderer = nullptr;
 static int previousTime = 0;
-static bool showTutorial = false;
+enum class GameScene
+{
+    Prologue,
+    Tutorial,
+    Hunting
+};
+
+static GameScene activeScene = GameScene::Prologue;
 
 void RenderScene()
 {
@@ -26,7 +34,11 @@ void RenderScene()
     double interval = Performance::Milliseconds(previousFrame, start);
     previousFrame = start;
     g_Renderer->BeginFrame();
-    if (showTutorial)
+    if (activeScene == GameScene::Prologue)
+    {
+        Prologue::Draw();
+    }
+    else if (activeScene == GameScene::Tutorial)
     {
         Tutorial::Draw();
     }
@@ -41,9 +53,13 @@ void RenderScene()
     }
     auto& profiler = Performance::Profiler::Get();
     profiler.Sample("cpu.frame_callback_ms", Performance::Milliseconds(start));
-    profiler.Count(showTutorial ? "frame.scene.tutorial" : "frame.scene.level_one");
-    profiler.Frame(interval, showTutorial ? "tutorial" : "level_one",
-                   g_Renderer->LastFrameStats().frame);
+    const char* sceneName = activeScene == GameScene::Prologue   ? "prologue"
+                            : activeScene == GameScene::Tutorial ? "tutorial"
+                                                                 : "level_one";
+    profiler.Count(activeScene == GameScene::Prologue   ? "frame.scene.prologue"
+                   : activeScene == GameScene::Tutorial ? "frame.scene.tutorial"
+                                                        : "frame.scene.level_one");
+    profiler.Frame(interval, sceneName, g_Renderer->LastFrameStats().frame);
 }
 
 void Tick(int)
@@ -58,7 +74,11 @@ void Tick(int)
     float dt = (std::min)((now - previousTime) / 1000.f, .05f);
     previousTime = now;
 
-    if (showTutorial)
+    if (activeScene == GameScene::Prologue)
+    {
+        Prologue::Update(dt);
+    }
+    else if (activeScene == GameScene::Tutorial)
     {
         Tutorial::Update(dt);
     }
@@ -76,13 +96,18 @@ void Resize(int w, int h)
     Tutorial::width = (std::max)(w, 1);
     Tutorial::height = (std::max)(h, 1);
     LevelOne::Resize(w, h);
+    Prologue::Resize(w, h);
     if (g_Renderer)
         g_Renderer->Resize(w, h);
 }
 
 void KeyDown(unsigned char k, int, int)
 {
-    if (showTutorial)
+    if (activeScene == GameScene::Prologue)
+    {
+        Prologue::Key(k, true);
+    }
+    else if (activeScene == GameScene::Tutorial)
     {
         Tutorial::Key(k, true);
     }
@@ -94,7 +119,11 @@ void KeyDown(unsigned char k, int, int)
 
 void KeyUp(unsigned char k, int, int)
 {
-    if (showTutorial)
+    if (activeScene == GameScene::Prologue)
+    {
+        Prologue::Key(k, false);
+    }
+    else if (activeScene == GameScene::Tutorial)
     {
         Tutorial::Key(k, false);
     }
@@ -111,16 +140,30 @@ void SpecialKey(int key, int, int)
         Performance::Profiler::Get().Toggle();
         return;
     }
-    if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2)
+    if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2 && key != GLUT_KEY_F4)
     {
+        if (activeScene == GameScene::Prologue)
+        {
+            Prologue::CameraKey(key, true);
+        }
         return;
     }
     LevelOne::Pause();
     std::fill(Tutorial::keys, Tutorial::keys + 256, false);
     Tutorial::paused = true;
-    showTutorial = key == GLUT_KEY_F1;
+    Prologue::Pause();
+    activeScene = key == GLUT_KEY_F1   ? GameScene::Tutorial
+                  : key == GLUT_KEY_F2 ? GameScene::Hunting
+                                       : GameScene::Prologue;
     SetWindowTextW(GetActiveWindow(),
-                   showTutorial ? L"별빛 학교 - 마법소녀의 첫날" : L"마법소녀 - 방과 후 첫 임무");
+                   activeScene == GameScene::Prologue   ? L"마법소녀 - 프롤로그: 평범한 아침"
+                   : activeScene == GameScene::Tutorial ? L"별빛 학교 - 마법소녀의 첫날"
+                                                        : L"마법소녀 - 방과 후 첫 임무");
+}
+
+void SpecialKeyUp(int key, int, int)
+{
+    Prologue::CameraKey(key, false);
 }
 
 void Visibility(int state)
@@ -130,6 +173,7 @@ void Visibility(int state)
         std::fill(Tutorial::keys, Tutorial::keys + 256, false);
         Tutorial::paused = true;
         LevelOne::Pause();
+        Prologue::Pause();
     }
 }
 
@@ -152,7 +196,7 @@ int main(int argc, char** argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowSize(1280, 800);
     glutCreateWindow("Emberwick");
-    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 방과 후 첫 임무");
+    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 프롤로그: 평범한 아침");
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
     if (glewInit() != GLEW_OK || !GLEW_VERSION_3_3)
@@ -181,6 +225,7 @@ int main(int argc, char** argv)
     Tutorial::renderer = g_Renderer;
     Tutorial::Reset();
     LevelOne::Initialize(g_Renderer);
+    Prologue::Initialize(g_Renderer);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -190,6 +235,7 @@ int main(int argc, char** argv)
     glutKeyboardFunc(KeyDown);
     glutKeyboardUpFunc(KeyUp);
     glutSpecialFunc(SpecialKey);
+    glutSpecialUpFunc(SpecialKeyUp);
     glutVisibilityFunc(Visibility);
     glutCloseFunc(Close);
     previousTime = glutGet(GLUT_ELAPSED_TIME);

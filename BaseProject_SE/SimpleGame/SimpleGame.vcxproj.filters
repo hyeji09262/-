@@ -21,6 +21,12 @@
     <ClInclude Include="LevelOne.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Prologue.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="PrologueStory.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="HuntingMap.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -45,6 +51,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LevelOne.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Prologue.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="HuntingMap.cpp">

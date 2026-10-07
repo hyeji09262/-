@@ -90,7 +90,7 @@ void PrimitiveModels::Initialize()
 bool PrimitiveModels::Load()
 {
     Performance::Scope scope("cpu.assets.model_disk_load_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v6.bin");
     if (path.empty())
     {
         return false;
@@ -98,7 +98,7 @@ bool PrimitiveModels::Load()
     std::ifstream file(path.c_str(), std::ios::binary);
     char magic[8] = {};
     file.read(magic, sizeof(magic));
-    if (!file || std::memcmp(magic, "EWMDL005", 8) != 0)
+    if (!file || std::memcmp(magic, "EWMDL006", 8) != 0)
     {
         return false;
     }
@@ -145,7 +145,7 @@ bool PrimitiveModels::Load()
 bool PrimitiveModels::Save() const
 {
     Performance::Scope scope("cpu.assets.model_disk_save_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v5.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v6.bin");
     if (path.empty())
     {
         return false;
@@ -153,7 +153,7 @@ bool PrimitiveModels::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::binary | std::ios::trunc);
-        file.write("EWMDL005", 8);
+        file.write("EWMDL006", 8);
         std::uint32_t hash = 2166136261u;
         for (const auto& mesh : m_Models)
         {
@@ -180,6 +180,40 @@ void PrimitiveModels::Generate()
     const Color gold = {1, .86f, .48f, 1}, skin = {1, .81f, .73f, 1};
     const Color white = {1, .95f, .98f, 1};
     const Color hair = {.57f, .32f, .68f, 1};
+    // Normal student: no wand, transformation costume or combat pose.
+    for (int frame = 0; frame < 5; ++frame)
+    {
+        auto& mesh = m_Models[static_cast<int>(ModelId::StudentIdle) + frame];
+        const float step = frame ? std::sin((frame - 1) * 1.570796f) * 4 : 0;
+        Ellipse(mesh, 0, -43, 13, 20, dark);
+        Rect(mesh, -14, -32, 27, 22, {.42f, .28f, .23f, 1});
+        Rect(mesh, -8 + step, -15, 5, 13, skin);
+        Rect(mesh, 3 - step, -15, 5, 13, skin);
+        Rect(mesh, -8 + step, -7, 5, 6, white);
+        Rect(mesh, 3 - step, -7, 5, 6, white);
+        Ellipse(mesh, -6 + step, -1, 5, 3, dark);
+        Ellipse(mesh, 5 - step, -1, 5, 3, dark);
+        Rect(mesh, -9, -37, 18, 16, white);
+        Triangle(mesh, -9, -24, 9, -24, 14, -12, dark);
+        Triangle(mesh, -9, -24, 14, -12, -14, -12, dark);
+        for (int pleat = -9; pleat < 12; pleat += 5)
+        {
+            Rect(mesh, float(pleat), -21, 1, 8, {.46f, .45f, .65f, 1});
+        }
+        Triangle(mesh, -9, -37, 0, -28, 9, -37, dark);
+        Triangle(mesh, -5, -31, 5, -31, 0, -24, {.76f, .27f, .37f, 1});
+        Rect(mesh, -14, -33 + step * .4f, 5, 14, white);
+        Rect(mesh, 9, -33 - step * .4f, 5, 14, white);
+        Ellipse(mesh, -11, -18 + step * .4f, 3, 4, skin);
+        Ellipse(mesh, 11, -18 - step * .4f, 3, 4, skin);
+        Ellipse(mesh, 0, -47, 10, 12, skin);
+        Ellipse(mesh, 0, -57, 12, 7, dark);
+        Triangle(mesh, -11, -57, 3, -57, -7, -46, dark);
+        Ellipse(mesh, -4, -47, 1.5f, 2, dark);
+        Ellipse(mesh, 4, -47, 1.5f, 2, dark);
+        Rect(mesh, -2, -41, 4, 1, {.78f, .43f, .44f, 1});
+        Rect(mesh, 7, -55, 6, 2, {.95f, .67f, .38f, 1});
+    }
     for (int frame = 0; frame < 6; ++frame)
     {
         auto& mesh = m_Models[frame];
