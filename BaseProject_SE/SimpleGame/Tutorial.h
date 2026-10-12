@@ -120,8 +120,8 @@ inline WorldMonitor::Scene MonitorSnapshot()
     {
         const auto& npc = villagers[i];
         snapshot.npcs.push_back({"villager_" + std::to_string(i), npc.name,
-                                  Dist(player, npc.p) < 1.8f ? "상호작용 근처" : "대기",
-                                  npc.p.x, npc.p.y, 0, true});
+                                 Dist(player, npc.p) < 1.8f ? "상호작용 근처" : "대기", npc.p.x,
+                                 npc.p.y, 0, true});
     }
     for (const auto& monster : monsters)
     {
@@ -131,7 +131,8 @@ inline WorldMonitor::Scene MonitorSnapshot()
     {
         ++snapshot.mobsAlive;
     }
-    snapshot.towns.push_back({"tutorial_school", "별빛 학교/해안 마을",
+    snapshot.towns.push_back({"tutorial_school",
+                              "별빛 학교/해안 마을",
                               stage >= 4 ? "사건 해결 뒤 안도" : "악몽 출현으로 불안",
                               {villagers[0].line, villagers[4].line}});
     return snapshot;
@@ -652,11 +653,17 @@ inline void DrawHud()
         "01  담임 모라에게 말 걸기 [E]",         "02  악몽 교감 처치하기 [Q]",
         "03  스킬 강화 선택하기 [1 / 2]",        "04  해안 별빛 장치의 봉인 풀기 [E]",
         "05  선생님에게 별빛 조각 전달하기 [E]", "완료  ·  학교에 일상이 돌아왔습니다"};
-    Text(38, 81, objectives[stage], teal);
+    Text(38, 81, objectives[stage], gold);
     char status[256];
     sprintf_s(status, "체력 %d/5    시간 %02d:%02d    목표 %.0f타일    야생 몬스터 처치 %d", hp,
               int(elapsed) / 60, int(elapsed) % 60, Dist(player, Target()), kills);
     Text(38, 114, status, {.8f, .83f, .85f, 1}, 16);
+    Box(20, 138, 300, 25, {ink.r, ink.g, ink.b, .94f});
+    for (int i = 0; i < 5; ++i)
+    {
+        Box(38 + i * 54.f, 144, 46, 10,
+            i < hp ? Color{.95f, .40f, .58f, 1} : Color{.22f, .23f, .30f, 1});
+    }
     Text(970, 38, "싱글플레이 · 튜토리얼", gold, 16);
     Text(970, 62,
          Safe(player)    ? "학교 운동장 · 안전 지역"
@@ -668,7 +675,12 @@ inline void DrawHud()
     Text(36, 772, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · Z 물약 · E 대화 · ESC 메뉴", gold,
          17);
     int nearestNpcIndex = NearestNPC();
-    Text(36, 728,
+    Box(20, 618, 340, 52, {ink.r, ink.g, ink.b, .94f});
+    for (int i = 0; i < 6; ++i)
+    {
+        Box(36 + i * 50.f, 651, 42, 8, i < actions.charges ? gold : Color{.22f, .23f, .30f, 1});
+    }
+    Text(36, 641,
          "충전 " + std::to_string(actions.charges) + "/6 · 물약 " + std::to_string(potions) +
              (actions.reload > 0 ? " · 재충전 중" : ""),
          gold, 16);

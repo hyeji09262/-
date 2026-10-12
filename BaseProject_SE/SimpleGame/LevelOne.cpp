@@ -655,6 +655,12 @@ void DrawHud()
               progress.stats.level, health, progress.stats.maxHealth, mana, progress.stats.maxMana,
               progress.stats.attack, progress.stats.defense);
     Text(35, 80, line);
+    const float healthRatio = (std::max)(0.f, (std::min)(1.f, health / progress.stats.maxHealth));
+    const float manaRatio = (std::max)(0.f, (std::min)(1.f, mana / progress.stats.maxMana));
+    Box(35, 84, 370, 5, {.20f, .22f, .30f, 1});
+    Box(35, 84, 370 * healthRatio, 5, {.95f, .40f, .58f, 1});
+    Box(425, 84, 385, 5, {.20f, .22f, .30f, 1});
+    Box(425, 84, 385 * manaRatio, 5, {.52f, .65f, .98f, 1});
 
     float ratio = progress.stats.level == Rpg::LevelCap
                       ? 1.f
@@ -733,7 +739,12 @@ void DrawHud()
     Box(18, 710, 1244, 74, panel);
     Text(35, 738, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · E 획득 · Z 물약 · ESC 메뉴", gold,
          17);
-    Text(35, 625,
+    Box(18, 585, 340, 58, panel);
+    for (int i = 0; i < 6; ++i)
+    {
+        Box(35 + i * 50.f, 626, 42, 8, i < actions.charges ? gold : Color{.20f, .22f, .30f, 1});
+    }
+    Text(35, 613,
          "마법봉 충전 " + std::to_string(actions.charges) + "/6" +
              (actions.reload > 0 ? " · 재충전 중" : ""),
          gold, 16);
@@ -790,7 +801,8 @@ WorldMonitor::Scene MonitorSnapshot()
     {
         enemy.health > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
     }
-    snapshot.towns.push_back({"hunting_camp", "학교 주변 사냥 지역", "안전 거점과 야생 구역 공존", {}});
+    snapshot.towns.push_back(
+        {"hunting_camp", "학교 주변 사냥 지역", "안전 거점과 야생 구역 공존", {}});
     return snapshot;
 }
 

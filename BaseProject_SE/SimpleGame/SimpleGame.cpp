@@ -97,16 +97,18 @@ void Tick(int)
     if (WorldMonitor::Due())
     {
         Performance::Scope monitorScope("cpu.monitor.collect_ms");
-        const char* active = activeScene == GameScene::Tutorial ? "tutorial"
-                             : activeScene == GameScene::Hunting ? "hunting"
-                             : activeScene == GameScene::Prologue ? "story" : "quest_two";
+        const char* active = activeScene == GameScene::Tutorial   ? "tutorial"
+                             : activeScene == GameScene::Hunting  ? "hunting"
+                             : activeScene == GameScene::Prologue ? "story"
+                                                                  : "quest_two";
         WorldMonitor::Scene preview;
         preview.id = "quest_two";
         preview.name = "메인 퀘스트 2 · 준비 중";
         preview.objective = "아직 시뮬레이션 없음";
         preview.paused = true;
-        WorldMonitor::Publish(active, {Tutorial::MonitorSnapshot(), LevelOne::MonitorSnapshot(),
-                                      Prologue::MonitorSnapshot(), preview},
+        WorldMonitor::Publish(active,
+                              {Tutorial::MonitorSnapshot(), LevelOne::MonitorSnapshot(),
+                               Prologue::MonitorSnapshot(), preview},
                               g_Renderer->LastFrameStats().Total());
     }
     glutPostRedisplay();

@@ -59,7 +59,8 @@ inline void Publish(const std::string& active, const std::vector<Scene>& scenes,
     static unsigned long long sequence = 0;
     static const auto session = std::chrono::system_clock::now().time_since_epoch().count();
     const auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-                               std::chrono::system_clock::now().time_since_epoch()).count();
+                               std::chrono::system_clock::now().time_since_epoch())
+                               .count();
     std::ostringstream json;
     json.imbue(std::locale::classic());
     json << "{\"schema_version\":1,\"session_id\":" << Quote(std::to_string(session))
@@ -107,15 +108,16 @@ inline void Publish(const std::string& active, const std::vector<Scene>& scenes,
         for (size_t i = 0; i < scene.npcs.size(); ++i)
         {
             const auto& npc = scene.npcs[i];
-            json << (i ? "," : "") << "{\"id\":" << Quote(npc.id)
-                 << ",\"name\":" << Quote(npc.name) << ",\"state\":" << Quote(npc.state)
+            json << (i ? "," : "") << "{\"id\":" << Quote(npc.id) << ",\"name\":" << Quote(npc.name)
+                 << ",\"state\":" << Quote(npc.state)
                  << ",\"present\":" << (npc.present ? "true" : "false")
-                 << ",\"position\":{\"x\":" << npc.x << ",\"y\":" << npc.y
-                 << ",\"z\":" << npc.z << "},\"hp\":null}";
+                 << ",\"position\":{\"x\":" << npc.x << ",\"y\":" << npc.y << ",\"z\":" << npc.z
+                 << "},\"hp\":null}";
         }
         json << "]}";
     }
     json << "]}";
+    const std::string payload = json.str();
     const auto path = RuntimeFiles::Path(L"world_monitor.json");
     bool success = false;
     if (!path.empty())
@@ -123,14 +125,15 @@ inline void Publish(const std::string& active, const std::vector<Scene>& scenes,
         const auto temporary = path + L".tmp";
         {
             std::ofstream file(temporary.c_str(), std::ios::binary | std::ios::trunc);
-            file << json.str();
+            file << payload;
             file.flush();
             success = bool(file);
         }
         success = success && RuntimeFiles::Commit(temporary, path);
     }
-    Performance::Profiler::Get().Count(success ? "monitor.snapshots_written" : "monitor.write_failures");
-    Performance::Profiler::Get().Gauge("monitor.snapshot_bytes", double(json.str().size()));
+    Performance::Profiler::Get().Count(success ? "monitor.snapshots_written"
+                                               : "monitor.write_failures");
+    Performance::Profiler::Get().Gauge("monitor.snapshot_bytes", double(payload.size()));
     static bool reportedFailure = false;
     if (!success && !reportedFailure)
     {

@@ -430,7 +430,8 @@ void Renderer::DrawFrameStats()
     Text(862 * sx, 321 * sy, performance, 14 * sy, .86f, .90f, 1);
 }
 
-void Renderer::Nameplate(float centerX, float baseline, const std::string& label, float size)
+void Renderer::Nameplate(float centerX, float baseline, const std::string& label, float size,
+                         float r, float g, float b)
 {
     if (!m_Font || label.empty())
     {
@@ -454,7 +455,7 @@ void Renderer::Nameplate(float centerX, float baseline, const std::string& label
     float top = baseline - size * 1.3f, bottom = baseline + size * .4f;
     Triangle(left, top, right, top, right, bottom, .04f, .04f, .09f, .94f);
     Triangle(left, top, right, bottom, left, bottom, .04f, .04f, .09f, .94f);
-    Text(centerX - advance * .5f, baseline, label, size, 1, .95f, .86f);
+    Text(centerX - advance * .5f, baseline, label, size, r, g, b);
 }
 
 void Renderer::BeginWorld()

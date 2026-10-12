@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>별빛 학교 · 월드 모니터</title>
+<style>
+:root{color-scheme:dark;font-family:"Malgun Gothic",sans-serif;background:#10121d;color:#e8eaf7}*{box-sizing:border-box}body{max-width:1360px;margin:auto;padding:32px}h1{font-size:27px;margin:4px 0 12px}h2{font-size:18px}p{color:#abb2ce;line-height:1.6}.kicker{color:#d6adfa;font-size:12px;letter-spacing:3px}header{display:flex;justify-content:space-between;align-items:center;gap:24px}#connection{padding:10px 14px;border-radius:8px;background:#292a42;color:#ffd78b}nav{display:flex;gap:12px;align-items:center;margin:24px 0;flex-wrap:wrap}select,input{padding:10px;border:1px solid #3c4057;border-radius:8px;background:#1b1e2f;color:inherit}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.card,section{background:#1a1d2d;border:1px solid #2b3047;border-radius:14px;padding:20px;margin-bottom:20px}.number{font-size:32px;color:#f6d578;display:block;margin-top:8px}.label{color:#abb2ce;font-size:13px}#objective{color:#f6d578;font-size:19px}.towns{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;padding:13px 10px;border-bottom:1px solid #303449}th{color:#aab1ce;font-weight:400}.tablewrap{overflow:auto}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#afc9cb;max-height:380px;overflow:auto}small{color:#a7adc5}#error{color:#ffbead}.muted{opacity:.55}@media(max-width:720px){body{padding:16px}.cards{grid-template-columns:repeat(2,1fr)}header{display:block}}
+</style>
+<header><div><div class="kicker">STARLIGHT / LOCAL OBSERVER</div><h1>월드 상태 모니터</h1><small>읽기 전용 · 로컬 JSON · 1초 갱신</small></div><div id="connection" role="status">연결 대기</div></header>
+<p>장면마다 별도의 상태입니다. 같은 학교가 다른 장면에 등장하므로 인구를 전역 합산하지 않습니다.</p>
+<nav><label>장면 <select id="scene"><option value="auto">활성 장면 따라가기</option></select></label><label>NPC 검색 <input id="search" placeholder="이름 또는 상태"></label><span id="updated"></span></nav>
+<div id="error" role="status"></div>
+<div class="cards"><div class="card"><span class="label">배치된 NPC</span><strong class="number" id="npc">—</strong></div><div class="card"><span class="label">살아 있는 몹</span><strong class="number" id="mobs">—</strong></div><div class="card"><span class="label">사망/리스폰 대기 몹</span><strong class="number" id="dead">—</strong></div><div class="card"><span class="label">직전 프레임 Draw calls · 활성 장면</span><strong class="number" id="draw">—</strong></div></div>
+<section><small id="sceneState"></small><p id="objective">게임 실행을 기다립니다.</p></section>
+<h2>마을 / 지역</h2><div class="towns" id="towns"></div>
+<section><h2>NPC 상태</h2><p>HP가 없는 NPC는 ‘미구현’으로 표시합니다. 위치는 월드 좌표이며 지역 밖 NPC는 마지막/설정 위치입니다.</p><div class="tablewrap"><table><thead><tr><th>이름</th><th>ID</th><th>상태</th><th>배치</th><th>좌표 (x, y, z)</th><th>HP</th></tr></thead><tbody id="npcs"></tbody></table></div></section>
+<details><summary>수신 JSON 확인</summary><pre id="raw"></pre></details>
+<script>
+const $ = id => document.getElementById(id);
+let latest = null;
+function node(tag,text,cls){const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;return el;}
+function render(){
+ if(!latest)return;
+ const id=$('scene').value==='auto'?latest.active_scene:$('scene').value;
+ const scene=latest.scenes.find(s=>s.id===id);if(!scene)return;
+ $('npc').textContent=scene.npc_count;$('mobs').textContent=scene.mobs_alive;$('dead').textContent=scene.mobs_dead;$('draw').textContent=latest.draw_calls_last_frame;
+ $('sceneState').textContent=scene.name+' · '+(scene.active?'선택된 게임 장면':'비활성 장면')+' · '+(scene.paused?'일시정지 / 정지된 상태':'실행 중');
+ $('objective').textContent=scene.objective;$('towns').replaceChildren();
+ for(const town of scene.towns){const card=node('div','','card');card.append(node('h2',town.name),node('p','분위기: '+town.atmosphere),node('p','배치 인구: '+town.population+' NPC · 플레이어 제외'),node('p','성향: '+town.disposition),node('small','분위기/소문: 스토리 규칙·설정값, 사회 시뮬레이션 아님'));const list=node('ul','');for(const rumor of town.rumors)list.append(node('li',rumor));if(!town.rumors.length)list.append(node('li','등록된 소문 없음'));card.append(list);$('towns').append(card);}
+ if(!scene.towns.length)$('towns').append(node('p','이 장면에는 지역 시뮬레이션이 없습니다.'));
+ $('npcs').replaceChildren();const search=$('search').value.toLowerCase();
+ for(const npc of scene.npcs){if(!(npc.name+' '+npc.state+' '+npc.id).toLowerCase().includes(search))continue;const tr=node('tr','',npc.present?'':'muted');for(const value of [npc.name,npc.id,npc.state,npc.present?'현재 지역':'지역 밖',Object.values(npc.position).map(v=>Number(v).toFixed(1)).join(', '),npc.hp??'미구현'])tr.append(node('td',value));$('npcs').append(tr);}
+ if(!$('npcs').children.length){const tr=node('tr',''),td=node('td','표시할 NPC가 없습니다.');td.colSpan=6;tr.append(td);$('npcs').append(tr);}
+ $('raw').textContent=JSON.stringify(latest,null,2);
+}
+async function poll(){
+ const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),2500);
+ try{const response=await fetch('/api/state',{cache:'no-store',signal:controller.signal});const data=await response.json();if(!response.ok)throw Error(data.error||'연결 오류');if(data.schema_version!==1||!Array.isArray(data.scenes))throw Error('지원하지 않는 JSON 형식');latest=data;const selected=$('scene').value;$('scene').replaceChildren(new Option('활성 장면 따라가기','auto'));for(const s of data.scenes)$('scene').add(new Option(s.name,s.id));$('scene').value=[...$('scene').options].some(o=>o.value===selected)?selected:'auto';const age=Math.max(0,(Date.now()-data.timestamp_ms)/1000);$('connection').textContent=age>5?'데이터 오래됨 · 게임 정지/종료 가능':'연결됨';$('updated').textContent=new Date(data.timestamp_ms).toLocaleTimeString('ko-KR')+' · #'+data.sequence;$('error').textContent=age>5?Math.floor(age)+'초 전 데이터입니다. 현재 상태로 보지 마세요.':'';render();}
+ catch(error){$('connection').textContent='연결 대기 / 끊김';$('error').textContent=error.message+' (기존 표시가 있다면 마지막 수신 데이터입니다.)';}
+ finally{clearTimeout(timer);setTimeout(poll,1000);}
+}
+$('scene').addEventListener('change',render);$('search').addEventListener('input',render);poll();
+</script>
+</html>

@@ -582,9 +582,32 @@ void Interact()
     }
 }
 
+void StatusBar(float x, float y, const std::string& label, float value, float maximum, Color color)
+{
+    const float ratio = (std::max)(0.f, (std::min)(1.f, value / (std::max)(1.f, maximum)));
+    Text(x, y, label + " " + std::to_string(int(value)) + " / " + std::to_string(int(maximum)), 15,
+         paper);
+    Panel(x, y + 8, 220, 10, {.19f, .20f, .29f, 1});
+    Panel(x, y + 8, 220 * ratio, 10, color);
+}
+
+void DialoguePanel(const std::string& speaker, const std::string& message)
+{
+    Panel(70, 430, 1140, 190, {.05f, .06f, .12f, .98f});
+    Panel(70, 430, 5, 190, pink);
+    Panel(95, 450, 230, 38, {.24f, .15f, .30f, 1});
+    Text(110, 477, speaker, 23, pink);
+    DialogueText(100, 522, message);
+    Text(985, 600, "[E] 다음 / 확인", 18, {.99f, .82f, .35f});
+}
+
 void DrawHud()
 {
-    Panel(22, 20, 810, 115, {.08f, .10f, .18f, .94f});
+    Performance::Scope scope("cpu.story.hud_ms");
+    const Color objectiveColor{.99f, .82f, .35f};
+    const bool magicAvailable = quest.CanFight() && !EndingSchool();
+    Panel(22, 20, 810, 164, {.08f, .10f, .18f, .94f});
+    Panel(22, 20, 4, 164, objectiveColor);
     Text(42, 53,
          quest.epilogueComplete ? "메인 퀘스트 2 · 학교에 숨어든 것"
          : quest.active         ? "메인 퀘스트 1 · 연락이 끊긴 친구"
@@ -595,24 +618,25 @@ void DrawHud()
          quest.epilogueComplete ? "새 퀘스트: 학교에 숨어든 것 (#19 구간 준비 중)"
          : quest.active         ? quest.Current().text
                                 : story.Objective(),
-         19);
+         19, objectiveColor);
     if (quest.active)
     {
-        Text(42, 117,
-             "HP " + std::to_string(int(combat.health)) + " / " +
-                 std::to_string(quest.progress.stats.maxHealth) + "   MP " +
-                 std::to_string(int(combat.mana)) + "   검은 조각 " +
-                 std::to_string(quest.fragments) + "   물약 " +
-                 std::to_string(quest.progress.potions) + " [Z]" +
-                 (quest.CanFight() && !EndingSchool() ? "   마법소녀" : "   평범한 학생"),
-             15);
+        StatusBar(42, 120, "체력", combat.health, float(quest.progress.stats.maxHealth), pink);
+        StatusBar(290, 120, "마나", combat.mana, float(quest.progress.stats.maxMana),
+                  {.52f, .65f, .98f});
+        Text(540, 121,
+             "[Z] 물약 " + std::to_string(quest.progress.potions) + "  ·  검은 조각 " +
+                 std::to_string(quest.fragments),
+             16);
+        Text(42, 165, magicAvailable ? "별빛 마법소녀" : "평범한 학생 · 전투 비활성", 15, pink);
         if (quest.step == QuestStep::Shadows)
         {
-            Text(42, 159, "그림자 처치 " + std::to_string(quest.defeated) + " / 3", 20, pink);
+            Text(290, 165, "그림자 처치 " + std::to_string(quest.defeated) + " / 3", 17,
+                 objectiveColor);
         }
         if (!saveSucceeded)
         {
-            Text(42, 188, "저장 실패: 현재 진행은 유지되지만 재실행 시 복원되지 않을 수 있습니다.",
+            Text(42, 209, "저장 실패: 현재 진행은 유지되지만 재실행 시 복원되지 않을 수 있습니다.",
                  16);
         }
     }
@@ -621,23 +645,33 @@ void DrawHud()
         Text(42, 117, "평범한 학생 · 아직 마법이나 전투 능력이 없습니다", 15, {.70f, .77f, .86f});
     }
 
-    Panel(22, 640, 1236, 137, {.08f, .10f, .18f, .94f});
+    if (magicAvailable)
+    {
+        Panel(852, 20, 406, 164, {.08f, .10f, .18f, .94f});
+        Text(874, 53, "마법봉  ·  " + std::to_string(combat.actions.charges) + " / 6", 23, pink);
+        for (int i = 0; i < 6; ++i)
+        {
+            Panel(874 + i * 60.f, 70, 48, 25,
+                  i < combat.actions.charges ? pink : Color{.20f, .22f, .30f});
+        }
+        const float reload = (std::max)(0.f, (std::min)(1.f, 1 - combat.actions.reload / 1.2f));
+        Panel(874, 108, 348, 5, {.20f, .22f, .30f});
+        Panel(874, 108, 348 * reload, 5, objectiveColor);
+        Text(874, 143, combat.actions.reload > 0 ? "재충전 중…" : "[Q] 공격   [R] 재충전", 17);
+        Text(874, 168, "[1] 별빛 마법  ·  마나 10", 14, pink);
+    }
+
+    Panel(22, 710, 1236, 76, {.08f, .10f, .18f, .94f});
     Text(
-        42, 670,
-        quest.CanFight()
+        42, 740,
+        magicAvailable
             ? "Space 점프 · Q 공격 · R 재충전 · Z 물약 · 1 마법 | WASD 이동 · Shift 달리기 · E 대화"
             : "WASD 이동 | Shift 달리기 | 스페이스 점프 | E 상호작용 | Z 물약(퀘스트 중)",
         18);
-    Text(42, 702,
-         "방향키 카메라 · C 복귀 · ESC 메뉴 | 충전 " + std::to_string(combat.actions.charges) +
-             "/6" + (combat.actions.reload > 0 ? " · 재충전 중" : ""),
-         18);
-    Text(42, 736, "F1 튜토리얼 / F2 사냥터 / F3 프롤로그·퀘스트1 / F4 퀘스트2 / F5 로그", 17, pink);
-    Text(42, 760,
-         std::string(moved ? "[완료] 이동  " : "[ ] 이동  ") +
-             (looked ? "[완료] 카메라  " : "[ ] 카메라  ") +
-             (ran ? "[완료] 달리기  " : "[ ] 달리기  ") + (jumped ? "[완료] 점프" : "[ ] 점프"),
-         15);
+    Text(
+        42, 769,
+        "방향키 카메라 · C 복귀 · ESC 메뉴  |  F1 튜토리얼 · F2 사냥터 · F3 이야기 · F4 퀘스트2 · F5 로그",
+        15, pink);
 
     if (story.IsHome() && time < 7 && !story.dialogueOpen)
     {
@@ -661,22 +695,16 @@ void DrawHud()
                     (!quest.active || quest.Current().event == MainQuest::Event::Interact)
                 ? "[E] 상호작용"
                 : "목표",
-            18 * Scale());
+            18 * Scale(), objectiveColor.r, objectiveColor.g, objectiveColor.b);
     }
     if (story.dialogueOpen)
     {
         const auto line = story.CurrentLine();
-        Panel(110, 440, 1060, 170, {.07f, .08f, .15f, .98f});
-        Text(140, 476, line.speaker, 24, pink);
-        Text(140, 522, line.text, 22);
-        Text(140, 579, "[E] 다음", 18);
+        DialoguePanel(line.speaker, line.text);
     }
     if (questDialogue)
     {
-        Panel(70, 430, 1140, 180, {.07f, .08f, .15f, .98f});
-        Text(100, 473, quest.Current().speaker, 24, pink);
-        DialogueText(100, 513, quest.Current().dialogue);
-        Text(100, 579, "[E] 확인하고 계속", 18);
+        DialoguePanel(quest.Current().speaker, quest.Current().dialogue);
     }
     if (story.step == Step::AfterSchool)
     {
@@ -706,9 +734,9 @@ void DrawHud()
         }
         else
         {
-            Panel(22, 140, 810, 90, {.08f, .07f, .16f, .94f});
-            Text(42, 176, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, pink);
-            Text(42, 210, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
+            Panel(22, 220, 810, 90, {.08f, .07f, .16f, .94f});
+            Text(42, 256, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, objectiveColor);
+            Text(42, 290, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
         }
     }
     if (quest.active && quest.step == QuestStep::Transform)
@@ -912,16 +940,23 @@ WorldMonitor::Scene MonitorSnapshot()
     snapshot.name = "프롤로그 · 메인 스토리";
     snapshot.paused = paused;
     snapshot.objective = quest.epilogueComplete ? "#18 완료 / 다음 퀘스트 활성화"
-                         : quest.active ? quest.Current().text : story.Objective();
-    std::string location = story.IsHome() ? "주인공의 방"
+                         : quest.active         ? quest.Current().text
+                                                : story.Objective();
+    std::string location = story.IsHome()   ? "주인공의 방"
                            : EndingSchool() ? "다음 날 교실"
-                           : InAlleyScene() ? "학교 뒤 골목" : "학교/마을 거리";
+                           : InAlleyScene() ? "학교 뒤 골목"
+                                            : "학교/마을 거리";
     std::string mood = quest.CanFight() && quest.step <= QuestStep::Boss ? "전투 중"
                        : quest.active && quest.step == QuestStep::Escape ? "도주 중"
-                       : quest.epilogueComplete ? "새로운 이상 징후" : "학생 실종으로 불안";
-    snapshot.towns.push_back({"story_region", location, mood,
-                              {"학생 실종 신고가 늘고 있다.", "마지막 목격 장소는 학교 뒤 골목이다."}});
-    auto add = [&](const char* id, const char* name, const std::string& state, Point p, bool present)
+                       : quest.epilogueComplete                          ? "새로운 이상 징후"
+                                                                         : "학생 실종으로 불안";
+    snapshot.towns.push_back(
+        {"story_region",
+         location,
+         mood,
+         {"학생 실종 신고가 늘고 있다.", "마지막 목격 장소는 학교 뒤 골목이다."}});
+    auto add =
+        [&](const char* id, const char* name, const std::string& state, Point p, bool present)
     {
         snapshot.npcs.push_back({id, name, state, p.x, p.y, 0, present});
     };
@@ -938,19 +973,33 @@ WorldMonitor::Scene MonitorSnapshot()
         for (int i = 0; i < 3; ++i)
         {
             const auto& objective = MainQuest::Objectives()[i];
-            add(ids[i], names[i], !outside ? "현재 지역 밖"
-                : questDialogue && int(quest.step) == i ? "대화 중" : "대기",
+            add(ids[i], names[i],
+                !outside                                ? "현재 지역 밖"
+                : questDialogue && int(quest.step) == i ? "대화 중"
+                                                        : "대기",
                 {objective.x, objective.y}, outside);
         }
         const bool leaving = quest.step == QuestStep::Report && farewellTime < 3;
         const bool yunaPresent = InAlleyScene() && (quest.step <= QuestStep::CheckYuna || leaving);
-        add("NPC_YUNA", "유나", leaving ? "귀가 중" : quest.step < QuestStep::Fragment ? "실종"
-            : quest.step < QuestStep::CheckYuna ? "쓰러짐" : quest.step == QuestStep::CheckYuna ? "구조됨" : "귀가",
+        add("NPC_YUNA", "유나",
+            leaving                              ? "귀가 중"
+            : quest.step < QuestStep::Fragment   ? "실종"
+            : quest.step < QuestStep::CheckYuna  ? "쓰러짐"
+            : quest.step == QuestStep::CheckYuna ? "구조됨"
+                                                 : "귀가",
             leaving ? Point{17 - farewellTime * 5, 8} : Point{17, 8}, yunaPresent);
-        const bool lumiPresent = EndingSchool() || (InAlleyScene() && quest.step >= QuestStep::Lumi);
-        Point lumiPosition = EndingSchool() ? Point{player.x + 1, player.y}
-                             : quest.step >= QuestStep::Report ? Point{5, 8} : Point{3, 7};
-        add("NPC_LUMI", "루미", questDialogue && lumiPresent ? "대화 중" : "안내 대기", lumiPosition, lumiPresent);
+        const bool lumiPresent =
+            EndingSchool() || (InAlleyScene() && quest.step >= QuestStep::Lumi);
+        Point lumiPosition = EndingSchool()                    ? Point{player.x + 1, player.y}
+                             : quest.step >= QuestStep::Report ? Point{5, 8}
+                                                               : Point{3, 7};
+        const bool lumiSpeaking =
+            questDialogue && lumiPresent && std::string(quest.Current().speaker) == "루미";
+        add("NPC_LUMI", "루미",
+            !lumiPresent   ? "현재 지역 밖"
+            : lumiSpeaking ? "대화 중"
+                           : "안내 대기",
+            lumiPosition, lumiPresent);
         snapshot.npcs.back().z = EndingSchool() ? 30.f : 25 + std::sin(time * 3) * 5;
     }
     for (const auto& enemy : combat.enemies)

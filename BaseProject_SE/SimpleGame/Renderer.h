@@ -45,7 +45,8 @@ class Renderer
     void BeginFrame();
     void EndFrame();
     void DrawFrameStats();
-    void Nameplate(float centerX, float baseline, const std::string& label, float size);
+    void Nameplate(float centerX, float baseline, const std::string& label, float size, float r = 1,
+                   float g = .95f, float b = .86f);
 
     const FrameStats& LastFrameStats() const
     {
