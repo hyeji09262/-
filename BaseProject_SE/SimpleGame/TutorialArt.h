@@ -30,6 +30,7 @@ inline void Person(Vec p, Color cloak, bool wizard = false, int variant = 0)
         return;
     if (wizard)
     {
+        s.y -= actions.height;
         int frame = CharacterVisual::FrameIndex(castPose, moving, walkCycle / 1.570796f);
         CachedArt(static_cast<Hunting::ModelId>(frame), s, 1.f,
                   castPose > 0 ? castMirror : facing < 0);
@@ -392,6 +393,7 @@ inline void DrawWorld()
     bool mirror = castPose > 0 ? castMirror : facing < 0;
     scene.Place("player/wand", CharacterVisual::WandSocket(castPose > 0, mirror),
                 RenderLayer::World, {}, &heroine);
+    scene.Find("player/wand")->local.z += actions.height;
     for (size_t i = 0; i < monsters.size(); ++i)
     {
         Monster monster = monsters[i];
@@ -504,6 +506,7 @@ inline void DrawWorld()
             spell.origin.x + spell.direction.x * CharacterVisual::SpellSpeed * spell.age,
             spell.origin.y + spell.direction.y * CharacterVisual::SpellSpeed * spell.age, spell.age,
             spell.mirror);
+        pose.z += spell.launchHeight * (1 - (std::min)(1.f, spell.age / .18f));
         scene.Place("spell/" + std::to_string(spell.id), pose, RenderLayer::World,
                     drawSpell(CharacterVisual::SpellSize));
     }

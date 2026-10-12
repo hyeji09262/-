@@ -12,6 +12,7 @@
 #include "RpgProgress.h"
 #include "SceneGraph.h"
 #include "CharacterVisual.h"
+#include "PlayerActions.h"
 
 namespace LevelOne
 {
@@ -60,6 +61,7 @@ struct Projectile
     Position muzzleOffset;
     float age = 0;
     unsigned int visualId = nextVisualId++;
+    float launchHeight = 0;
 };
 
 struct FloatingText
@@ -95,6 +97,7 @@ float damageTimer = 0;
 float navigationTimer = 0;
 float walkFrame = 0;
 float castTimer = 0;
+PlayerActions actions;
 float noticeTimer = 0;
 bool paused = false;
 bool moving = false;
@@ -193,6 +196,7 @@ void NewMap()
     health = static_cast<float>(progress.stats.maxHealth);
     mana = static_cast<float>(progress.stats.maxMana);
     attackTimer = damageTimer = castTimer = navigationTimer = 0;
+    actions = PlayerActions{};
     keys.fill(false);
 
     auto candidates = map.SpawnLocations();
@@ -224,7 +228,7 @@ void NewMap()
         }
     }
     navigation = map.Distances(player);
-    Notify("마법소녀의 첫 임무! 학교를 지켜요. 스페이스 공격 / E 획득");
+    Notify("마법소녀의 첫 임무! Q 공격 / Space 점프 / R 재충전 / E 획득");
 }
 
 bool LineOfSight(Position a, Position b)
@@ -243,7 +247,7 @@ bool LineOfSight(Position a, Position b)
 
 void Attack()
 {
-    if (attackTimer > 0 || mana < 4)
+    if (attackTimer > 0 || mana < 4 || !actions.Fire())
     {
         return;
     }
@@ -269,6 +273,7 @@ void Attack()
     auto socket = CharacterVisual::WandSocket(true, castMirror);
     // Keep the original collision path/range; only the initial visual segment uses the socket.
     projectiles.push_back({player, direction, progress.stats.attack, .85f, {socket.x, socket.y}});
+    projectiles.back().launchHeight = actions.height;
 }
 
 void Kill(Enemy& enemy)
@@ -596,11 +601,12 @@ void DrawActors()
     // Root remains visible during damage flicker, so its shadow/socket are not lost.
     auto& heroine =
         scene.Place("player", {player.x, player.y}, Game::RenderLayer::World, {}, &dynamic);
-    PlaceModel("player/body", playerModel, {}, &heroine, mirror);
+    PlaceModel("player/body", playerModel, {0, 0, actions.height}, &heroine, mirror);
     scene.Find("player/body")->visible = damageTimer <= 0 || static_cast<int>(time * 14) % 2 == 0;
     PlaceModel("player/shadow", ModelId::Shadow, {}, &heroine, false, Game::RenderLayer::Shadow);
     auto& socket = scene.Place("player/wand", CharacterVisual::WandSocket(castTimer > 0, mirror),
                                Game::RenderLayer::World, {}, &heroine);
+    socket.local.z += actions.height;
     if (castTimer > 0)
     {
         PlaceEffect("player/wand/flash", {}, 24, 24, 2, &socket);
@@ -632,10 +638,11 @@ void DrawActors()
     auto& spells = scene.Place("spells", {}, Game::RenderLayer::World);
     for (const auto& shot : projectiles)
     {
-        PlaceEffect("shot/" + std::to_string(shot.visualId),
-                    CharacterVisual::SpellPose(shot.position.x, shot.position.y, shot.age,
-                                               shot.muzzleOffset.x < 0),
-                    CharacterVisual::SpellSize, CharacterVisual::SpellSize, 2, &spells);
+        auto pose = CharacterVisual::SpellPose(shot.position.x, shot.position.y, shot.age,
+                                               shot.muzzleOffset.x < 0);
+        pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
+        PlaceEffect("shot/" + std::to_string(shot.visualId), pose, CharacterVisual::SpellSize,
+                    CharacterVisual::SpellSize, 2, &spells);
     }
 }
 
@@ -671,7 +678,7 @@ void DrawHud()
     Text(35, 135, line, teal, 16);
 
     Box(18, 166, 600, 40, panel);
-    sprintf_s(line, "골드 %d    회복 물약 %d [Q]    마력석 %d    %s", progress.coins,
+    sprintf_s(line, "골드 %d    회복 물약 %d [Z]    마력석 %d    %s", progress.coins,
               progress.potions, progress.crystals,
               map.Safe(player) ? "학교: 회복 중" : "학교 주변 · 악몽 출현");
     Text(35, 193, line, gold, 17);
@@ -724,9 +731,12 @@ void DrawHud()
         }
     }
     Box(18, 710, 1244, 74, panel);
-    Text(35, 738,
-         "WASD 이동   스페이스 공격   E 획득   Q 물약   ESC 메뉴   F1 튜토리얼 / F2 학교 주변",
-         gold, 17);
+    Text(35, 738, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · E 획득 · Z 물약 · ESC 메뉴", gold,
+         17);
+    Text(35, 625,
+         "마법봉 충전 " + std::to_string(actions.charges) + "/6" +
+             (actions.reload > 0 ? " · 재충전 중" : ""),
+         gold, 16);
     std::string cache = models.loadedFromFile ? "모델: 파일 캐시 로딩"
                         : models.storedToFile ? "모델: 최초 생성·캐시 저장 완료"
                                               : "모델: 캐시 쓰기 실패";
@@ -742,7 +752,7 @@ void DrawHud()
         Box(0, 0, 1280, 800, {.02f, .025f, .04f, .78f});
         Box(270, 250, 740, 275, panel);
         Text(307, 298, "학교 주변 메뉴", gold, 26);
-        Text(307, 347, "ESC: 계속하기   |   R: 새로운 랜덤 맵");
+        Text(307, 347, "ESC: 계속하기   |   N: 새로운 랜덤 맵");
         Text(307, 391, "새 맵에서도 경험치와 소지품은 유지됩니다.", teal);
         Text(307, 427, "단, 바닥에 남은 전리품과 몬스터 배치는 초기화됩니다.", white, 16);
         Text(307, 481, "목표: 몬스터 처치 → 경험치 획득 → 자동 스탯 성장", gold, 18);
@@ -767,6 +777,21 @@ void Initialize(Renderer* renderer)
     {
         Notify("저장된 경험치와 소지품을 불러왔습니다. 새로운 사냥을 시작하세요.");
     }
+}
+
+WorldMonitor::Scene MonitorSnapshot()
+{
+    WorldMonitor::Scene snapshot;
+    snapshot.id = "hunting";
+    snapshot.name = "사냥터 · 학교 주변";
+    snapshot.paused = paused;
+    snapshot.objective = "몬스터 사냥 · 경험치 획득";
+    for (const auto& enemy : enemies)
+    {
+        enemy.health > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
+    }
+    snapshot.towns.push_back({"hunting_camp", "학교 주변 사냥 지역", "안전 거점과 야생 구역 공존", {}});
+    return snapshot;
 }
 
 void Resize(int width, int height)
@@ -812,7 +837,7 @@ void Key(unsigned char key, bool down)
     }
     if (paused)
     {
-        if (key == 'r')
+        if (key == 'n')
         {
             NewMap();
             paused = false;
@@ -823,7 +848,15 @@ void Key(unsigned char key, bool down)
     {
         PickUp();
     }
-    if (key == 'q' && progress.potions > 0 && health < progress.stats.maxHealth)
+    if (key == ' ')
+    {
+        actions.Jump();
+    }
+    if (key == 'r')
+    {
+        actions.Reload();
+    }
+    if (key == 'z' && progress.potions > 0 && health < progress.stats.maxHealth)
     {
         --progress.potions;
         health =
@@ -841,6 +874,7 @@ void Update(float dt)
         return;
     }
     time += dt;
+    actions.Update(dt);
     attackTimer -= dt;
     damageTimer -= dt;
     castTimer -= dt;
@@ -866,7 +900,7 @@ void Update(float dt)
     {
         walkFrame += dt * CharacterVisual::WalkFramesPerSecond;
     }
-    if (keys[' '])
+    if (keys['q'])
     {
         Attack();
     }

@@ -51,6 +51,12 @@
     <ClInclude Include="CharacterVisual.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="PlayerActions.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldMonitor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="RuntimeFiles.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

@@ -7,6 +7,7 @@ int main()
 {
     using namespace MainQuest;
     State quest;
+    assert(!quest.FinishEpilogue());
     assert(!quest.Emit(Event::Interact));
     quest.active = true;
     assert(!quest.Emit(Event::Defeat));
@@ -37,6 +38,10 @@ int main()
     assert(std::strcmp(quest.NextQuestId(), "MQ_002_SOMETHING_IN_SCHOOL") == 0);
     assert(!quest.Emit(Event::Interact) && !quest.Emit(Event::Defeat));
     assert(quest.progress.coins == 100);
+    assert(quest.FinishEpilogue());
+    assert(!quest.FinishEpilogue());
+    assert(std::strcmp(quest.ActiveQuestId(), "MQ_002_SOMETHING_IN_SCHOOL") == 0);
+    assert(quest.progress.coins == 100 && quest.fragments == 4);
 
     State escape;
     escape.active = true;
@@ -44,16 +49,27 @@ int main()
     combat.Enter(escape);
     combat.Attack({4, 8}, false, escape);
     combat.Burst({4, 8}, escape);
-    combat.Dodge({1, 0}, escape);
-    assert(combat.shots.empty() && combat.mana == 30 && combat.dodge == 0);
+    assert(combat.shots.empty() && combat.mana == 30);
+    assert(!combat.UsePotion(escape));
+    assert(escape.progress.potions == 3);
     combat.health = 0;
+    assert(!combat.UsePotion(escape));
     escape.step = Step::Shadows;
     combat.Attack({4, 8}, false, escape);
     assert(combat.shots.empty());
     combat.Enter(escape);
-    combat.Dodge({1, 0}, escape);
     combat.HitPlayer(20);
-    assert(combat.health == 60);
+    assert(combat.health == 40);
+    assert(combat.UsePotion(escape));
+    assert(combat.health == 60 && escape.progress.potions == 2);
+    assert(!combat.UsePotion(escape));
+    combat.health = 10;
+    assert(combat.UsePotion(escape));
+    assert(combat.health == 37 && escape.progress.potions == 1);
+    escape.progress.potions = 0;
+    assert(!combat.UsePotion(escape));
+    combat.Enter(escape);
+    assert(escape.progress.potions == 0);
 
     const auto socket = CharacterVisual::WandSocket(true, false, 40);
     assert(std::abs((socket.x - socket.y) * 40 - CharacterVisual::WandX) < .001f);

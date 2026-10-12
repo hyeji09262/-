@@ -65,15 +65,15 @@ inline const std::array<Objective, 15>& Objectives()
         {"MQ001_10_FIRST_TRANSFORMATION", "루미의 빛을 받아 첫 변신 중…", Event::Timer, 3, 8,
          "루미", "네 마음의 빛을 믿어. 이제 유나를 구하러 가자!"},
         {"MQ001_11_KILL_SHADOWS", "그림자 3마리를 처치하세요.", Event::Defeat, 9, 8, "루미",
-         "마법봉으로 공격해! Space 공격 / Z 회피 / X 별빛 폭발"},
+         "마법봉으로 공격해! Q 공격 / R 재충전 / Z 물약 / 1 별빛 폭발"},
         {"MQ001_12_KILL_SHADOW_EATER", "그림자 포식자를 처치하세요.", Event::Defeat, 15, 8, "루미",
          "바닥의 붉은 예고를 피해! 공격 뒤에는 잠시 빈틈이 생겨."},
         {"MQ001_13_CHECK_YUNA", "유나의 상태를 확인하세요.", Event::Interact, 17, 8, "유나",
-         "어… 내가 왜 여기 있지? 괴물? 아무것도 기억 안 나. 먼저 집에 갈게."},
+         "괴물? 전혀 기억 안 나… 루미? 네 옆에는 아무도 없는데? 먼저 집에 갈게."},
         {"MQ001_14_TALK_LUMI", "루미에게 돌아가 사건을 정리하세요.", Event::Interact, 5, 8, "루미",
          "유나는 날 못 보는구나. 조각의 정체는 나도 몰라. 내일 학교에서 다시 만나자."},
         {"MQ001_COMPLETE", "연락이 끊긴 친구 완료 · 다음 퀘스트 해금", Event::Interact, 5, 8,
-         "퀘스트 완료", "변신·마법·회피 해금 / 검은 조각 3개 / 경험치 120 / 골드 100"},
+         "퀘스트 완료", "변신·마법 해금 / 검은 조각 3개 / 경험치 120 / 골드 100"},
     }};
     return data;
 }
@@ -86,6 +86,7 @@ class State
     int fragments = 0;
     int defeated = 0;
     bool rewardClaimed = false;
+    bool epilogueComplete = false;
     Rpg::Progress progress;
 
     const Objective& Current() const
@@ -106,6 +107,23 @@ class State
     const char* NextQuestId() const
     {
         return rewardClaimed ? "MQ_002_SOMETHING_IN_SCHOOL" : "";
+    }
+
+    const char* ActiveQuestId() const
+    {
+        return !active            ? ""
+               : epilogueComplete ? "MQ_002_SOMETHING_IN_SCHOOL"
+                                  : "MQ_001_MISSING_FRIEND";
+    }
+
+    bool FinishEpilogue()
+    {
+        if (!active || step != Step::Complete || !rewardClaimed || epilogueComplete)
+        {
+            return false;
+        }
+        epilogueComplete = true;
+        return true;
     }
 
     bool Emit(Event event)

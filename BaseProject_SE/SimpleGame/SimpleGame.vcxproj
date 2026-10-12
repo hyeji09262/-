@@ -170,6 +170,8 @@
     <ClInclude Include="Actor.h" />
     <ClInclude Include="SceneGraph.h" />
     <ClInclude Include="CharacterVisual.h" />
+    <ClInclude Include="PlayerActions.h" />
+    <ClInclude Include="WorldMonitor.h" />
     <ClInclude Include="RuntimeFiles.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

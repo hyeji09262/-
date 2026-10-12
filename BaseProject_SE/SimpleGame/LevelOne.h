@@ -1,4 +1,5 @@
 #pragma once
+#include "WorldMonitor.h"
 
 class Renderer;
 
@@ -11,4 +12,5 @@ void Update(float deltaTime);
 void Draw();
 void Pause();
 void Save();
+WorldMonitor::Scene MonitorSnapshot();
 } // namespace LevelOne

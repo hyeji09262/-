@@ -22,7 +22,8 @@ enum class GameScene
 {
     Prologue,
     Tutorial,
-    Hunting
+    Hunting,
+    QuestTwo
 };
 
 static GameScene activeScene = GameScene::Prologue;
@@ -42,9 +43,13 @@ void RenderScene()
     {
         Tutorial::Draw();
     }
-    else
+    else if (activeScene == GameScene::Hunting)
     {
         LevelOne::Draw();
+    }
+    else
+    {
+        Prologue::DrawQuestTwoPreview();
     }
     g_Renderer->EndFrame();
     {
@@ -55,10 +60,12 @@ void RenderScene()
     profiler.Sample("cpu.frame_callback_ms", Performance::Milliseconds(start));
     const char* sceneName = activeScene == GameScene::Prologue   ? "prologue"
                             : activeScene == GameScene::Tutorial ? "tutorial"
-                                                                 : "level_one";
+                            : activeScene == GameScene::Hunting  ? "level_one"
+                                                                 : "quest_two_preview";
     profiler.Count(activeScene == GameScene::Prologue   ? "frame.scene.prologue"
                    : activeScene == GameScene::Tutorial ? "frame.scene.tutorial"
-                                                        : "frame.scene.level_one");
+                   : activeScene == GameScene::Hunting  ? "frame.scene.level_one"
+                                                        : "frame.scene.quest_two_preview");
     profiler.Frame(interval, sceneName, g_Renderer->LastFrameStats().frame);
 }
 
@@ -82,11 +89,26 @@ void Tick(int)
     {
         Tutorial::Update(dt);
     }
-    else
+    else if (activeScene == GameScene::Hunting)
     {
         LevelOne::Update(dt);
     }
 
+    if (WorldMonitor::Due())
+    {
+        Performance::Scope monitorScope("cpu.monitor.collect_ms");
+        const char* active = activeScene == GameScene::Tutorial ? "tutorial"
+                             : activeScene == GameScene::Hunting ? "hunting"
+                             : activeScene == GameScene::Prologue ? "story" : "quest_two";
+        WorldMonitor::Scene preview;
+        preview.id = "quest_two";
+        preview.name = "메인 퀘스트 2 · 준비 중";
+        preview.objective = "아직 시뮬레이션 없음";
+        preview.paused = true;
+        WorldMonitor::Publish(active, {Tutorial::MonitorSnapshot(), LevelOne::MonitorSnapshot(),
+                                      Prologue::MonitorSnapshot(), preview},
+                              g_Renderer->LastFrameStats().Total());
+    }
     glutPostRedisplay();
     glutTimerFunc(16, Tick, 0);
 }
@@ -111,7 +133,7 @@ void KeyDown(unsigned char k, int, int)
     {
         Tutorial::Key(k, true);
     }
-    else
+    else if (activeScene == GameScene::Hunting)
     {
         LevelOne::Key(k, true);
     }
@@ -127,7 +149,7 @@ void KeyUp(unsigned char k, int, int)
     {
         Tutorial::Key(k, false);
     }
-    else
+    else if (activeScene == GameScene::Hunting)
     {
         LevelOne::Key(k, false);
     }
@@ -135,12 +157,12 @@ void KeyUp(unsigned char k, int, int)
 
 void SpecialKey(int key, int, int)
 {
-    if (key == GLUT_KEY_F3)
+    if (key == GLUT_KEY_F5)
     {
         Performance::Profiler::Get().Toggle();
         return;
     }
-    if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2 && key != GLUT_KEY_F4)
+    if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2 && key != GLUT_KEY_F3 && key != GLUT_KEY_F4)
     {
         if (activeScene == GameScene::Prologue)
         {
@@ -154,11 +176,13 @@ void SpecialKey(int key, int, int)
     Prologue::Pause();
     activeScene = key == GLUT_KEY_F1   ? GameScene::Tutorial
                   : key == GLUT_KEY_F2 ? GameScene::Hunting
-                                       : GameScene::Prologue;
+                  : key == GLUT_KEY_F3 ? GameScene::Prologue
+                                       : GameScene::QuestTwo;
     SetWindowTextW(GetActiveWindow(),
                    activeScene == GameScene::Prologue   ? L"마법소녀 - 프롤로그: 평범한 아침"
                    : activeScene == GameScene::Tutorial ? L"별빛 학교 - 마법소녀의 첫날"
-                                                        : L"마법소녀 - 방과 후 첫 임무");
+                   : activeScene == GameScene::Hunting  ? L"마법소녀 - 방과 후 첫 임무"
+                                                        : L"마법소녀 - 메인 퀘스트 2 (준비 중)");
 }
 
 void SpecialKeyUp(int key, int, int)

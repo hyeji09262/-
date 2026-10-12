@@ -6,6 +6,7 @@
 #include "MainQuest.h"
 #include "CharacterVisual.h"
 #include "Profiler.h"
+#include "PlayerActions.h"
 
 namespace MainQuest
 {
@@ -52,13 +53,13 @@ class Combat
     std::vector<Enemy> enemies;
     std::vector<Shot> shots;
     float health = 60, mana = 30;
-    float hurt = 0, cast = 0, attackCooldown = 0, dodge = 0, dodgeCooldown = 0;
+    float hurt = 0, cast = 0, attackCooldown = 0;
     float burst = 0, burstCooldown = 0, comboTime = 0;
-    Point dashDirection = {1, 0};
     Point burstOrigin;
     int combo = 0;
     unsigned nextShot = 1;
     bool castMirror = false;
+    PlayerActions actions;
 
     bool Dead() const
     {
@@ -68,8 +69,9 @@ class Combat
     void Enter(State& quest)
     {
         enemies.clear();
+        actions = PlayerActions{};
         shots.clear();
-        hurt = cast = attackCooldown = dodge = dodgeCooldown = burst = burstCooldown = 0;
+        hurt = cast = attackCooldown = burst = burstCooldown = 0;
         combo = 0;
         comboTime = 0;
         health = float(quest.progress.stats.maxHealth);
@@ -97,7 +99,7 @@ class Combat
 
     void HitPlayer(float damage)
     {
-        if (hurt <= 0 && dodge <= 0 && !Dead())
+        if (hurt <= 0 && !Dead())
         {
             health = (std::max)(0.f, health - damage);
             hurt = .7f;
@@ -125,6 +127,10 @@ class Combat
         {
             return;
         }
+        if (!actions.Fire())
+        {
+            return;
+        }
         Point aim = {player.x + (mirror ? -1.f : 1.f), player.y};
         float nearest = 9;
         for (const auto& enemy : enemies)
@@ -146,19 +152,23 @@ class Combat
                          nextShot++, height});
     }
 
-    void Dodge(Point direction, const State& quest)
+    bool UsePotion(State& quest)
     {
-        if (quest.CanFight() && !Dead() && dodgeCooldown <= 0)
+        if (!quest.active || Dead() || quest.progress.potions <= 0 ||
+            health >= quest.progress.stats.maxHealth)
         {
-            dashDirection = direction;
-            dodge = .22f;
-            dodgeCooldown = .85f;
+            return false;
         }
+        --quest.progress.potions;
+        health = (std::min)(float(quest.progress.stats.maxHealth),
+                            health + quest.progress.stats.maxHealth * .45f);
+        Performance::Profiler::Get().Count("quest.potions_used");
+        return true;
     }
 
     void Burst(Point player, State& quest)
     {
-        if (!quest.CanFight() || Dead() || mana < 10 || burstCooldown > 0 ||
+        if (!quest.CanFight() || Dead() || actions.reload > 0 || mana < 10 || burstCooldown > 0 ||
             (quest.step != Step::Shadows && quest.step != Step::Boss))
         {
             return;
@@ -204,17 +214,12 @@ class Combat
             return;
         }
         hurt -= dt;
+        actions.Update(dt);
         cast -= dt;
         attackCooldown -= dt;
-        dodgeCooldown -= dt;
         burstCooldown -= dt;
         burst -= dt;
         comboTime -= dt;
-        if (dodge > 0)
-        {
-            Move(player, dashDirection, 12 * (std::min)(dt, dodge), walkable);
-            dodge -= dt;
-        }
         mana = (std::min)(float(quest.progress.stats.maxMana), mana + dt * 2);
         for (auto& shot : shots)
         {

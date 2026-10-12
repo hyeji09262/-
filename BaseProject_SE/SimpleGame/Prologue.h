@@ -1,4 +1,5 @@
 #pragma once
+#include "WorldMonitor.h"
 
 class Renderer;
 
@@ -11,4 +12,6 @@ void CameraKey(int key, bool down);
 void Pause();
 void Update(float deltaTime);
 void Draw();
+void DrawQuestTwoPreview();
+WorldMonitor::Scene MonitorSnapshot();
 } // namespace Prologue

@@ -8,6 +8,8 @@
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
 #include "CharacterVisual.h"
+#include "PlayerActions.h"
+#include "WorldMonitor.h"
 #include "Dependencies/freeglut.h"
 
 namespace Tutorial
@@ -56,6 +58,7 @@ struct SpellVisual
     float age, lifetime;
     bool mirror;
     unsigned int id;
+    float launchHeight = 0;
 };
 
 static std::vector<SpellVisual> spells;
@@ -66,7 +69,7 @@ static NPC villagers[] = {
     {{32, 24}, "담임 모라", "악몽 교감을 물리치고, 해안 별빛 장치에서 별빛 조각을 되찾아 주세요."},
     {{29, 26}, "제빵사 보리", "제 빵은 무기로도 쓰입니다. 품질 문제라는 소문은 사실입니다."},
     {{34, 27}, "어부 해솔", "바다가 배를 가져갔어요. 노만이라도 돌려달라고 협상 중입니다."},
-    {{33, 22}, "반장 루아", "스페이스 키로 가까운 적을 공격해요. 붉은 원이 차오르면 피하세요!"},
+    {{33, 22}, "반장 루아", "Q로 공격하고 R로 재충전해요. 붉은 원은 걸어서 피하세요!"},
     {{28, 24}, "방송부 무영", "교내 방송에 괴물 목소리가 섞여요. 방송부 오디션은 끝났는데."},
     {{36, 26}, "경비병 단", "동쪽 바닷가에 봉인된 별빛 장치이 있습니다. 말로는 안 열리더군요."},
     {{31, 29},
@@ -88,6 +91,8 @@ static bool castMirror = false;
 static int width = 1280, height = 800, stage = 0, hp = 5, bossHP = 10, upgrade = 0, kills = 0;
 static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26}, beamTarget = {31, 26};
 static bool keys[256] = {}, paused = false, moving = false;
+static PlayerActions actions;
+static int potions = 3;
 static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, messageTime = 0,
              finishTime = 0;
 static float walkCycle = 0, facing = 1, healTimer = 0, castPose = 0;
@@ -102,6 +107,34 @@ inline float Dist(Vec a, Vec b)
 {
     float x = a.x - b.x, y = a.y - b.y;
     return std::sqrt(x * x + y * y);
+}
+
+inline WorldMonitor::Scene MonitorSnapshot()
+{
+    WorldMonitor::Scene snapshot;
+    snapshot.id = "tutorial";
+    snapshot.name = "튜토리얼 · 별빛 학교/해안 마을";
+    snapshot.paused = paused || stage == 2 || stage == 5;
+    snapshot.objective = "튜토리얼 단계 " + std::to_string(stage);
+    for (int i = 0; i < NPCCount; ++i)
+    {
+        const auto& npc = villagers[i];
+        snapshot.npcs.push_back({"villager_" + std::to_string(i), npc.name,
+                                  Dist(player, npc.p) < 1.8f ? "상호작용 근처" : "대기",
+                                  npc.p.x, npc.p.y, 0, true});
+    }
+    for (const auto& monster : monsters)
+    {
+        monster.hp > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
+    }
+    if (stage == 1 && bossHP > 0)
+    {
+        ++snapshot.mobsAlive;
+    }
+    snapshot.towns.push_back({"tutorial_school", "별빛 학교/해안 마을",
+                              stage >= 4 ? "사건 해결 뒤 안도" : "악몽 출현으로 불안",
+                              {villagers[0].line, villagers[4].line}});
+    return snapshot;
 }
 
 inline Vec Project(Vec p, float z = 0)
@@ -264,6 +297,8 @@ inline void Burst(Vec p, int amount, Color color, float z = 22)
 
 inline void Reset()
 {
+    actions = PlayerActions{};
+    potions = 3;
     scene.Clear();
     player = {31, 26};
     stage = 0;
@@ -380,10 +415,27 @@ inline void Key(unsigned char key, bool down)
     }
     if (paused)
         return;
-    if (key == 'r' && stage == 5)
+    if (key == 'n' && stage == 5)
     {
         Reset();
         return;
+    }
+    if (stage != 2 && stage != 5)
+    {
+        if (key == ' ')
+        {
+            actions.Jump();
+        }
+        if (key == 'r')
+        {
+            actions.Reload();
+        }
+        if (key == 'z' && potions > 0 && hp > 0 && hp < 5)
+        {
+            --potions;
+            hp = (std::min)(5, hp + 2);
+            Say("물약으로 체력을 회복했습니다.");
+        }
     }
     if (stage == 2 && (key == '1' || key == '2'))
     {
@@ -427,6 +479,7 @@ inline void Update(float dt)
     if (paused || stage == 2 || stage == 5)
         return;
     elapsed += dt;
+    actions.Update(dt);
     clockTime += dt;
     attackCD -= dt;
     hurtCD -= dt;
@@ -506,7 +559,7 @@ inline void Update(float dt)
     }
     else
         pulse = 0;
-    if (keys[' '] && attackCD <= 0)
+    if (keys['q'] && attackCD <= 0 && actions.Fire())
     {
         attackCD = .5f;
         castPose = CharacterVisual::CastDuration;
@@ -536,7 +589,8 @@ inline void Update(float dt)
              0,
              (std::max)(.05f, spellDistance / CharacterVisual::SpellSpeed),
              castMirror,
-             nextSpellId++});
+             nextSpellId++,
+             actions.height});
         Burst(beamTarget, 16, teal, 25);
         if (hitBoss)
         {
@@ -595,7 +649,7 @@ inline void DrawHud()
     Box(20, 20, 4, 118, gold);
     Text(38, 49, "별빛 학교  ·  갑자기 마법소녀!", gold, 23);
     const char* objectives[] = {
-        "01  담임 모라에게 말 걸기 [E]",         "02  악몽 교감 처치하기 [스페이스]",
+        "01  담임 모라에게 말 걸기 [E]",         "02  악몽 교감 처치하기 [Q]",
         "03  스킬 강화 선택하기 [1 / 2]",        "04  해안 별빛 장치의 봉인 풀기 [E]",
         "05  선생님에게 별빛 조각 전달하기 [E]", "완료  ·  학교에 일상이 돌아왔습니다"};
     Text(38, 81, objectives[stage], teal);
@@ -611,10 +665,13 @@ inline void DrawHud()
          teal, 16);
     DrawMinimap();
     Box(20, 748, 1240, 34, {ink.r, ink.g, ink.b, .94f});
-    Text(36, 772,
-         "WASD 이동    E 대화·상호작용    스페이스 마법    ESC 일시 정지    금빛 표시: 목표", gold,
+    Text(36, 772, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · Z 물약 · E 대화 · ESC 메뉴", gold,
          17);
     int nearestNpcIndex = NearestNPC();
+    Text(36, 728,
+         "충전 " + std::to_string(actions.charges) + "/6 · 물약 " + std::to_string(potions) +
+             (actions.reload > 0 ? " · 재충전 중" : ""),
+         gold, 16);
     if (nearestNpcIndex >= 0)
         Text(550, 500, std::string("[E] ") + villagers[nearestNpcIndex].name, gold, 18);
     else if (Dist(player, shrine) < (upgrade == 1 ? 4.f : 2.1f))
@@ -630,7 +687,7 @@ inline void DrawHud()
         Box(425, 161, 430 * bossHP / 10.f, 7, {.85f, .25f, .33f, 1});
         Text(430, 196,
              pulse > 2.1f ? "악몽 교감: 공격 준비! 붉은 범위 밖으로 피하세요!"
-                          : "악몽 교감 · 스페이스를 눌러 마법 공격",
+                          : "악몽 교감 · Q를 눌러 마법 공격",
              gold, 16);
     }
     if (stage == 2 || stage == 5 || paused)
@@ -660,7 +717,7 @@ inline void DrawHud()
                       int(finishTime) % 60);
             Text(295, 389, result);
             Text(295, 435, "모라: 빛도, 세금도 돌아왔군요. 고마워요!");
-            Text(295, 490, "[R] 다시 시작    창을 닫으면 종료합니다.", gold, 17);
+            Text(295, 490, "[N] 다시 시작    창을 닫으면 종료합니다.", gold, 17);
         }
     }
 }

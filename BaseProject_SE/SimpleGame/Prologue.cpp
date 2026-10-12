@@ -10,6 +10,7 @@
 #include "Prologue.h"
 #include "PrologueStory.h"
 #include "QuestCombat.h"
+#include "RuntimeFiles.h"
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
 #include "Dependencies/freeglut.h"
@@ -57,8 +58,21 @@ MainQuest::State quest;
 MainQuest::Combat combat;
 QuestStep enteredStep = QuestStep::Complete;
 bool questDialogue = false, saveSucceeded = true, builtAlley = false;
+bool confirmRestart = false;
+bool restartFailed = false;
 float transformTime = 0;
-Point moveDirection = {1, 0};
+float endingTime = 0, farewellTime = 0;
+
+bool EndingSchool()
+{
+    return quest.active && quest.step == QuestStep::Complete && endingTime >= 4;
+}
+
+bool InAlleyScene()
+{
+    return quest.InAlley() && !EndingSchool();
+}
+
 std::array<bool, 256> keys = {};
 std::array<bool, 4> cameraKeys = {};
 Point player = {4, 4.5f};
@@ -187,11 +201,15 @@ bool Walkable(Point p)
 {
     Performance::Profiler::Get().Count("prologue.collision_checks");
     const float margin = .22f;
-    const float xmax = story.IsHome() ? 7.6f : 23.6f;
-    const float ymax = story.IsHome() ? 7.6f : 13.6f;
+    const float xmax = story.IsHome() || EndingSchool() ? 7.6f : 23.6f;
+    const float ymax = story.IsHome() || EndingSchool() ? 7.6f : 13.6f;
     if (p.x < .4f || p.y < .4f || p.x > xmax || p.y > ymax)
     {
         return false;
+    }
+    if (EndingSchool())
+    {
+        return p.y >= 2;
     }
     if (story.IsHome())
     {
@@ -204,7 +222,7 @@ bool Walkable(Point p)
             }
         }
     }
-    else if (quest.InAlley())
+    else if (InAlleyScene())
     {
         return p.x >= 1 && p.x <= 22 && p.y >= 5.5f && p.y <= 11.5f;
     }
@@ -224,9 +242,10 @@ void BuildScene()
     Performance::Scope scope("cpu.prologue.static_scene_build_ms");
     scene.Clear();
     builtHome = story.IsHome();
-    builtAlley = quest.InAlley();
+    builtAlley = InAlleyScene();
     auto& root = scene.Place("environment", {}, RenderLayer::Ground);
-    const int columns = builtHome ? 8 : 24, rows = builtHome ? 8 : 14;
+    const int columns = builtHome || EndingSchool() ? 8 : 24;
+    const int rows = builtHome || EndingSchool() ? 8 : 14;
     for (int y = 0; y < rows; ++y)
     {
         for (int x = 0; x < columns; ++x)
@@ -246,7 +265,25 @@ void BuildScene()
                 &root);
         }
     }
-    if (builtHome)
+    if (EndingSchool())
+    {
+        scene.Place(
+            "classroom/window", {}, RenderLayer::World,
+            [](const Actor&, const Transform& p)
+            {
+                Box(p, 8, .1f, 105, {.80f, .85f, .88f});
+                Box({.5f, .2f, 30}, 7, .05f, 62, {.43f, .66f, .78f});
+                for (int i = 1; i < 8; ++i)
+                {
+                    Box({float(i), .28f, 30}, .06f, .04f, 62, paper);
+                }
+                Box({.5f, 1, 0}, 1.3f, .7f, 25, {.66f, .48f, .34f});
+                Box({5.5f, 1, 0}, 1.3f, .7f, 25, {.66f, .48f, .34f});
+            },
+            &root);
+        Label("classroom/name", {4, 0, 125}, "다음 날 · 별빛 학교 교실", &root);
+    }
+    else if (builtHome)
     {
         scene.Place(
             "walls", {}, RenderLayer::World,
@@ -354,6 +391,8 @@ void BuildScene()
 
 void Reset()
 {
+    confirmRestart = restartFailed = false;
+    endingTime = farewellTime = 0;
     story = Story{};
     quest = MainQuest::State{};
     combat = MainQuest::Combat{};
@@ -381,6 +420,11 @@ void EnterQuestStep(bool restorePosition = false)
     combat.Enter(quest);
     transformTime = 0;
     questDialogue = false;
+    farewellTime = 0;
+    if (quest.step == QuestStep::Complete)
+    {
+        endingTime = quest.epilogueComplete ? 8.f : 0.f;
+    }
     if (restorePosition)
     {
         const auto& target = quest.Current();
@@ -398,7 +442,11 @@ void EnterQuestStep(bool restorePosition = false)
     {
         player = {2, 8};
     }
-    if (builtAlley != quest.InAlley())
+    if (EndingSchool())
+    {
+        player = {4, 4.5f};
+    }
+    if (builtAlley != InAlleyScene())
     {
         BuildScene();
     }
@@ -429,6 +477,24 @@ void UpdateQuest(float dt)
     {
         return;
     }
+    if (quest.step == QuestStep::Report)
+    {
+        farewellTime += dt;
+    }
+    if (quest.step == QuestStep::Complete)
+    {
+        const bool wasSchool = EndingSchool();
+        endingTime += dt;
+        if (!wasSchool && EndingSchool())
+        {
+            player = {4, 4.5f};
+            camera = player;
+            cameraOffset = {0, 0};
+            jumpHeight = jumpVelocity = 0;
+            BuildScene();
+        }
+        return;
+    }
     if (quest.step == QuestStep::Escape && Distance(player, {3, 8}) < 1.2f)
     {
         quest.Emit(MainQuest::Event::Arrive);
@@ -453,6 +519,15 @@ void UpdateQuest(float dt)
 
 void Interact()
 {
+    if (quest.active && quest.step == QuestStep::Complete)
+    {
+        if (endingTime >= 7 && quest.FinishEpilogue())
+        {
+            keys.fill(false);
+            saveSucceeded = quest.Save();
+        }
+        return;
+    }
     if (quest.active)
     {
         if (combat.Dead())
@@ -467,6 +542,10 @@ void Interact()
             return;
         }
         const auto& target = quest.Current();
+        if (quest.step == QuestStep::Report && farewellTime < 3)
+        {
+            return;
+        }
         if (quest.step != QuestStep::Complete && target.event == MainQuest::Event::Interact &&
             Distance(player, {target.x, target.y}) < 1.8f && jumpHeight <= 0)
         {
@@ -507,19 +586,25 @@ void DrawHud()
 {
     Panel(22, 20, 810, 115, {.08f, .10f, .18f, .94f});
     Text(42, 53,
-         quest.active     ? "메인 퀘스트 1 · 연락이 끊긴 친구"
-         : story.IsHome() ? "프롤로그 · 평범한 아침"
-                          : "프롤로그 · 학교의 소문",
+         quest.epilogueComplete ? "메인 퀘스트 2 · 학교에 숨어든 것"
+         : quest.active         ? "메인 퀘스트 1 · 연락이 끊긴 친구"
+         : story.IsHome()       ? "프롤로그 · 평범한 아침"
+                                : "프롤로그 · 학교의 소문",
          25, pink);
-    Text(42, 87, quest.active ? quest.Current().text : story.Objective(), 19);
+    Text(42, 87,
+         quest.epilogueComplete ? "새 퀘스트: 학교에 숨어든 것 (#19 구간 준비 중)"
+         : quest.active         ? quest.Current().text
+                                : story.Objective(),
+         19);
     if (quest.active)
     {
         Text(42, 117,
              "HP " + std::to_string(int(combat.health)) + " / " +
                  std::to_string(quest.progress.stats.maxHealth) + "   MP " +
                  std::to_string(int(combat.mana)) + "   검은 조각 " +
-                 std::to_string(quest.fragments) +
-                 (quest.CanFight() ? "   마법소녀" : "   평범한 학생"),
+                 std::to_string(quest.fragments) + "   물약 " +
+                 std::to_string(quest.progress.potions) + " [Z]" +
+                 (quest.CanFight() && !EndingSchool() ? "   마법소녀" : "   평범한 학생"),
              15);
         if (quest.step == QuestStep::Shadows)
         {
@@ -537,13 +622,17 @@ void DrawHud()
     }
 
     Panel(22, 640, 1236, 137, {.08f, .10f, .18f, .94f});
-    Text(42, 670,
-         quest.CanFight()
-             ? "WASD 이동 · Shift 달리기 | Space 공격 · Z 회피 · X 마법 · J 점프 | E 대화"
-             : "WASD 이동  |  Shift 누르며 달리기  |  스페이스 점프  |  E 상호작용",
+    Text(
+        42, 670,
+        quest.CanFight()
+            ? "Space 점프 · Q 공격 · R 재충전 · Z 물약 · 1 마법 | WASD 이동 · Shift 달리기 · E 대화"
+            : "WASD 이동 | Shift 달리기 | 스페이스 점프 | E 상호작용 | Z 물약(퀘스트 중)",
+        18);
+    Text(42, 702,
+         "방향키 카메라 · C 복귀 · ESC 메뉴 | 충전 " + std::to_string(combat.actions.charges) +
+             "/6" + (combat.actions.reload > 0 ? " · 재충전 중" : ""),
          18);
-    Text(42, 702, "방향키 카메라 살펴보기 · C 복귀  |  ESC 일시정지", 18);
-    Text(42, 736, "F1 기존 튜토리얼  /  F2 기존 사냥 레벨  /  F4 프롤로그", 17, pink);
+    Text(42, 736, "F1 튜토리얼 / F2 사냥터 / F3 프롤로그·퀘스트1 / F4 퀘스트2 / F5 로그", 17, pink);
     Text(42, 760,
          std::string(moved ? "[완료] 이동  " : "[ ] 이동  ") +
              (looked ? "[완료] 카메라  " : "[ ] 카메라  ") +
@@ -597,10 +686,30 @@ void DrawHud()
     }
     if (quest.active && quest.step == QuestStep::Complete)
     {
-        Panel(200, 425, 880, 170, {.12f, .08f, .16f, .96f});
-        Text(230, 465, "연락이 끊긴 친구 · 완료", 28, pink);
-        Text(230, 509, "검은 조각 +3 / 경험치 +120 / 골드 +100 / 변신·마법·회피 해금", 19);
-        Text(230, 554, "다음 퀘스트: 학교에 숨어든 것 (해금됨 · 플레이 구간은 다음 작업)", 18);
+        if (endingTime < 4)
+        {
+            Panel(0, 0, 1280, 800, {.06f, .07f, .14f, .97f});
+            Text(360, 340, "유나는 무사히 집으로 돌아갔다.", 28, pink);
+            Text(360, 392, "그리고 다음 날, 학교…", 25);
+            Text(230, 470, "퀘스트 보상: 검은 조각 +3 / 경험치 +120 / 골드 +100", 20);
+        }
+        else if (!quest.epilogueComplete)
+        {
+            Panel(150, 440, 980, 160, {.08f, .07f, .16f, .96f});
+            Text(180, 480, endingTime < 7 ? "나" : "루미", 25, pink);
+            Text(180, 525,
+                 endingTime < 7 ? "검은 조각이… 반응하고 있어. 창밖에 저건?!" : "또 나타났어.", 24);
+            Text(180, 568,
+                 endingTime < 7 ? "연출 중 · 잠시 기다려주세요"
+                                : "[E] 확인 · 다음 퀘스트 시작 / 이동 재개",
+                 18);
+        }
+        else
+        {
+            Panel(22, 140, 810, 90, {.08f, .07f, .16f, .94f});
+            Text(42, 176, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, pink);
+            Text(42, 210, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
+        }
     }
     if (quest.active && quest.step == QuestStep::Transform)
     {
@@ -616,13 +725,22 @@ void DrawHud()
     }
     if (paused)
     {
-        Panel(260, 245, 760, 220, {.06f, .07f, .13f, .98f});
+        Panel(260, 245, 760, 320, {.06f, .07f, .13f, .98f});
         Text(310, 305, "프롤로그 일시정지", 30, pink);
         Text(310, 365,
              quest.active ? "ESC 계속하기 / N 현재 단계 재시작"
                           : "ESC 계속하기 / N 프롤로그 처음부터",
              23);
         Text(310, 415, "기존 사냥 레벨의 성장 데이터는 변경하지 않습니다.", 18);
+        Text(310, 459, "[B] 프롤로그부터 새로 시작 (기존 저장 백업)", 20, pink);
+        if (confirmRestart)
+        {
+            Text(310, 505, "Enter: 처음부터 시작 / ESC: 취소", 22);
+        }
+        if (restartFailed)
+        {
+            Text(310, 541, "백업 실패: 진행을 초기화하지 않았습니다.", 18);
+        }
     }
 }
 
@@ -653,7 +771,24 @@ void PlaceGlow(const std::string& id, Transform pose, float size, Actor* parent 
 void DrawQuestActors()
 {
     Performance::Scope scope("cpu.quest.actor_sync_ms");
-    if (!quest.InAlley())
+    if (EndingSchool())
+    {
+        auto& lumi = PlaceModel("ending/lumi", {player.x + 1, player.y, 30}, ModelId::Lumi);
+        Label("ending/lumi/name", {0, 0, 60}, "루미", &lumi);
+        if (!quest.epilogueComplete)
+        {
+            auto& shard = PlaceModel("ending/fragment", {player.x - .5f, player.y, 35},
+                                     ModelId::BlackFragment);
+            PlaceGlow("ending/fragment/glow", {}, 45 + 12 * std::sin(time * 9), &shard);
+            if (endingTime < 7)
+            {
+                PlaceModel("ending/window_shadow", {.6f + (endingTime - 4) * 2.2f, .4f, 40, .6f},
+                           ModelId::Shade0);
+            }
+        }
+        return;
+    }
+    if (!InAlleyScene())
     {
         return;
     }
@@ -673,6 +808,10 @@ void DrawQuestActors()
                        quest.step == QuestStep::CheckYuna ? ModelId::Yuna : ModelId::YunaFallen);
         PlaceModel("alley/yuna/shadow", {}, ModelId::Shadow, RenderLayer::Shadow, &friendActor);
         Label("alley/yuna/name", {0, 0, 75}, "유나", &friendActor);
+    }
+    if (quest.step == QuestStep::Report && farewellTime < 3)
+    {
+        PlaceModel("yuna/leaving", {17 - farewellTime * 5, 8}, ModelId::Yuna);
     }
     if (quest.step >= QuestStep::Lumi)
     {
@@ -766,8 +905,64 @@ void Resize(int w, int h)
     height = (std::max)(1, h);
 }
 
+WorldMonitor::Scene MonitorSnapshot()
+{
+    WorldMonitor::Scene snapshot;
+    snapshot.id = "story";
+    snapshot.name = "프롤로그 · 메인 스토리";
+    snapshot.paused = paused;
+    snapshot.objective = quest.epilogueComplete ? "#18 완료 / 다음 퀘스트 활성화"
+                         : quest.active ? quest.Current().text : story.Objective();
+    std::string location = story.IsHome() ? "주인공의 방"
+                           : EndingSchool() ? "다음 날 교실"
+                           : InAlleyScene() ? "학교 뒤 골목" : "학교/마을 거리";
+    std::string mood = quest.CanFight() && quest.step <= QuestStep::Boss ? "전투 중"
+                       : quest.active && quest.step == QuestStep::Escape ? "도주 중"
+                       : quest.epilogueComplete ? "새로운 이상 징후" : "학생 실종으로 불안";
+    snapshot.towns.push_back({"story_region", location, mood,
+                              {"학생 실종 신고가 늘고 있다.", "마지막 목격 장소는 학교 뒤 골목이다."}});
+    auto add = [&](const char* id, const char* name, const std::string& state, Point p, bool present)
+    {
+        snapshot.npcs.push_back({id, name, state, p.x, p.y, 0, present});
+    };
+    if (!quest.active)
+    {
+        add("NPC_YUNA", "유나", story.dialogueOpen && !story.IsHome() ? "대화 중" : "등교 대기",
+            yuna, !story.IsHome());
+    }
+    else
+    {
+        bool outside = !InAlleyScene() && !EndingSchool();
+        const char* ids[] = {"NPC_JISOO", "NPC_GUARD", "NPC_CLERK"};
+        const char* names[] = {"지수", "학교 경비원", "편의점 직원"};
+        for (int i = 0; i < 3; ++i)
+        {
+            const auto& objective = MainQuest::Objectives()[i];
+            add(ids[i], names[i], !outside ? "현재 지역 밖"
+                : questDialogue && int(quest.step) == i ? "대화 중" : "대기",
+                {objective.x, objective.y}, outside);
+        }
+        const bool leaving = quest.step == QuestStep::Report && farewellTime < 3;
+        const bool yunaPresent = InAlleyScene() && (quest.step <= QuestStep::CheckYuna || leaving);
+        add("NPC_YUNA", "유나", leaving ? "귀가 중" : quest.step < QuestStep::Fragment ? "실종"
+            : quest.step < QuestStep::CheckYuna ? "쓰러짐" : quest.step == QuestStep::CheckYuna ? "구조됨" : "귀가",
+            leaving ? Point{17 - farewellTime * 5, 8} : Point{17, 8}, yunaPresent);
+        const bool lumiPresent = EndingSchool() || (InAlleyScene() && quest.step >= QuestStep::Lumi);
+        Point lumiPosition = EndingSchool() ? Point{player.x + 1, player.y}
+                             : quest.step >= QuestStep::Report ? Point{5, 8} : Point{3, 7};
+        add("NPC_LUMI", "루미", questDialogue && lumiPresent ? "대화 중" : "안내 대기", lumiPosition, lumiPresent);
+        snapshot.npcs.back().z = EndingSchool() ? 30.f : 25 + std::sin(time * 3) * 5;
+    }
+    for (const auto& enemy : combat.enemies)
+    {
+        enemy.health > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
+    }
+    return snapshot;
+}
+
 void Pause()
 {
+    confirmRestart = false;
     keys.fill(false);
     cameraKeys.fill(false);
     moving = false;
@@ -784,6 +979,46 @@ void Key(unsigned char key, bool down)
     keys[key] = down;
     if (!pressed)
     {
+        return;
+    }
+    if (paused && confirmRestart)
+    {
+        if (key == 27)
+        {
+            confirmRestart = false;
+        }
+        else if (key == 13)
+        {
+            Performance::Scope scope("cpu.storage.new_story_backup_ms");
+            const auto path = RuntimeFiles::Path(L"main_quest_001.txt");
+            const auto backup = path + L".backup_" + std::to_wstring(GetCurrentProcessId()) + L"_" +
+                                std::to_wstring(GetTickCount64());
+            bool success = false;
+            if (!path.empty())
+            {
+                // No replacement flag: never overwrite a previous backup.
+                success =
+                    MoveFileExW(path.c_str(), backup.c_str(), MOVEFILE_WRITE_THROUGH) != FALSE;
+                if (!success)
+                {
+                    success = GetLastError() == ERROR_FILE_NOT_FOUND;
+                }
+            }
+            if (success)
+            {
+                Reset();
+            }
+            else
+            {
+                restartFailed = true;
+            }
+        }
+        return;
+    }
+    if (paused && key == 'b')
+    {
+        confirmRestart = true;
+        restartFailed = false;
         return;
     }
     if (key == 27)
@@ -817,20 +1052,32 @@ void Key(unsigned char key, bool down)
     {
         Interact();
     }
+    else if (quest.active && quest.step == QuestStep::Complete && !quest.epilogueComplete)
+    {
+        return;
+    }
     else if (key == 'c')
     {
         cameraOffset = {0, 0};
     }
-    else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && key == 'z')
+    else if (!story.dialogueOpen && !questDialogue && quest.active && key == 'z')
     {
-        combat.Dodge(moveDirection, quest);
+        if (combat.UsePotion(quest))
+        {
+            saveSucceeded = quest.Save();
+        }
     }
-    else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && key == 'x')
+    else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
+             key == 'r')
+    {
+        combat.actions.Reload();
+    }
+    else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
+             key == '1')
     {
         combat.Burst(player, quest);
     }
-    else if ((key == ' ' && !quest.CanFight() || key == 'j') && !story.dialogueOpen &&
-             !questDialogue && jumpHeight == 0)
+    else if (key == ' ' && !story.dialogueOpen && !questDialogue && jumpHeight == 0)
     {
         jumpVelocity = 180;
         jumped = true;
@@ -861,6 +1108,7 @@ void Update(float dt)
     UpdateQuest(dt);
     moving = false;
     if (!story.dialogueOpen && !questDialogue && !combat.Dead() &&
+        !(quest.active && quest.step == QuestStep::Complete && !quest.epilogueComplete) &&
         (story.step < Step::AfterSchool || (quest.active && quest.step != QuestStep::Transform)))
     {
         const float horizontal = float(keys['d']) - float(keys['a']);
@@ -871,8 +1119,6 @@ void Update(float dt)
             // Screen-direction input converted into world axes, independently of the camera.
             const bool running = RunHeld();
             const float speed = (running ? 5.0f : 2.8f) * dt / (length * 1.41421356f);
-            moveDirection = {(horizontal + vertical) / (length * 1.41421356f),
-                             (vertical - horizontal) / (length * 1.41421356f)};
             Point next = {player.x + (horizontal + vertical) * speed,
                           player.y + (vertical - horizontal) * speed};
             const Point before = player;
@@ -898,7 +1144,7 @@ void Update(float dt)
         cameraOffset.x = (std::max)(-3.f, (std::min)(3.f, cameraOffset.x + (cx + cy) * dt * 3));
         cameraOffset.y = (std::max)(-3.f, (std::min)(3.f, cameraOffset.y + (cy - cx) * dt * 3));
         looked = looked || cx != 0 || cy != 0;
-        if (quest.CanFight() && keys[' '])
+        if (quest.CanFight() && !EndingSchool() && keys['q'])
         {
             combat.Attack(player, facing < 0, quest, jumpHeight);
         }
@@ -933,7 +1179,7 @@ void Draw()
     auto& actor = scene.Place("player", {player.x, player.y}, RenderLayer::World);
     PlaceModel("player/shadow", {}, ModelId::Shadow, RenderLayer::Shadow, &actor);
     const auto model =
-        quest.CanFight()
+        quest.CanFight() && !EndingSchool()
             ? static_cast<ModelId>(CharacterVisual::FrameIndex(combat.cast, moving, walkFrame))
             : static_cast<ModelId>(static_cast<int>(ModelId::StudentIdle) +
                                    (moving ? 1 + int(walkFrame) % 4 : 0));
@@ -947,7 +1193,7 @@ void Draw()
             graphics->DrawModel(models.Get(model), p.x, p.y, Scale() * direction, Scale());
         },
         &actor);
-    if (quest.CanFight())
+    if (quest.CanFight() && !EndingSchool())
     {
         auto& wand =
             scene.Place("player/wand",
@@ -968,7 +1214,7 @@ void Draw()
     scene.Place("sunset", {}, RenderLayer::UserInterface,
                 [](const Actor&, const Transform&)
                 {
-                    if (story.step == Step::Complete)
+                    if (story.step == Step::Complete && !EndingSchool())
                     {
                         Panel(0, 0, 1280, 800, {.86f, .35f, .16f, .17f});
                     }
@@ -995,6 +1241,31 @@ void Draw()
                  });
     graphics->EndWorld(time);
     scene.Render(RenderLayer::UserInterface, RenderLayer::UserInterface);
+    graphics->Flush();
+}
+
+void DrawQuestTwoPreview()
+{
+    Performance::Scope scope("cpu.quest_two.preview_ms");
+    static Game::SceneGraph preview;
+    if (!preview.Find("ui"))
+    {
+        auto& ui = preview.Place(
+            "ui", {}, RenderLayer::UserInterface,
+            [](const Actor&, const Transform&)
+            {
+                Panel(140, 200, 1000, 380, {.08f, .07f, .16f, .97f});
+                Text(185, 265, "메인 퀘스트 2 · 학교에 숨어든 것", 30, pink);
+                Text(185, 333, "#19 플레이 구간은 아직 준비 중입니다.", 24);
+                Text(185, 382, "이 화면에서는 퀘스트 진행과 저장 데이터를 변경하지 않습니다.", 19);
+                Text(185, 448, "F1 튜토리얼 / F2 사냥터 / F3 프롤로그·메인 퀘스트 1", 20);
+                Text(185, 508, "처음부터: F3 메뉴에서 B → Enter", 22, pink);
+            });
+        preview.RetainSubtree(ui);
+    }
+    graphics->BeginWorld();
+    graphics->EndWorld(0);
+    preview.Render(RenderLayer::UserInterface, RenderLayer::UserInterface);
     graphics->Flush();
 }
 } // namespace Prologue

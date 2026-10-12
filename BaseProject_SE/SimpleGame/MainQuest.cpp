@@ -21,7 +21,9 @@ bool State::Load()
     State candidate;
     if (!(file >> magic >> value >> candidate.fragments >> candidate.progress.totalExperience >>
           candidate.progress.coins >> reward) ||
-        magic != "MAGICAL_QUEST_001_V1" || value < 0 || value > static_cast<int>(Step::Complete) ||
+        (magic != "MAGICAL_QUEST_001_V1" && magic != "MAGICAL_QUEST_001_V2" &&
+         magic != "MAGICAL_QUEST_001_V3") ||
+        value < 0 || value > static_cast<int>(Step::Complete) ||
         reward != (value == static_cast<int>(Step::Complete) ? 1 : 0) ||
         candidate.fragments != (reward                                     ? 4
                                 : value > static_cast<int>(Step::Fragment) ? 1
@@ -30,6 +32,22 @@ bool State::Load()
         candidate.progress.coins != (reward ? 100 : 0))
     {
         return false;
+    }
+    // V1 did not store consumables. Preserve its existing default of three potions.
+    if (magic != "MAGICAL_QUEST_001_V1" &&
+        (!(file >> candidate.progress.potions) || candidate.progress.potions < 0 ||
+         candidate.progress.potions > 99))
+    {
+        return false;
+    }
+    if (magic == "MAGICAL_QUEST_001_V3")
+    {
+        int completed = 0;
+        if (!(file >> completed) || completed < 0 || completed > 1 || (completed && !reward))
+        {
+            return false;
+        }
+        candidate.epilogueComplete = completed != 0;
     }
     candidate.active = true;
     candidate.step = static_cast<Step>(value);
@@ -54,9 +72,10 @@ bool State::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::trunc);
-        file << "MAGICAL_QUEST_001_V1\n"
+        file << "MAGICAL_QUEST_001_V3\n"
              << static_cast<int>(step) << ' ' << fragments << ' ' << progress.totalExperience << ' '
-             << progress.coins << ' ' << rewardClaimed << '\n';
+             << progress.coins << ' ' << rewardClaimed << ' ' << progress.potions << ' '
+             << epilogueComplete << '\n';
         file.flush();
         if (!file)
         {

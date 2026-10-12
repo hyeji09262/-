@@ -426,7 +426,7 @@ void Renderer::DrawFrameStats()
          1);
     std::string performance =
         "FPS " + std::to_string(int(1000.0 / (std::max)(1.0, m_FrameIntervalMs))) + " | 로그 " +
-        (Performance::Profiler::Get().Enabled() ? "ON" : "OFF") + " [F3]";
+        (Performance::Profiler::Get().Enabled() ? "ON" : "OFF") + " [F5]";
     Text(862 * sx, 321 * sy, performance, 14 * sy, .86f, .90f, 1);
 }
 
