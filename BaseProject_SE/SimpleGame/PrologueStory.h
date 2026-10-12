@@ -20,7 +20,7 @@ struct DialogueLine
     const char* text;
 };
 
-// Content stays separate from movement/rendering; #6 is deliberately not started here.
+// Content stays separate from movement/rendering. Complete hands control to MainQuest.
 class Story
 {
   public:
@@ -130,7 +130,7 @@ class Story
         case Step::AfterSchool:
             return "수업이 끝나고, 방과 후가 되었습니다.";
         case Step::Complete:
-            return "#5 완료 · 방과 후 / 다음 이야기는 아직 시작하지 않습니다.";
+            return "학교 이벤트 완료 · 지수가 유나를 찾고 있습니다.";
         }
         return "";
     }

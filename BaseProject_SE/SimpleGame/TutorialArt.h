@@ -269,7 +269,7 @@ inline void DrawWorld()
                         Vec s = Project({float(x), float(y)});
                         if (!Visible(s, 40))
                             return;
-                        float n = ((x * 7 + y * 3) % 5) * .009f;
+                        float n = 0; // Continuous ground color, without a per-tile checker pattern.
                         Color c = {.35f + n, .49f + n, .40f + n, 1};
                         if (x >= LandWidth)
                             c = {.14f + n * .5f, .27f + n, .35f + n, 1};
@@ -292,17 +292,7 @@ inline void DrawWorld()
                                      {.80f, .86f, .79f, .18f});
                             }
                         }
-                        else if (Path(x, y))
-                        {
-                            for (int k = 0; k < 3; ++k)
-                            {
-                                float ox = ((x * 13 + y * 7 + k * 19) % 35) - 17.f,
-                                      oy = ((x * 3 + y * 11 + k * 7) % 13) - 6.f;
-                                Diamond({s.x + ox, s.y + oy}, 5, 2,
-                                        {.57f + n, .49f + n, .37f + n, .65f});
-                            }
-                        }
-                        else if (x < LandWidth - 2 && (x + y) % 3 == 0)
+                        else if (!Path(x, y) && x < LandWidth - 2 && (x + y) % 3 == 0)
                         {
                             float breeze = std::sin(clockTime * 1.6f + x + y) * 2;
                             for (int k = 0; k < 3; ++k)

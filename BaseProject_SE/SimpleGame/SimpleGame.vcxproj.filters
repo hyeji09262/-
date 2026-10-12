@@ -27,6 +27,12 @@
     <ClInclude Include="PrologueStory.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="MainQuest.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="QuestCombat.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="HuntingMap.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -54,6 +60,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Prologue.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MainQuest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="HuntingMap.cpp">

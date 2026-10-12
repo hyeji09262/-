@@ -90,7 +90,7 @@ void PrimitiveModels::Initialize()
 bool PrimitiveModels::Load()
 {
     Performance::Scope scope("cpu.assets.model_disk_load_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v6.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v7.bin");
     if (path.empty())
     {
         return false;
@@ -98,7 +98,7 @@ bool PrimitiveModels::Load()
     std::ifstream file(path.c_str(), std::ios::binary);
     char magic[8] = {};
     file.read(magic, sizeof(magic));
-    if (!file || std::memcmp(magic, "EWMDL006", 8) != 0)
+    if (!file || std::memcmp(magic, "EWMDL007", 8) != 0)
     {
         return false;
     }
@@ -145,7 +145,7 @@ bool PrimitiveModels::Load()
 bool PrimitiveModels::Save() const
 {
     Performance::Scope scope("cpu.assets.model_disk_save_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v6.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v7.bin");
     if (path.empty())
     {
         return false;
@@ -153,7 +153,7 @@ bool PrimitiveModels::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::binary | std::ios::trunc);
-        file.write("EWMDL006", 8);
+        file.write("EWMDL007", 8);
         std::uint32_t hash = 2166136261u;
         for (const auto& mesh : m_Models)
         {
@@ -180,6 +180,113 @@ void PrimitiveModels::Generate()
     const Color gold = {1, .86f, .48f, 1}, skin = {1, .81f, .73f, 1};
     const Color white = {1, .95f, .98f, 1};
     const Color hair = {.57f, .32f, .68f, 1};
+    // Distinct silhouettes, not just recolors: ponytail, bob/glasses, cap, apron.
+    for (int person = 0; person < 4; ++person)
+    {
+        auto& mesh = m_Models[static_cast<int>(ModelId::Yuna) + person];
+        const float body = person == 2 ? 15.f : 10.f;
+        const float top = person == 2 ? -43.f : -37.f;
+        const Color clothes = person == 0   ? Color{.90f, .57f, .62f, 1}
+                              : person == 1 ? Color{.36f, .62f, .58f, 1}
+                              : person == 2 ? Color{.24f, .35f, .55f, 1}
+                                            : Color{.95f, .73f, .30f, 1};
+        const Color head = person == 0   ? Color{.68f, .33f, .18f, 1}
+                           : person == 1 ? Color{.16f, .22f, .25f, 1}
+                                         : Color{.40f, .32f, .27f, 1};
+        if (person == 0)
+        {
+            Ellipse(mesh, 14, -40, 7, 20, head);
+        }
+        Rect(mesh, -9, -18, 7, 18, dark);
+        Rect(mesh, 3, -18, 7, 18, dark);
+        Ellipse(mesh, -7, -1, 6, 3, dark);
+        Ellipse(mesh, 7, -1, 6, 3, dark);
+        Rect(mesh, -body, top, body * 2, -top - 15, clothes);
+        Rect(mesh, -body - 5, top + 4, 5, 20, clothes);
+        Rect(mesh, body, top + 4, 5, 20, clothes);
+        Ellipse(mesh, -body - 2, top + 26, 3, 4, skin);
+        Ellipse(mesh, body + 2, top + 26, 3, 4, skin);
+        Ellipse(mesh, 0, top - 10, 12, 14, head);
+        Ellipse(mesh, 0, top - 8, 10, 11, skin);
+        Ellipse(mesh, 0, top - 19, 12, 6, head);
+        Ellipse(mesh, -4, top - 9, 1.5f, 2, dark);
+        Ellipse(mesh, 4, top - 9, 1.5f, 2, dark);
+        if (person == 0)
+        {
+            Triangle(mesh, 9, top - 18, 19, top - 25, 19, top - 12, robe);
+            Triangle(mesh, -10, -21, 10, -21, 15, -11, clothes);
+            Triangle(mesh, -10, -21, 15, -11, -15, -11, clothes);
+        }
+        else if (person == 1)
+        {
+            Rect(mesh, -13, top - 17, 4, 18, head);
+            Rect(mesh, 9, top - 17, 4, 18, head);
+            Rect(mesh, -9, top - 12, 18, 2, gold);
+            Rect(mesh, -9, top - 12, 2, 8, gold);
+            Rect(mesh, 7, top - 12, 2, 8, gold);
+            Rect(mesh, -9, top - 5, 18, 1, gold);
+            Rect(mesh, 8, -30, 7, 16, {.30f, .20f, .38f, 1});
+        }
+        else if (person == 2)
+        {
+            Rect(mesh, -14, top - 28, 28, 10, clothes);
+            Rect(mesh, -15, top - 19, 33, 4, dark);
+            Star(mesh, 0, top - 24, 4, gold);
+            Rect(mesh, -body, -19, body * 2, 4, dark);
+            Rect(mesh, -2, -19, 5, 4, gold);
+        }
+        else
+        {
+            Rect(mesh, -8, top + 6, 16, 23, {.33f, .57f, .43f, 1});
+            Rect(mesh, -6, top + 12, 5, 4, white);
+            Rect(mesh, -3, top - 1, 6, 5, head);
+        }
+    }
+    auto& fallen = m_Models[static_cast<int>(ModelId::YunaFallen)];
+    fallen = m_Models[static_cast<int>(ModelId::Yuna)];
+    for (auto& vertex : fallen)
+    {
+        const float x = vertex.x;
+        vertex.x = -vertex.y * .85f - 24;
+        vertex.y = x * .65f - 5;
+    }
+    auto& lumi = m_Models[static_cast<int>(ModelId::Lumi)];
+    Ellipse(lumi, -15, -23, 13, 6, {.72f, .90f, 1, .8f});
+    Ellipse(lumi, 15, -23, 13, 6, {.72f, .90f, 1, .8f});
+    Ellipse(lumi, 0, -18, 12, 15, white);
+    Triangle(lumi, -11, -26, -13, -47, -2, -30, white);
+    Triangle(lumi, 2, -30, 13, -47, 11, -26, white);
+    Ellipse(lumi, -4, -23, 2, 3, hair);
+    Ellipse(lumi, 4, -23, 2, 3, hair);
+    Star(lumi, 0, -12, 6, gold);
+    auto& fragment = m_Models[static_cast<int>(ModelId::BlackFragment)];
+    Triangle(fragment, 0, -24, -9, -6, 0, 0, {.12f, .08f, .18f, 1});
+    Triangle(fragment, 0, -24, 9, -6, 0, 0, {.40f, .19f, .55f, 1});
+    Triangle(fragment, 0, -24, 2, -8, 0, 0, {.81f, .40f, .92f, 1});
+    auto& bag = m_Models[static_cast<int>(ModelId::YunaBag)];
+    Ellipse(bag, 0, -22, 8, 6, dark);
+    Rect(bag, -13, -23, 26, 23, {.70f, .37f, .30f, 1});
+    Rect(bag, -10, -15, 20, 12, {.86f, .54f, .42f, 1});
+    Star(bag, 6, -17, 6, robe);
+    auto& eater = m_Models[static_cast<int>(ModelId::ShadowEater)];
+    Ellipse(eater, 0, -28, 33, 30, {.13f, .08f, .22f, 1});
+    Triangle(eater, -25, -40, -29, -84, -8, -51, hair);
+    Triangle(eater, 8, -51, 29, -84, 25, -40, hair);
+    Ellipse(eater, -12, -38, 7, 4, {.99f, .25f, .39f, 1});
+    Ellipse(eater, 12, -38, 7, 4, {.99f, .25f, .39f, 1});
+    for (int i = 0; i < 5; ++i)
+    {
+        Triangle(eater, -15.f + i * 6, -23, -9.f + i * 6, -23, -12.f + i * 6, -15, white);
+    }
+    for (int side : {-1, 1})
+    {
+        Ellipse(eater, side * 33.f, -14, 12, 10, dark);
+        for (int claw = 0; claw < 3; ++claw)
+        {
+            Triangle(eater, side * (27.f + claw * 6), -10, side * (32.f + claw * 6), -10,
+                     side * (34.f + claw * 6), 5, hair);
+        }
+    }
     // Normal student: no wand, transformation costume or combat pose.
     for (int frame = 0; frame < 5; ++frame)
     {

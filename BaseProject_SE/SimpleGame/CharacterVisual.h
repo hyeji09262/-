@@ -18,16 +18,17 @@ inline int FrameIndex(float castRemaining, bool moving, float walkFrame)
     return castRemaining > 0 ? 5 : moving ? 1 + static_cast<int>(walkFrame) % 4 : 0;
 }
 
-inline Game::Transform WandSocket(bool casting, bool mirror)
+inline Game::Transform WandSocket(bool casting, bool mirror, float halfTileWidth = 32.f)
 {
     // Inverse quarter-view projection: 32 * (x - y) = model-space horizontal offset.
-    float offset = (mirror ? -WandX : WandX) / 64.f;
+    float offset = (mirror ? -WandX : WandX) / (2 * halfTileWidth);
     return {offset, -offset, -(casting ? CastHandY : IdleHandY) - WandHeadOffset, 1};
 }
 
-inline Game::Transform SpellPose(float x, float y, float age, bool mirror)
+inline Game::Transform SpellPose(float x, float y, float age, bool mirror,
+                                 float halfTileWidth = 32.f)
 {
-    auto socket = WandSocket(true, mirror);
+    auto socket = WandSocket(true, mirror, halfTileWidth);
     float blend = 1.f - (std::min)(1.f, age / .18f);
     return {x + socket.x * blend, y + socket.y * blend, 27.f + (socket.z - 27.f) * blend, 1};
 }

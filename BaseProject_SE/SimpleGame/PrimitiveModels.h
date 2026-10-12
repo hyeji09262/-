@@ -33,6 +33,15 @@ enum class ModelId
     StudentWalk1,
     StudentWalk2,
     StudentWalk3,
+    Yuna,
+    Jisoo,
+    SchoolGuard,
+    StoreClerk,
+    Lumi,
+    BlackFragment,
+    YunaBag,
+    ShadowEater,
+    YunaFallen,
     Count
 };
 

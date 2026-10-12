@@ -531,9 +531,7 @@ void DrawMap()
         {
             auto tile = map.tiles[Hunting::Map::Index(x, y)];
             Position p = {x + .5f, y + .5f};
-            float noise = ((x * 7 + y * 13) % 5) * .007f;
-            Color ground = map.Safe(p) ? Color{.67f + noise, .60f + noise, .64f + noise, 1}
-                                       : Color{.34f + noise, .48f + noise, .40f + noise, 1};
+            Color ground = map.Safe(p) ? Color{.67f, .60f, .64f, 1} : Color{.34f, .48f, .40f, 1};
             std::string key = std::to_string(Hunting::Map::Index(x, y));
             scene.Place(
                 "tile/" + key, {p.x, p.y}, Game::RenderLayer::Ground,
