@@ -228,7 +228,7 @@ void NewMap()
         }
     }
     navigation = map.Distances(player);
-    Notify("마법소녀의 첫 임무! Q 공격 / Space 점프 / R 재충전 / E 획득");
+    Notify("마법소녀의 첫 임무! Q 공격 / Space 점프 / X 마나 물약 / E 획득");
 }
 
 bool LineOfSight(Position a, Position b)
@@ -247,7 +247,7 @@ bool LineOfSight(Position a, Position b)
 
 void Attack()
 {
-    if (attackTimer > 0 || mana < 4 || !actions.Fire())
+    if (attackTimer > 0 || !actions.Fire(mana))
     {
         return;
     }
@@ -266,7 +266,6 @@ void Attack()
         }
     }
 
-    mana -= 4;
     attackTimer = .5f;
     castTimer = CharacterVisual::CastDuration;
     castMirror = direction.x - direction.y < 0;
@@ -284,11 +283,11 @@ void Kill(Enemy& enemy)
     bool leveled = progress.Award(reward);
     FloatText(enemy.position, "+" + std::to_string(reward) + " 경험치", teal);
 
-    // Guaranteed coins, plus a potion or a mana crystal. Position is already walkable.
-    if (drops.size() < 300)
+    // Guaranteed coins plus one equally likely health potion, crystal, or mana potion.
+    if (drops.size() <= 298)
     {
         drops.push_back({enemy.position, 0, 2 + enemy.level});
-        drops.push_back({enemy.position, random() % 3 == 0 ? 1 : 2, 1});
+        drops.push_back({enemy.position, 1 + static_cast<int>(random() % 3), 1});
     }
 
     if (leveled)
@@ -463,7 +462,8 @@ void PickUp()
             ++it;
             continue;
         }
-        if (it->kind == 1 && progress.potions >= 99)
+        if ((it->kind == 1 && progress.potions >= 99) ||
+            (it->kind == 3 && progress.manaPotions >= 99))
         {
             ++it;
             continue;
@@ -476,6 +476,11 @@ void PickUp()
         {
             progress.potions += it->quantity;
         }
+        else if (it->kind == 3)
+        {
+            progress.manaPotions = (std::min)(99, progress.manaPotions + it->quantity);
+            FloatText(player, "마나 물약 +" + std::to_string(it->quantity), teal);
+        }
         else
         {
             progress.crystals = (std::min)(1000000, progress.crystals + it->quantity);
@@ -486,7 +491,7 @@ void PickUp()
     }
     if (collected > 0)
     {
-        Notify("전리품 획득! 골드·물약·마력석은 소지품에 저장됩니다.");
+        Notify("전리품 획득! 골드·체력/마나 물약·마력석을 저장했습니다.");
         Save();
     }
     else
@@ -629,11 +634,28 @@ void DrawActors()
     auto& loot = scene.Place("loot", {}, Game::RenderLayer::World);
     for (const auto& drop : drops)
     {
-        ModelId model = drop.kind == 0   ? ModelId::Coin
-                        : drop.kind == 1 ? ModelId::Potion
-                                         : ModelId::Crystal;
+        ModelId model = drop.kind == 0                     ? ModelId::Coin
+                        : drop.kind == 1 || drop.kind == 3 ? ModelId::Potion
+                                                           : ModelId::Crystal;
         PlaceModel("drop/" + std::to_string(drop.visualId), model,
                    {drop.position.x, drop.position.y}, &loot);
+        if (drop.kind == 3)
+        {
+            scene.Place(
+                "drop/mana_label/" + std::to_string(drop.visualId),
+                {drop.position.x, drop.position.y, 28}, Game::RenderLayer::World,
+                [](const Game::Actor&, const Game::Transform& world)
+                {
+                    Position screen = Project({world.x, world.y}, world.z);
+                    if (Visible(screen))
+                    {
+                        graphics->Nameplate(screen.x * screenWidth / 1280,
+                                            screen.y * screenHeight / 800, "마나 물약 [E]",
+                                            15.f * screenHeight / 800, .52f, .75f, 1.f);
+                    }
+                },
+                &loot);
+        }
     }
     auto& spells = scene.Place("spells", {}, Game::RenderLayer::World);
     for (const auto& shot : projectiles)
@@ -651,16 +673,24 @@ void DrawHud()
     Box(18, 18, 820, 136, panel);
     Text(35, 48, "마법소녀 · 방과 후 첫 임무", gold, 25);
     char line[320];
-    sprintf_s(line, "레벨 %d   체력 %.0f / %d   마나 %.0f / %d   공격력 %d   방어력 %d",
-              progress.stats.level, health, progress.stats.maxHealth, mana, progress.stats.maxMana,
-              progress.stats.attack, progress.stats.defense);
+    sprintf_s(line, "레벨 %d   공격력 %d   방어력 %d", progress.stats.level, progress.stats.attack,
+              progress.stats.defense);
     Text(35, 80, line);
     const float healthRatio = (std::max)(0.f, (std::min)(1.f, health / progress.stats.maxHealth));
     const float manaRatio = (std::max)(0.f, (std::min)(1.f, mana / progress.stats.maxMana));
-    Box(35, 84, 370, 5, {.20f, .22f, .30f, 1});
-    Box(35, 84, 370 * healthRatio, 5, {.95f, .40f, .58f, 1});
-    Box(425, 84, 385, 5, {.20f, .22f, .30f, 1});
-    Box(425, 84, 385 * manaRatio, 5, {.52f, .65f, .98f, 1});
+    Box(22, 212, 152, 354, panel);
+    Text(41, 231, "체력", white, 18);
+    Text(105, 231, "마나", white, 18);
+    Box(48, 243, 22, 280, {.20f, .22f, .30f, 1});
+    Box(48, 243 + 280 * (1 - healthRatio), 22, 280 * healthRatio, {.95f, .40f, .58f, 1});
+    Box(112, 243, 22, 280, {.20f, .22f, .30f, 1});
+    Box(112, 243 + 280 * (1 - manaRatio), 22, 280 * manaRatio, {.52f, .65f, .98f, 1});
+    sprintf_s(line, "%.0f/%d", health, progress.stats.maxHealth);
+    Text(34, 542, line, white, 14);
+    sprintf_s(line, "%.0f/%d", mana, progress.stats.maxMana);
+    Text(98, 542, line, white, 14);
+    Text(34, 560, "[Z] " + std::to_string(progress.potions) + "개", white, 15);
+    Text(98, 560, "[X] " + std::to_string(progress.manaPotions) + "개", white, 15);
 
     float ratio = progress.stats.level == Rpg::LevelCap
                       ? 1.f
@@ -737,17 +767,8 @@ void DrawHud()
         }
     }
     Box(18, 710, 1244, 74, panel);
-    Text(35, 738, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · E 획득 · Z 물약 · ESC 메뉴", gold,
-         17);
-    Box(18, 585, 340, 58, panel);
-    for (int i = 0; i < 6; ++i)
-    {
-        Box(35 + i * 50.f, 626, 42, 8, i < actions.charges ? gold : Color{.20f, .22f, .30f, 1});
-    }
-    Text(35, 613,
-         "마법봉 충전 " + std::to_string(actions.charges) + "/6" +
-             (actions.reload > 0 ? " · 재충전 중" : ""),
-         gold, 16);
+    Text(35, 738, "WASD 이동 · Space 점프 · Q 공격 · X 마나 물약 · E 획득 · Z 체력 물약 · ESC 메뉴",
+         gold, 17);
     std::string cache = models.loadedFromFile ? "모델: 파일 캐시 로딩"
                         : models.storedToFile ? "모델: 최초 생성·캐시 저장 완료"
                                               : "모델: 캐시 쓰기 실패";
@@ -755,8 +776,8 @@ void DrawHud()
          white, 15);
     if (noticeTimer > 0)
     {
-        Box(18, 655, 1244, 45, panel);
-        Text(35, 685, notice, teal, 18);
+        Box(250, 655, 1012, 45, panel);
+        Text(267, 685, notice, teal, 18);
     }
     if (paused)
     {
@@ -864,9 +885,13 @@ void Key(unsigned char key, bool down)
     {
         actions.Jump();
     }
-    if (key == 'r')
+    if (key == 'x' && health > 0)
     {
-        actions.Reload();
+        if (actions.UseManaPotion(mana, float(progress.stats.maxMana), progress.manaPotions))
+        {
+            FloatText(player, "마나 회복", teal);
+            Save();
+        }
     }
     if (key == 'z' && progress.potions > 0 && health < progress.stats.maxHealth)
     {
@@ -886,12 +911,11 @@ void Update(float dt)
         return;
     }
     time += dt;
-    actions.Update(dt);
+    actions.Update(dt, mana, float(progress.stats.maxMana));
     attackTimer -= dt;
     damageTimer -= dt;
     castTimer -= dt;
     noticeTimer -= dt;
-    mana = (std::min)(float(progress.stats.maxMana), mana + dt * 6);
     if (map.Safe(player))
     {
         health = (std::min)(float(progress.stats.maxHealth), health + dt * 10);
@@ -946,7 +970,7 @@ void Draw()
         "ui/draw-calls", {}, Game::RenderLayer::UserInterface,
         [](const Game::Actor&, const Game::Transform&)
         {
-            graphics->DrawFrameStats();
+            // Performance counters remain available in logs and the browser monitor.
         },
         scene.Find("ui"));
     scene.EndSync();

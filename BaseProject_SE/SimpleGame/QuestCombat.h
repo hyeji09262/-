@@ -127,7 +127,7 @@ class Combat
         {
             return;
         }
-        if (!actions.Fire())
+        if (!actions.Fire(mana))
         {
             return;
         }
@@ -214,13 +214,12 @@ class Combat
             return;
         }
         hurt -= dt;
-        actions.Update(dt);
+        actions.Update(dt, mana, float(quest.progress.stats.maxMana));
         cast -= dt;
         attackCooldown -= dt;
         burstCooldown -= dt;
         burst -= dt;
         comboTime -= dt;
-        mana = (std::min)(float(quest.progress.stats.maxMana), mana + dt * 2);
         for (auto& shot : shots)
         {
             const int substeps =

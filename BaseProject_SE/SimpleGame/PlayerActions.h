@@ -1,13 +1,25 @@
 #pragma once
 #include <algorithm>
 
-// Shared controls: six wand charges, manual 1.2-second reload, non-evasive jump.
+// Shared controls: mana-powered attacks, manual 1.2-second recovery, non-evasive jump.
 struct PlayerActions
 {
-    int charges = 6;
+    static constexpr float AttackManaCost = 4.f;
     float reload = 0;
     float height = 0;
     float velocity = 0;
+
+    bool UseManaPotion(float& mana, float maximum, int& potions)
+    {
+        if (potions <= 0 || mana >= maximum)
+        {
+            return false;
+        }
+        --potions;
+        mana = maximum;
+        reload = 0;
+        return true;
+    }
 
     void Jump()
     {
@@ -17,32 +29,32 @@ struct PlayerActions
         }
     }
 
-    void Reload()
+    void Reload(float mana, float maximum)
     {
-        if (charges < 6 && reload <= 0)
+        if (mana < maximum && reload <= 0)
         {
             reload = 1.2f;
         }
     }
 
-    bool Fire()
+    bool Fire(float& mana)
     {
-        if (reload > 0 || charges <= 0)
+        if (reload > 0 || mana < AttackManaCost)
         {
             return false;
         }
-        --charges;
+        mana -= AttackManaCost;
         return true;
     }
 
-    void Update(float dt)
+    void Update(float dt, float& mana, float maximum)
     {
         if (reload > 0)
         {
             reload = (std::max)(0.f, reload - dt);
             if (reload == 0)
             {
-                charges = 6;
+                mana = maximum;
             }
         }
         if (height > 0 || velocity != 0)

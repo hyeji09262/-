@@ -144,7 +144,7 @@ void DialogueText(float x, float y, const std::string& value)
         const unsigned char lead = static_cast<unsigned char>(value[i]);
         const size_t bytes = lead < 0x80 ? 1 : lead < 0xE0 ? 2 : lead < 0xF0 ? 3 : 4;
         const int advance = lead < 0x80 ? 1 : 2;
-        if (columns + advance > 102)
+        if (columns + advance > 92)
         {
             Text(x, y, line, 19);
             y += 29;
@@ -585,19 +585,20 @@ void Interact()
 void StatusBar(float x, float y, const std::string& label, float value, float maximum, Color color)
 {
     const float ratio = (std::max)(0.f, (std::min)(1.f, value / (std::max)(1.f, maximum)));
-    Text(x, y, label + " " + std::to_string(int(value)) + " / " + std::to_string(int(maximum)), 15,
+    Text(x - 7, y, label, 18, paper);
+    Panel(x, y + 12, 22, 280, {.19f, .20f, .29f, 1});
+    Panel(x, y + 12 + 280 * (1 - ratio), 22, 280 * ratio, color);
+    Text(x - 8, y + 311, std::to_string(int(value)) + "/" + std::to_string(int(maximum)), 14,
          paper);
-    Panel(x, y + 8, 220, 10, {.19f, .20f, .29f, 1});
-    Panel(x, y + 8, 220 * ratio, 10, color);
 }
 
 void DialoguePanel(const std::string& speaker, const std::string& message)
 {
-    Panel(70, 430, 1140, 190, {.05f, .06f, .12f, .98f});
-    Panel(70, 430, 5, 190, pink);
-    Panel(95, 450, 230, 38, {.24f, .15f, .30f, 1});
-    Text(110, 477, speaker, 23, pink);
-    DialogueText(100, 522, message);
+    Panel(200, 430, 1010, 190, {.05f, .06f, .12f, .98f});
+    Panel(200, 430, 5, 190, pink);
+    Panel(225, 450, 230, 38, {.24f, .15f, .30f, 1});
+    Text(240, 477, speaker, 23, pink);
+    DialogueText(230, 522, message);
     Text(985, 600, "[E] 다음 / 확인", 18, {.99f, .82f, .35f});
 }
 
@@ -621,9 +622,12 @@ void DrawHud()
          19, objectiveColor);
     if (quest.active)
     {
-        StatusBar(42, 120, "체력", combat.health, float(quest.progress.stats.maxHealth), pink);
-        StatusBar(290, 120, "마나", combat.mana, float(quest.progress.stats.maxMana),
+        Panel(22, 212, 152, 354, {.06f, .08f, .15f, .96f});
+        StatusBar(48, 231, "체력", combat.health, float(quest.progress.stats.maxHealth), pink);
+        StatusBar(112, 231, "마나", combat.mana, float(quest.progress.stats.maxMana),
                   {.52f, .65f, .98f});
+        Text(34, 560, "[Z] " + std::to_string(quest.progress.potions) + "개", 15);
+        Text(98, 560, "[X] " + std::to_string(quest.progress.manaPotions) + "개", 15);
         Text(540, 121,
              "[Z] 물약 " + std::to_string(quest.progress.potions) + "  ·  검은 조각 " +
                  std::to_string(quest.fragments),
@@ -648,26 +652,18 @@ void DrawHud()
     if (magicAvailable)
     {
         Panel(852, 20, 406, 164, {.08f, .10f, .18f, .94f});
-        Text(874, 53, "마법봉  ·  " + std::to_string(combat.actions.charges) + " / 6", 23, pink);
-        for (int i = 0; i < 6; ++i)
-        {
-            Panel(874 + i * 60.f, 70, 48, 25,
-                  i < combat.actions.charges ? pink : Color{.20f, .22f, .30f});
-        }
-        const float reload = (std::max)(0.f, (std::min)(1.f, 1 - combat.actions.reload / 1.2f));
-        Panel(874, 108, 348, 5, {.20f, .22f, .30f});
-        Panel(874, 108, 348 * reload, 5, objectiveColor);
-        Text(874, 143, combat.actions.reload > 0 ? "재충전 중…" : "[Q] 공격   [R] 재충전", 17);
+        Text(874, 53, "별빛 마법", 23, pink);
+        Text(874, 86, "[Q] 기본 공격 · 마나 4", 18);
+        Text(874, 143, "[X] 마나 물약 · 즉시 회복", 17);
         Text(874, 168, "[1] 별빛 마법  ·  마나 10", 14, pink);
     }
 
     Panel(22, 710, 1236, 76, {.08f, .10f, .18f, .94f});
-    Text(
-        42, 740,
-        magicAvailable
-            ? "Space 점프 · Q 공격 · R 재충전 · Z 물약 · 1 마법 | WASD 이동 · Shift 달리기 · E 대화"
-            : "WASD 이동 | Shift 달리기 | 스페이스 점프 | E 상호작용 | Z 물약(퀘스트 중)",
-        18);
+    Text(42, 740,
+         magicAvailable
+             ? "Space 점프 · Q 공격 · X 마나 물약 · Z 체력 물약 · 1 마법 | WASD 이동 · E 대화"
+             : "WASD 이동 | Shift 달리기 | 스페이스 점프 | E 상호작용 | Z 물약(퀘스트 중)",
+         18);
     Text(
         42, 769,
         "방향키 카메라 · C 복귀 · ESC 메뉴  |  F1 튜토리얼 · F2 사냥터 · F3 이야기 · F4 퀘스트2 · F5 로그",
@@ -734,9 +730,9 @@ void DrawHud()
         }
         else
         {
-            Panel(22, 220, 810, 90, {.08f, .07f, .16f, .94f});
-            Text(42, 256, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, objectiveColor);
-            Text(42, 290, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
+            Panel(320, 220, 850, 90, {.08f, .07f, .16f, .94f});
+            Text(340, 256, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, objectiveColor);
+            Text(340, 290, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
         }
     }
     if (quest.active && quest.step == QuestStep::Transform)
@@ -1117,9 +1113,13 @@ void Key(unsigned char key, bool down)
         }
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
-             key == 'r')
+             key == 'x' && !combat.Dead())
     {
-        combat.actions.Reload();
+        if (combat.actions.UseManaPotion(combat.mana, float(quest.progress.stats.maxMana),
+                                         quest.progress.manaPotions))
+        {
+            saveSucceeded = quest.Save();
+        }
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
              key == '1')
@@ -1276,7 +1276,7 @@ void Draw()
     scene.Place("diagnostics", {}, RenderLayer::UserInterface,
                 [](const Actor&, const Transform&)
                 {
-                    graphics->DrawFrameStats();
+                    // Performance counters remain available in logs and the browser monitor.
                 });
     scene.EndSync();
     graphics->BeginWorld();

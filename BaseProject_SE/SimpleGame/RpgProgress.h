@@ -21,6 +21,7 @@ class Progress
     std::int64_t totalExperience = 0;
     int coins = 0;
     int potions = 3;
+    int manaPotions = 3;
     int crystals = 0;
     Stats stats;
 

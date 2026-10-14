@@ -68,14 +68,20 @@ bool Progress::Load()
     Progress candidate;
     if (!(file >> magic >> candidate.totalExperience >> candidate.coins >> candidate.potions >>
           candidate.crystals) ||
-        magic != "EMBERWICK_PROGRESS_1" || candidate.totalExperience < 0 ||
-        candidate.totalExperience > ExperienceLimit || candidate.coins < 0 ||
-        candidate.coins > 1000000 || candidate.potions < 0 || candidate.potions > 99 ||
-        candidate.crystals < 0 || candidate.crystals > 1000000)
+        (magic != "EMBERWICK_PROGRESS_1" && magic != "EMBERWICK_PROGRESS_2") ||
+        candidate.totalExperience < 0 || candidate.totalExperience > ExperienceLimit ||
+        candidate.coins < 0 || candidate.coins > 1000000 || candidate.potions < 0 ||
+        candidate.potions > 99 || candidate.crystals < 0 || candidate.crystals > 1000000)
     {
         return false;
     }
 
+    if (magic == "EMBERWICK_PROGRESS_2" &&
+        (!(file >> candidate.manaPotions) || candidate.manaPotions < 0 ||
+         candidate.manaPotions > 99))
+    {
+        return false;
+    }
     candidate.Recalculate();
     *this = candidate;
     return true;
@@ -94,8 +100,9 @@ bool Progress::Save() const
     const std::wstring temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::trunc);
-        file << "EMBERWICK_PROGRESS_1\n"
-             << totalExperience << ' ' << coins << ' ' << potions << ' ' << crystals << '\n';
+        file << "EMBERWICK_PROGRESS_2\n"
+             << totalExperience << ' ' << coins << ' ' << potions << ' ' << crystals << ' '
+             << manaPotions << '\n';
         file.flush();
         if (!file)
         {

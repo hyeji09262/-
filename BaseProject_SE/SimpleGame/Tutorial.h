@@ -93,6 +93,7 @@ static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26}, beamTarget = {
 static bool keys[256] = {}, paused = false, moving = false;
 static PlayerActions actions;
 static int potions = 3;
+static int manaPotions = 3;
 static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, messageTime = 0,
              finishTime = 0;
 static float walkCycle = 0, facing = 1, healTimer = 0, castPose = 0;
@@ -102,6 +103,8 @@ static std::vector<Monster> monsters;
 static std::vector<Particle> particles;
 static const Color ink = {.055f, .058f, .10f, 1}, gold = {1, .76f, .39f, 1},
                    teal = {.35f, .95f, .84f, 1};
+
+static float mana = 30.f;
 
 inline float Dist(Vec a, Vec b)
 {
@@ -299,7 +302,9 @@ inline void Burst(Vec p, int amount, Color color, float z = 22)
 inline void Reset()
 {
     actions = PlayerActions{};
+    mana = 30.f;
     potions = 3;
+    manaPotions = 3;
     scene.Clear();
     player = {31, 26};
     stage = 0;
@@ -427,9 +432,12 @@ inline void Key(unsigned char key, bool down)
         {
             actions.Jump();
         }
-        if (key == 'r')
+        if (key == 'x' && hp > 0)
         {
-            actions.Reload();
+            if (actions.UseManaPotion(mana, 30.f, manaPotions))
+            {
+                Say("마나 물약으로 마나를 회복했습니다.");
+            }
         }
         if (key == 'z' && potions > 0 && hp > 0 && hp < 5)
         {
@@ -480,7 +488,7 @@ inline void Update(float dt)
     if (paused || stage == 2 || stage == 5)
         return;
     elapsed += dt;
-    actions.Update(dt);
+    actions.Update(dt, mana, 30.f);
     clockTime += dt;
     attackCD -= dt;
     hurtCD -= dt;
@@ -560,7 +568,7 @@ inline void Update(float dt)
     }
     else
         pulse = 0;
-    if (keys['q'] && attackCD <= 0 && actions.Fire())
+    if (keys['q'] && attackCD <= 0 && actions.Fire(mana))
     {
         attackCD = .5f;
         castPose = CharacterVisual::CastDuration;
@@ -655,15 +663,22 @@ inline void DrawHud()
         "05  선생님에게 별빛 조각 전달하기 [E]", "완료  ·  학교에 일상이 돌아왔습니다"};
     Text(38, 81, objectives[stage], gold);
     char status[256];
-    sprintf_s(status, "체력 %d/5    시간 %02d:%02d    목표 %.0f타일    야생 몬스터 처치 %d", hp,
-              int(elapsed) / 60, int(elapsed) % 60, Dist(player, Target()), kills);
+    sprintf_s(status, "시간 %02d:%02d    목표 %.0f타일    야생 몬스터 처치 %d", int(elapsed) / 60,
+              int(elapsed) % 60, Dist(player, Target()), kills);
     Text(38, 114, status, {.8f, .83f, .85f, 1}, 16);
-    Box(20, 138, 300, 25, {ink.r, ink.g, ink.b, .94f});
-    for (int i = 0; i < 5; ++i)
-    {
-        Box(38 + i * 54.f, 144, 46, 10,
-            i < hp ? Color{.95f, .40f, .58f, 1} : Color{.22f, .23f, .30f, 1});
-    }
+    Box(22, 212, 152, 354, {ink.r, ink.g, ink.b, .96f});
+    const float healthRatio = (std::max)(0.f, (std::min)(1.f, hp / 5.f));
+    const float manaRatio = (std::max)(0.f, (std::min)(1.f, mana / 30.f));
+    Text(41, 231, "체력", gold, 18);
+    Text(105, 231, "마나", gold, 18);
+    Box(48, 243, 22, 280, {.22f, .23f, .30f, 1});
+    Box(48, 243 + 280 * (1 - healthRatio), 22, 280 * healthRatio, {.95f, .40f, .58f, 1});
+    Box(112, 243, 22, 280, {.22f, .23f, .30f, 1});
+    Box(112, 243 + 280 * (1 - manaRatio), 22, 280 * manaRatio, {.52f, .65f, .98f, 1});
+    Text(34, 542, std::to_string(hp) + "/5", gold, 14);
+    Text(98, 542, std::to_string(int(mana)) + "/30", gold, 14);
+    Text(34, 560, "[Z] " + std::to_string(potions) + "개", gold, 15);
+    Text(98, 560, "[X] " + std::to_string(manaPotions) + "개", gold, 15);
     Text(970, 38, "싱글플레이 · 튜토리얼", gold, 16);
     Text(970, 62,
          Safe(player)    ? "학교 운동장 · 안전 지역"
@@ -672,26 +687,17 @@ inline void DrawHud()
          teal, 16);
     DrawMinimap();
     Box(20, 748, 1240, 34, {ink.r, ink.g, ink.b, .94f});
-    Text(36, 772, "WASD 이동 · Space 점프 · Q 공격 · R 재충전 · Z 물약 · E 대화 · ESC 메뉴", gold,
-         17);
+    Text(36, 772, "WASD 이동 · Space 점프 · Q 공격 · X 마나 물약 · Z 체력 물약 · E 대화 · ESC 메뉴",
+         gold, 17);
     int nearestNpcIndex = NearestNPC();
-    Box(20, 618, 340, 52, {ink.r, ink.g, ink.b, .94f});
-    for (int i = 0; i < 6; ++i)
-    {
-        Box(36 + i * 50.f, 651, 42, 8, i < actions.charges ? gold : Color{.22f, .23f, .30f, 1});
-    }
-    Text(36, 641,
-         "충전 " + std::to_string(actions.charges) + "/6 · 물약 " + std::to_string(potions) +
-             (actions.reload > 0 ? " · 재충전 중" : ""),
-         gold, 16);
     if (nearestNpcIndex >= 0)
         Text(550, 500, std::string("[E] ") + villagers[nearestNpcIndex].name, gold, 18);
     else if (Dist(player, shrine) < (upgrade == 1 ? 4.f : 2.1f))
         Text(544, 500, "[E] 해안 별빛 장치");
     if (messageTime > 0)
     {
-        Box(20, 677, 1240, 56, {ink.r, ink.g, ink.b, .95f});
-        Text(38, 711, message, teal, 18);
+        Box(250, 677, 1010, 56, {ink.r, ink.g, ink.b, .95f});
+        Text(268, 711, message, teal, 18);
     }
     if (stage == 1 && Dist(player, boss) < 6.5f)
     {
@@ -748,7 +754,7 @@ inline void Draw()
         "ui/draw-calls", {}, Game::RenderLayer::UserInterface,
         [](const Game::Actor&, const Game::Transform&)
         {
-            renderer->DrawFrameStats();
+            // Performance counters remain available in logs and the browser monitor.
         },
         scene.Find("ui"));
     scene.EndSync();
