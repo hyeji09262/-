@@ -65,7 +65,7 @@ inline const std::array<Objective, 15>& Objectives()
         {"MQ001_10_FIRST_TRANSFORMATION", "루미의 빛을 받아 첫 변신 중…", Event::Timer, 3, 8,
          "루미", "네 마음의 빛을 믿어. 이제 유나를 구하러 가자!"},
         {"MQ001_11_KILL_SHADOWS", "그림자 3마리를 처치하세요.", Event::Defeat, 9, 8, "루미",
-         "마법봉으로 공격해! Q 공격 / R 재충전 / Z 물약 / 1 별빛 폭발"},
+         "마법봉으로 공격해! Q 공격 / X 마나 물약 / Z 체력 물약 / 1 별빛 폭발"},
         {"MQ001_12_KILL_SHADOW_EATER", "그림자 포식자를 처치하세요.", Event::Defeat, 15, 8, "루미",
          "바닥의 붉은 예고를 피해! 공격 뒤에는 잠시 빈틈이 생겨."},
         {"MQ001_13_CHECK_YUNA", "유나의 상태를 확인하세요.", Event::Interact, 17, 8, "유나",

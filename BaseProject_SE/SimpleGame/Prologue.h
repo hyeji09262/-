@@ -1,5 +1,6 @@
 #pragma once
 #include "WorldMonitor.h"
+#include "RpgProgress.h"
 
 class Renderer;
 
@@ -12,6 +13,7 @@ void CameraKey(int key, bool down);
 void Pause();
 void Update(float deltaTime);
 void Draw();
-void DrawQuestTwoPreview();
+bool QuestTwoStart(Rpg::Progress& progress, int& fragments);
+bool ConsumeQuestTwoRequest();
 WorldMonitor::Scene MonitorSnapshot();
 } // namespace Prologue

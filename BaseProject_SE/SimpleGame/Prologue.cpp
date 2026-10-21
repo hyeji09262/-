@@ -60,6 +60,7 @@ QuestStep enteredStep = QuestStep::Complete;
 bool questDialogue = false, saveSucceeded = true, builtAlley = false;
 bool confirmRestart = false;
 bool restartFailed = false;
+bool questTwoRequested = false;
 float transformTime = 0;
 float endingTime = 0, farewellTime = 0;
 
@@ -391,6 +392,7 @@ void BuildScene()
 
 void Reset()
 {
+    questTwoRequested = false;
     confirmRestart = restartFailed = false;
     endingTime = farewellTime = 0;
     story = Story{};
@@ -526,6 +528,10 @@ void Interact()
             keys.fill(false);
             saveSucceeded = quest.Save();
         }
+        if (quest.epilogueComplete)
+        {
+            questTwoRequested = true;
+        }
         return;
     }
     if (quest.active)
@@ -610,13 +616,13 @@ void DrawHud()
     Panel(22, 20, 810, 164, {.08f, .10f, .18f, .94f});
     Panel(22, 20, 4, 164, objectiveColor);
     Text(42, 53,
-         quest.epilogueComplete ? "메인 퀘스트 2 · 학교에 숨어든 것"
+         quest.epilogueComplete ? "메인 퀘스트 1 완료 · 다음 날 학교"
          : quest.active         ? "메인 퀘스트 1 · 연락이 끊긴 친구"
          : story.IsHome()       ? "프롤로그 · 평범한 아침"
                                 : "프롤로그 · 학교의 소문",
          25, pink);
     Text(42, 87,
-         quest.epilogueComplete ? "새 퀘스트: 학교에 숨어든 것 (#19 구간 준비 중)"
+         quest.epilogueComplete ? "[E] 또는 [F4] 학교에 숨어든 것 시작/이어하기"
          : quest.active         ? quest.Current().text
                                 : story.Objective(),
          19, objectiveColor);
@@ -732,7 +738,7 @@ void DrawHud()
         {
             Panel(320, 220, 850, 90, {.08f, .07f, .16f, .94f});
             Text(340, 256, "#18 완료 · 새 퀘스트: 학교에 숨어든 것", 23, objectiveColor);
-            Text(340, 290, "교실 이동 가능 · #19 조사/전투 구간은 다음 작업입니다.", 18);
+            Text(340, 290, "[E] 또는 [F4] 학교 내부 조사와 체육관 전투로 이어집니다.", 18);
         }
     }
     if (quest.active && quest.step == QuestStep::Transform)
@@ -927,6 +933,24 @@ void Resize(int w, int h)
 {
     width = (std::max)(1, w);
     height = (std::max)(1, h);
+}
+
+bool QuestTwoStart(Rpg::Progress& progress, int& fragments)
+{
+    if (!quest.active || !quest.epilogueComplete || !quest.rewardClaimed)
+    {
+        return false;
+    }
+    progress = quest.progress;
+    fragments = quest.fragments;
+    return true;
+}
+
+bool ConsumeQuestTwoRequest()
+{
+    bool requested = questTwoRequested;
+    questTwoRequested = false;
+    return requested;
 }
 
 WorldMonitor::Scene MonitorSnapshot()
@@ -1293,28 +1317,4 @@ void Draw()
     graphics->Flush();
 }
 
-void DrawQuestTwoPreview()
-{
-    Performance::Scope scope("cpu.quest_two.preview_ms");
-    static Game::SceneGraph preview;
-    if (!preview.Find("ui"))
-    {
-        auto& ui = preview.Place(
-            "ui", {}, RenderLayer::UserInterface,
-            [](const Actor&, const Transform&)
-            {
-                Panel(140, 200, 1000, 380, {.08f, .07f, .16f, .97f});
-                Text(185, 265, "메인 퀘스트 2 · 학교에 숨어든 것", 30, pink);
-                Text(185, 333, "#19 플레이 구간은 아직 준비 중입니다.", 24);
-                Text(185, 382, "이 화면에서는 퀘스트 진행과 저장 데이터를 변경하지 않습니다.", 19);
-                Text(185, 448, "F1 튜토리얼 / F2 사냥터 / F3 프롤로그·메인 퀘스트 1", 20);
-                Text(185, 508, "처음부터: F3 메뉴에서 B → Enter", 22, pink);
-            });
-        preview.RetainSubtree(ui);
-    }
-    graphics->BeginWorld();
-    graphics->EndWorld(0);
-    preview.Render(RenderLayer::UserInterface, RenderLayer::UserInterface);
-    graphics->Flush();
-}
 } // namespace Prologue
