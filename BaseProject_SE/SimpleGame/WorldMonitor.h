@@ -24,6 +24,11 @@ struct Town
     std::vector<std::string> rumors;
     // No faction/opinion simulation exists yet. Do not manufacture a measured value.
     std::string disposition = "미구현";
+    int population = -1;
+    int threats = -1;
+    int defeated = -1;
+    int safety = -1;
+    std::string source = "scripted_not_simulated";
 };
 
 struct Scene
@@ -96,7 +101,14 @@ inline void Publish(const std::string& active, const std::vector<Scene>& scenes,
             json << "{\"id\":" << Quote(town.id) << ",\"name\":" << Quote(town.name)
                  << ",\"atmosphere\":" << Quote(town.atmosphere)
                  << ",\"disposition\":" << Quote(town.disposition)
-                 << ",\"source\":\"scripted_not_simulated\",\"population\":" << population
+                 << ",\"source\":" << Quote(town.source)
+                 << ",\"population\":" << (town.population >= 0 ? town.population : population)
+                 << ",\"nearby_monsters\":"
+                 << (town.threats < 0 ? "null" : std::to_string(town.threats))
+                 << ",\"defeated_monsters\":"
+                 << (town.defeated < 0 ? "null" : std::to_string(town.defeated))
+                 << ",\"safety_percent\":"
+                 << (town.safety < 0 ? "null" : std::to_string(town.safety))
                  << ",\"population_basis\":\"present_npcs_excluding_player\",\"rumors\":[";
             for (size_t r = 0; r < town.rumors.size(); ++r)
             {

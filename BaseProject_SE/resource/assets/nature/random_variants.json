@@ -1,0 +1,140 @@
+{
+  "variants": [
+    {
+      "name": "Tree_A",
+      "category": "tree",
+      "file": "nature/Tree_A.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.9
+    },
+    {
+      "name": "Tree_B",
+      "category": "tree",
+      "file": "nature/Tree_B.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.9
+    },
+    {
+      "name": "Tree_C",
+      "category": "tree",
+      "file": "nature/Tree_C.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.9
+    },
+    {
+      "name": "Grass_A",
+      "category": "grass",
+      "file": "nature/Grass_A.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.4
+    },
+    {
+      "name": "Grass_B",
+      "category": "grass",
+      "file": "nature/Grass_B.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.4
+    },
+    {
+      "name": "Grass_C",
+      "category": "grass",
+      "file": "nature/Grass_C.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.4
+    },
+    {
+      "name": "Rock_A",
+      "category": "rock",
+      "file": "nature/Rock_A.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.7
+    },
+    {
+      "name": "Rock_B",
+      "category": "rock",
+      "file": "nature/Rock_B.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.7
+    },
+    {
+      "name": "Rock_C",
+      "category": "rock",
+      "file": "nature/Rock_C.blend",
+      "weight": 1,
+      "scale_range": [
+        0.85,
+        1.15
+      ],
+      "yaw_degrees": [
+        0,
+        360
+      ],
+      "footprint_radius_m": 0.7
+    }
+  ],
+  "note": "Placement metadata only; game spawning is not implemented."
+}

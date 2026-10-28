@@ -1,0 +1,134 @@
+{
+  "asset": "Gym_EnhancedShadow_Boss",
+  "quest": "MQ_002_SOMETHING_IN_SCHOOL",
+  "source_role": "Enhanced Shadow",
+  "clips": [
+    {
+      "name": "Idle",
+      "start": 1,
+      "end": 61,
+      "fps": 30,
+      "loop": true
+    },
+    {
+      "name": "Walk",
+      "start": 1,
+      "end": 31,
+      "fps": 30,
+      "loop": true
+    },
+    {
+      "name": "Run",
+      "start": 1,
+      "end": 21,
+      "fps": 30,
+      "loop": true
+    },
+    {
+      "name": "Jump_Start",
+      "start": 1,
+      "end": 13,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Jump_Air",
+      "start": 1,
+      "end": 25,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Jump_Land",
+      "start": 1,
+      "end": 13,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Turn_Left_90",
+      "start": 1,
+      "end": 19,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Turn_Right_90",
+      "start": 1,
+      "end": 19,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Turn_Neutral",
+      "start": 1,
+      "end": 3,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Attack",
+      "start": 1,
+      "end": 37,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Punch",
+      "start": 1,
+      "end": 37,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Ground_Slam",
+      "start": 1,
+      "end": 49,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Rush_Charge",
+      "start": 1,
+      "end": 31,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Rush",
+      "start": 1,
+      "end": 25,
+      "fps": 30,
+      "loop": true
+    },
+    {
+      "name": "Rush_Recovery",
+      "start": 1,
+      "end": 25,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Hit",
+      "start": 1,
+      "end": 19,
+      "fps": 30,
+      "loop": false
+    },
+    {
+      "name": "Death",
+      "start": 1,
+      "end": 61,
+      "fps": 30,
+      "loop": false
+    }
+  ],
+  "skin_weights_checked": true,
+  "sampled_pose_matrices_finite": true,
+  "root_motion": "Walk/Run/Rush in-place; Jump_Air uses root Z; Turn uses root yaw",
+  "suggested_blend_seconds": {
+    "Walk_Run": 0.2,
+    "Rush_Charge_Rush": 0.1,
+    "Rush_Recovery_Idle": 0.2
+  }
+}

@@ -114,6 +114,32 @@
     <ClInclude Include="TutorialArt.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="VillageWorld.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="VillageInterior.h" />
+    <ClInclude Include="TownPopulation.h" />
+    <ClInclude Include="MonsterAnimation.h" />
+    <ClInclude Include="MonsterSkills.h" />
+    <ClInclude Include="Transformation.h" />
+    <ClInclude Include="VillageRuntime.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SchoolLayout.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SchoolScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="BuildingVisuals.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="NatureVisuals.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AutoTarget.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="targetver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

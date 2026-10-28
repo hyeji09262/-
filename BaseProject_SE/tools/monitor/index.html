@@ -25,7 +25,24 @@ function render(){
  $('npc').textContent=scene.npc_count;$('mobs').textContent=scene.mobs_alive;$('dead').textContent=scene.mobs_dead;$('draw').textContent=latest.draw_calls_last_frame;
  $('sceneState').textContent=scene.name+' · '+(scene.active?'선택된 게임 장면':'비활성 장면')+' · '+(scene.paused?'일시정지 / 정지된 상태':'실행 중');
  $('objective').textContent=scene.objective;$('towns').replaceChildren();
- for(const town of scene.towns){const card=node('div','','card');card.append(node('h2',town.name),node('p','분위기: '+town.atmosphere),node('p','배치 인구: '+town.population+' NPC · 플레이어 제외'),node('p','성향: '+town.disposition),node('small','분위기/소문: 스토리 규칙·설정값, 사회 시뮬레이션 아님'));const list=node('ul','');for(const rumor of town.rumors)list.append(node('li',rumor));if(!town.rumors.length)list.append(node('li','등록된 소문 없음'));card.append(list);$('towns').append(card);}
+ for (const town of scene.towns) {
+  const card = node('div', '', 'card');
+  card.append(node('h2', town.name), node('p', '분위기: ' + town.atmosphere),
+   node('p', '배치 인구: ' + town.population + ' NPC · 플레이어 제외'),
+   node('p', '성향: ' + town.disposition));
+  if (town.source === 'derived_from_live_monsters') {
+   card.append(node('p', '지역 악몽: ' + town.nearby_monsters + '마리 · 이번 탐험 처치: ' + town.defeated_monsters),
+    node('p', '안전도: ' + town.safety_percent + '%'),
+    node('small', '분위기/안전도는 지역 생존 몬스터 수로 계산합니다. 안전도 = max(0, 100 − 몬스터 수 × 4). 소문과 성향은 설정값입니다.'));
+  } else {
+   card.append(node('small', '분위기/소문: 스토리 규칙·설정값, 사회 시뮬레이션 아님'));
+  }
+  const list = node('ul', '');
+  for (const rumor of town.rumors) list.append(node('li', rumor));
+  if (!town.rumors.length) list.append(node('li', '등록된 소문 없음'));
+  card.append(list);
+  $('towns').append(card);
+ }
  if(!scene.towns.length)$('towns').append(node('p','이 장면에는 지역 시뮬레이션이 없습니다.'));
  $('npcs').replaceChildren();const search=$('search').value.toLowerCase();
  for(const npc of scene.npcs){if(!(npc.name+' '+npc.state+' '+npc.id).toLowerCase().includes(search))continue;const tr=node('tr','',npc.present?'':'muted');for(const value of [npc.name,npc.id,npc.state,npc.present?'현재 지역':'지역 밖',Object.values(npc.position).map(v=>Number(v).toFixed(1)).join(', '),npc.hp??'미구현'])tr.append(node('td',value));$('npcs').append(tr);}

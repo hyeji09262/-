@@ -8,11 +8,17 @@
 #include <cmath>
 #include <string>
 #include "Prologue.h"
+#include "VillageWorld.h"
 #include "PrologueStory.h"
 #include "QuestCombat.h"
 #include "RuntimeFiles.h"
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
+#include "SchoolScene.h"
+#include "TownPopulation.h"
+#include "Transformation.h"
+#include "NatureVisuals.h"
+#include "BuildingVisuals.h"
 #include "Dependencies/freeglut.h"
 
 namespace Prologue
@@ -38,8 +44,8 @@ struct Obstacle
     float x, y, width, depth;
 };
 
-constexpr Point television = {2, 2};
-constexpr Point door = {7, 5};
+constexpr Point television = {VillageInterior::HomeTvX, VillageInterior::HomeTvY};
+constexpr Point door = {VillageInterior::ExitX, VillageInterior::ExitY};
 constexpr Point yuna = {19, 6};
 constexpr Color ink = {.12f, .14f, .23f};
 constexpr Color paper = {.96f, .94f, .91f};
@@ -61,6 +67,8 @@ bool questDialogue = false, saveSucceeded = true, builtAlley = false;
 bool confirmRestart = false;
 bool restartFailed = false;
 bool questTwoRequested = false;
+bool endingContinueRequested = false;
+bool worldRequested = false;
 float transformTime = 0;
 float endingTime = 0, farewellTime = 0;
 
@@ -82,6 +90,7 @@ Point cameraOffset = {0, 0};
 int width = 1280, height = 800;
 float time = 0, walkFrame = 0, jumpHeight = 0, jumpVelocity = 0;
 float facing = 1;
+Point facingDirection{.70710678f, -.70710678f};
 bool paused = false, moving = false;
 bool moved = false, ran = false, jumped = false, looked = false;
 bool builtHome = true;
@@ -177,11 +186,13 @@ Actor& PlaceModel(const std::string& name, Transform p, ModelId model,
 {
     return scene.Place(
         name, p, layer,
-        [model](const Actor&, const Transform& world)
+        [model, name](const Actor&, const Transform& world)
         {
             Point s = Project(world);
-            graphics->DrawModel(models.Get(model), s.x, s.y, world.scale * Scale(),
-                                world.scale * Scale());
+            const bool leaving = name == "yuna/leaving";
+            graphics->DrawModel(models.GetFacing(model, leaving ? -1.f : player.x - world.x,
+                                                 leaving ? 0.f : player.y - world.y),
+                                s.x, s.y, world.scale * Scale(), world.scale * Scale());
         },
         parent);
 }
@@ -201,6 +212,14 @@ void Label(const std::string& name, Transform p, const std::string& text, Actor*
 bool Walkable(Point p)
 {
     Performance::Profiler::Get().Count("prologue.collision_checks");
+    if (EndingSchool())
+    {
+        return SchoolLayout::Walkable(4, p.x, p.y);
+    }
+    if (story.IsHome())
+    {
+        return VillageInterior::Walkable(0, p.x, p.y);
+    }
     const float margin = .22f;
     const float xmax = story.IsHome() || EndingSchool() ? 7.6f : 23.6f;
     const float ymax = story.IsHome() || EndingSchool() ? 7.6f : 13.6f;
@@ -245,121 +264,129 @@ void BuildScene()
     builtHome = story.IsHome();
     builtAlley = InAlleyScene();
     auto& root = scene.Place("environment", {}, RenderLayer::Ground);
-    const int columns = builtHome || EndingSchool() ? 8 : 24;
+    const int columns = EndingSchool() || builtHome ? 0 : 24;
     const int rows = builtHome || EndingSchool() ? 8 : 14;
     for (int y = 0; y < rows; ++y)
     {
         for (int x = 0; x < columns; ++x)
         {
-            const bool road = y >= 7 && y <= 10;
-            Color color = builtHome    ? Color{.73f, .60f, .50f}
-                          : builtAlley ? Color{.30f, .29f, .36f}
-                          : road       ? Color{.75f, .75f, .78f}
-                                       : Color{.52f, .68f, .57f};
+            const bool road = builtAlley ? y >= 5 && y <= 11 : y >= 7 && y <= 10;
             scene.Place(
                 "floor/" + std::to_string(y * columns + x), {float(x), float(y)},
                 RenderLayer::Ground,
-                [color](const Actor&, const Transform& world)
+                [road](const Actor&, const Transform& world)
                 {
-                    Floor(world, 1.005f, 1.005f, color);
+                    const ModelId model = builtHome ? ModelId::FloorWood
+                                          : road    ? ModelId::FloorStone
+                                                    : ModelId::TerrainGrass;
+                    Point p = Project({world.x + .5f, world.y + .5f});
+                    graphics->DrawModel(models.Get(model), p.x, p.y, 1.26f * Scale(),
+                                        1.26f * Scale());
                 },
                 &root);
         }
     }
     if (EndingSchool())
     {
-        scene.Place(
-            "classroom/window", {}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 8, .1f, 105, {.80f, .85f, .88f});
-                Box({.5f, .2f, 30}, 7, .05f, 62, {.43f, .66f, .78f});
-                for (int i = 1; i < 8; ++i)
-                {
-                    Box({float(i), .28f, 30}, .06f, .04f, 62, paper);
-                }
-                Box({.5f, 1, 0}, 1.3f, .7f, 25, {.66f, .48f, .34f});
-                Box({5.5f, 1, 0}, 1.3f, .7f, 25, {.66f, .48f, .34f});
-            },
-            &root);
-        Label("classroom/name", {4, 0, 125}, "다음 날 · 별빛 학교 교실", &root);
+        SchoolScene::Build(scene, 4,
+                           [](ModelId model, const Transform& world)
+                           {
+                               const Point p = Project(world);
+                               graphics->DrawModel(models.Get(model), p.x, p.y,
+                                                   world.scale * 1.25f * Scale(),
+                                                   world.scale * 1.25f * Scale());
+                           });
+        Label("classroom/name", {12, 1, 125}, "다음 날 · 1학년 1반", &root);
     }
     else if (builtHome)
     {
-        scene.Place(
-            "walls", {}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 8, .12f, 95, {.87f, .83f, .86f});
-                Box(p, .12f, 8, 95, {.83f, .78f, .83f});
-                Box({.13f, 3, 40}, .05f, 1.8f, 40, {.56f, .78f, .89f});
-            },
-            &root);
-        scene.Place(
-            "tv", {1, 1}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 2, 1, 25, {.51f, .35f, .30f});
-                Box({p.x + .2f, p.y + .2f, 25}, 1.5f, .15f, 40, ink);
-                Box({p.x + .26f, p.y + .37f, 30}, 1.35f, .02f, 29, {.40f, .67f, .81f});
-            },
-            &root);
-        scene.Place(
-            "bed", {1, 5}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 1.6f, 2, 18, {.58f, .39f, .42f});
-                Box({p.x, p.y, 18}, 1.6f, 2, 8, pink);
-                Box({p.x + .15f, p.y + .1f, 26}, 1.3f, .5f, 4, paper);
-            },
-            &root);
-        scene.Place(
-            "desk", {5, 1}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 2, 1.2f, 30, {.65f, .47f, .35f});
-                Box({p.x + .2f, p.y + .3f, 30}, .65f, .55f, 3, paper);
-                Box({p.x + 1.1f, p.y + .2f, 30}, .5f, .6f, 6, pink);
-            },
-            &root);
-        scene.Place(
-            "door", {6.7f, 4.6f}, RenderLayer::Ground,
-            [](const Actor&, const Transform& p)
-            {
-                Floor(p, .8f, 1, {.94f, .78f, .46f});
-            },
-            &root);
-        Label("tv/name", {2, 1.5f, 83}, "TV · 아침 뉴스", &root);
-        Label("door/name", {7, 5, 30}, "현관", &root);
+        VillageInterior::Build(scene, 0,
+                               [](ModelId model, const Transform& world)
+                               {
+                                   const Point p = Project(world);
+                                   graphics->DrawModel(models.Get(model), p.x, p.y,
+                                                       world.scale * 1.25f * Scale(),
+                                                       world.scale * 1.25f * Scale());
+                               });
+        Label("tv/name", {television.x, television.y, 112}, "TV · 아침 뉴스 [E]", &root);
+        Label("door/name", {door.x, door.y, 112}, "현관 [E]", &root);
     }
     else if (builtAlley)
     {
-        for (int i = 0; i < 6; ++i)
+        // Keep scenery outside the existing investigation and combat corridor (y=5.5..11.5).
+        // Short wall sections preserve ground-depth ordering without hiding the playable area.
+        for (int i = 0; i < 11; ++i)
         {
             scene.Place(
-                "alley/wall/" + std::to_string(i), {1.f + i * 3.7f, 3.5f}, RenderLayer::World,
-                [](const Actor&, const Transform& p)
+                "alley/wall/" + std::to_string(i), {1.f + i * 2, 4.3f}, RenderLayer::World,
+                [](const Actor&, const Transform& world)
                 {
-                    Box(p, 3.6f, 1.8f, 85, {.39f, .36f, .43f});
-                    Box({p.x + .5f, p.y + 1.82f, 40}, 1.2f, .03f, 25, {.58f, .49f, .59f});
+                    Box(world, 2.f, .45f, 90.f, {.55f, .55f, .65f});
+                    Transform cap = world;
+                    cap.z += 90.f;
+                    Box(cap, 2.f, .5f, 5.f, {.72f, .71f, .77f});
+                },
+                &root);
+            for (int side = 0; side < 2; ++side)
+            {
+                scene.Place(
+                    "alley/curb/" + std::to_string(side * 11 + i), {1.f + i * 2, side ? 12.f : 5.f},
+                    RenderLayer::World,
+                    [](const Actor&, const Transform& world)
+                    {
+                        Box(world, 2.f, .18f, 5.f, {.53f, .54f, .62f});
+                    },
+                    &root);
+            }
+        }
+        for (int i = 0; i < 3; ++i)
+        {
+            const float x = 2.f + i * 9;
+            auto& lamp = PlaceModel("alley/lamp/" + std::to_string(i), {x, 5.1f},
+                                    ModelId::StreetLamp, RenderLayer::World, &root);
+            PlaceModel("alley/lamp/shadow/" + std::to_string(i), {}, ModelId::Shadow,
+                       RenderLayer::Shadow, &lamp);
+        }
+        for (int i = 0; i < 2; ++i)
+        {
+            scene.Place(
+                "alley/utility/" + std::to_string(i), {7.f + i * 10, 4.9f}, RenderLayer::World,
+                [](const Actor&, const Transform& world)
+                {
+                    Box(world, .75f, .35f, 30.f, {.40f, .46f, .52f});
+                    Transform panel = world;
+                    panel.x += .1f;
+                    panel.y += .36f;
+                    panel.z += 5.f;
+                    Box(panel, .55f, .03f, 20.f, {.57f, .63f, .66f});
                 },
                 &root);
         }
-        Label("alley/name", {11, 5, 110}, "학교 뒤 오래된 골목", &root);
+        for (int i = 0; i < 3; ++i)
+        {
+            const float x = 6.f + i * 7;
+            PlaceModel("alley/tree/" + std::to_string(i), {x, 1.5f, 0, .8f},
+                       NatureVisuals::Tree(x, 1.5f), RenderLayer::World, &root);
+        }
+        Label("alley/name", {2, 12.5f, 65}, "학교 뒤 골목 · 입구", &root);
     }
     else
     {
-        PlaceModel("school", {19.5f, 4, 0, 2.1f}, ModelId::Shelter, RenderLayer::World, &root);
-        Label("school/name", {19.5f, 4, 255}, "별빛 학교", &root);
+        PlaceModel("school", {19.5f, 4, 0, .85f}, ModelId::VillageSchool, RenderLayer::World,
+                   &root);
+        Label("school/name", {19.5f, 4, BuildingVisuals::Get(4).labelHeight * .85f}, "별빛 학교",
+              &root);
         for (int i = 0; i < 8; ++i)
         {
-            PlaceModel("tree/" + std::to_string(i), {3.f + i * 2, 12.5f}, ModelId::Tree,
-                       RenderLayer::World, &root);
+            PlaceModel("tree/" + std::to_string(i),
+                       {3.f + i * 2, 12.5f, 0, NatureVisuals::Scale(3.f + i * 2, 12.5f)},
+                       NatureVisuals::Tree(3.f + i * 2, 12.5f), RenderLayer::World, &root);
         }
         for (int i = 0; i < 5; ++i)
         {
-            PlaceModel("garden/" + std::to_string(i), {3.f + i * 2.5f, 3}, ModelId::Tree,
-                       RenderLayer::World, &root);
+            PlaceModel("garden/" + std::to_string(i),
+                       {3.f + i * 2.5f, 3, 0, NatureVisuals::Scale(3.f + i * 2.5f, 3)},
+                       NatureVisuals::Tree(3.f + i * 2.5f, 3), RenderLayer::World, &root);
         }
         if (!quest.active)
         {
@@ -381,7 +408,7 @@ void BuildScene()
                 PlaceModel(id + "/shadow", {}, ModelId::Shadow, RenderLayer::Shadow, &npc);
                 Label(id + "/name", {0, 0, 85}, names[i], &npc);
             }
-            PlaceModel("store", {9, 7, 0, .65f}, ModelId::Shelter, RenderLayer::World, &root);
+            PlaceModel("store", {9, 7, 0, .85f}, ModelId::VillageStore, RenderLayer::World, &root);
             Label("store/name", {9, 7, 95}, "별빛 편의점", &root);
             Label("alley/entrance", {22, 12, 40}, "학교 뒤 골목 [E]", &root);
         }
@@ -393,6 +420,7 @@ void BuildScene()
 void Reset()
 {
     questTwoRequested = false;
+    worldRequested = false;
     confirmRestart = restartFailed = false;
     endingTime = farewellTime = 0;
     story = Story{};
@@ -401,6 +429,8 @@ void Reset()
     enteredStep = QuestStep::Complete;
     questDialogue = false;
     player = {4, 4.5f};
+    facing = 1;
+    facingDirection = {.70710678f, -.70710678f};
     camera = player;
     cameraOffset = {0, 0};
     keys.fill(false);
@@ -419,6 +449,7 @@ void EnterQuestStep(bool restorePosition = false)
     }
     const auto previous = enteredStep;
     enteredStep = quest.step;
+    quest.progress.EnsureStorySupplies();
     combat.Enter(quest);
     transformTime = 0;
     questDialogue = false;
@@ -426,6 +457,7 @@ void EnterQuestStep(bool restorePosition = false)
     if (quest.step == QuestStep::Complete)
     {
         endingTime = quest.epilogueComplete ? 8.f : 0.f;
+        endingContinueRequested = false;
     }
     if (restorePosition)
     {
@@ -446,7 +478,7 @@ void EnterQuestStep(bool restorePosition = false)
     }
     if (EndingSchool())
     {
-        player = {4, 4.5f};
+        player = {SchoolLayout::IntroPlayerX, SchoolLayout::IntroPlayerY};
     }
     if (builtAlley != InAlleyScene())
     {
@@ -489,11 +521,18 @@ void UpdateQuest(float dt)
         endingTime += dt;
         if (!wasSchool && EndingSchool())
         {
-            player = {4, 4.5f};
-            camera = player;
+            player = {SchoolLayout::IntroPlayerX, SchoolLayout::IntroPlayerY};
+            camera = {SchoolLayout::IntroPlayerX, 7.f};
             cameraOffset = {0, 0};
             jumpHeight = jumpVelocity = 0;
             BuildScene();
+        }
+        if (endingTime >= 7 && endingContinueRequested && quest.FinishEpilogue())
+        {
+            endingContinueRequested = false;
+            saveSucceeded = quest.Save();
+            questTwoRequested = true;
+            keys.fill(false);
         }
         return;
     }
@@ -523,6 +562,11 @@ void Interact()
 {
     if (quest.active && quest.step == QuestStep::Complete)
     {
+        if (endingTime < 7)
+        {
+            endingContinueRequested = true;
+            return;
+        }
         if (endingTime >= 7 && quest.FinishEpilogue())
         {
             keys.fill(false);
@@ -553,7 +597,7 @@ void Interact()
             return;
         }
         if (quest.step != QuestStep::Complete && target.event == MainQuest::Event::Interact &&
-            Distance(player, {target.x, target.y}) < 1.8f && jumpHeight <= 0)
+            Distance(player, {target.x, target.y}) < 2.3f && jumpHeight <= 0)
         {
             questDialogue = true;
             moving = false;
@@ -570,19 +614,20 @@ void Interact()
     {
         return;
     }
-    if (story.step == Step::News && Distance(player, television) < 1.8f)
+    if (story.step == Step::News && Distance(player, television) < 2.3f)
     {
         story.InteractNews();
     }
-    else if (story.step == Step::LeaveHome && Distance(player, door) < 1.3f)
+    else if (story.step == Step::LeaveHome && Distance(player, door) < 2.f)
     {
         story.LeaveHome();
+        worldRequested = true;
         player = {2, 9};
         camera = player;
         cameraOffset = {0, 0};
         BuildScene();
     }
-    else if (story.step == Step::TalkYuna && Distance(player, yuna) < 1.8f)
+    else if (story.step == Step::TalkYuna && Distance(player, yuna) < 2.3f)
     {
         story.TalkYuna();
     }
@@ -672,7 +717,7 @@ void DrawHud()
          18);
     Text(
         42, 769,
-        "방향키 카메라 · C 복귀 · ESC 메뉴  |  F1 튜토리얼 · F2 사냥터 · F3 이야기 · F4 퀘스트2 · F5 로그",
+        "방향키 카메라 · C 복귀 · ESC 메뉴 | F1 마을 · F2 사냥 · F3 이야기 · F4 퀘스트2 · F5 로그 · F6 마을",
         15, pink);
 
     if (story.IsHome() && time < 7 && !story.dialogueOpen)
@@ -693,11 +738,11 @@ void DrawHud()
         p.y = (std::max)(210 * Scale(), (std::min)(height - 220 * Scale(), p.y));
         graphics->Nameplate(
             p.x, p.y,
-            Distance(player, target) < 1.8f &&
+            Distance(player, target) <= 2.3f &&
                     (!quest.active || quest.Current().event == MainQuest::Event::Interact)
                 ? "[E] 상호작용"
                 : "목표",
-            18 * Scale(), objectiveColor.r, objectiveColor.g, objectiveColor.b);
+            16 * Scale(), objectiveColor.r, objectiveColor.g, objectiveColor.b);
     }
     if (story.dialogueOpen)
     {
@@ -785,10 +830,11 @@ void Circle(Transform p, float radius, Color color)
     }
 }
 
-void PlaceGlow(const std::string& id, Transform pose, float size, Actor* parent = nullptr)
+void PlaceGlow(const std::string& id, Transform pose, float size, Actor* parent = nullptr,
+               RenderLayer layer = RenderLayer::World)
 {
     scene.Place(
-        id, pose, RenderLayer::World,
+        id, pose, layer,
         [size](const Actor&, const Transform& world)
         {
             Point p = Project(world);
@@ -812,8 +858,11 @@ void DrawQuestActors()
             PlaceGlow("ending/fragment/glow", {}, 45 + 12 * std::sin(time * 9), &shard);
             if (endingTime < 7)
             {
-                PlaceModel("ending/window_shadow", {.6f + (endingTime - 4) * 2.2f, .4f, 40, .6f},
-                           ModelId::Shade0);
+                const float phase = (endingTime - 4) / 3.f;
+                PlaceModel("ending/window_shadow",
+                           {SchoolLayout::IntroWindowX - .45f + phase * .9f,
+                            SchoolLayout::IntroWindowY, 75, .45f},
+                           MonsterAnimation::Model(1, time, 0), RenderLayer::Overlay);
             }
         }
         return;
@@ -868,8 +917,13 @@ void DrawQuestActors()
         const float lift = enemy.boss && enemy.pattern == 2 && enemy.phase == 1
                                ? std::sin((1.1f - enemy.timer) / 1.1f * 3.14159f) * 55
                                : 0;
-        auto& actor = PlaceModel(id, {enemy.position.x, enemy.position.y, lift},
-                                 enemy.boss ? ModelId::ShadowEater : ModelId::Shade0);
+        auto& actor =
+            PlaceModel(id, {enemy.position.x, enemy.position.y, lift},
+                       MonsterAnimation::FacingModel(
+                           enemy.boss ? 10 : 1, time,
+                           enemy.boss ? MonsterAnimation::BossMotion(enemy.phase, enemy.timer)
+                                      : enemy.attackMotion,
+                           enemy.facing.x, enemy.facing.y));
         PlaceModel(id + "/shadow", {0, 0, -lift}, ModelId::Shadow, RenderLayer::Shadow, &actor);
         Label(id + "/hp", {0, 0, enemy.boss ? 110.f : 70.f},
               std::string(enemy.boss ? "그림자 포식자 " : "그림자 ") +
@@ -899,8 +953,8 @@ void DrawQuestActors()
     }
     for (const auto& shot : combat.shots)
     {
-        auto pose =
-            CharacterVisual::SpellPose(shot.position.x, shot.position.y, shot.age, shot.mirror, 40);
+        auto pose = CharacterVisual::FacingSpellPose(shot.position.x, shot.position.y, shot.age,
+                                                     shot.direction.x, shot.direction.y, 40);
         pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
         PlaceGlow("shot/" + std::to_string(shot.id), pose, CharacterVisual::SpellSize);
     }
@@ -951,6 +1005,101 @@ bool ConsumeQuestTwoRequest()
     bool requested = questTwoRequested;
     questTwoRequested = false;
     return requested;
+}
+
+bool TransformationUnlocked()
+{
+    return quest.CanFight();
+}
+
+bool ConsumeWorldRequest()
+{
+    const bool requested = worldRequested;
+    worldRequested = false;
+    return requested;
+}
+
+void ResumeFromWorld()
+{
+    Pause();
+    if (story.step == Step::ReachSchool)
+    {
+        player = {yuna.x, yuna.y + 1};
+        camera = player;
+        story.ReachSchool();
+    }
+    paused = false;
+}
+
+bool WorldObjective(float& x, float& y, int& person, std::string& objective)
+{
+    const auto& buildings = CoastalWorld::Buildings();
+    const auto& school = buildings[1];
+    x = CoastalWorld::DoorX(school);
+    y = CoastalWorld::DoorY(school) + 2;
+    person = 0;
+    if (!quest.active && (story.step == Step::ReachSchool || story.step == Step::TalkYuna))
+    {
+        objective = "학교 앞 유나에게 다가가 [E]로 대화하세요.";
+        return true;
+    }
+    if (!quest.active || quest.step > QuestStep::Alley)
+    {
+        return false;
+    }
+    person = int(quest.step) + 1;
+    objective = quest.Current().text;
+    if (quest.step == QuestStep::Guard)
+    {
+        x = TownPopulation::GuardX;
+        y = TownPopulation::GuardY;
+    }
+    else if (quest.step == QuestStep::Clerk)
+    {
+        x = CoastalWorld::DoorX(buildings[2]);
+        y = CoastalWorld::DoorY(buildings[2]) + 1;
+        objective = "마을의 별빛 편의점으로 가서 직원에게 [E]로 물어보세요.";
+    }
+    else if (quest.step == QuestStep::Alley)
+    {
+        x = 42;
+        y = 10;
+    }
+    return true;
+}
+
+std::string InteractWorld()
+{
+    if (!quest.active)
+    {
+        story.ReachSchool();
+        if (!story.dialogueOpen)
+        {
+            story.TalkYuna();
+        }
+        else
+        {
+            story.AdvanceDialogue();
+        }
+        if (story.dialogueOpen)
+        {
+            const auto line = story.CurrentLine();
+            return std::string(line.speaker) + ": " + line.text + " [E]";
+        }
+        story.step = Step::Complete;
+        quest.active = true;
+        EnterQuestStep();
+        return "수업이 끝났습니다. 학교 앞 지수가 유나를 찾고 있습니다.";
+    }
+    if (quest.step <= QuestStep::Alley)
+    {
+        const std::string dialogue =
+            std::string(quest.Current().speaker) + ": " + quest.Current().dialogue;
+        quest.Emit(MainQuest::Event::Interact);
+        EnterQuestStep();
+        return dialogue;
+    }
+    return "";
 }
 
 WorldMonitor::Scene MonitorSnapshot()
@@ -1195,6 +1344,8 @@ void Update(float dt)
             Point next = {player.x + (horizontal + vertical) * speed,
                           player.y + (vertical - horizontal) * speed};
             const Point before = player;
+            facingDirection = {(horizontal + vertical) / (length * 1.41421356f),
+                               (vertical - horizontal) / (length * 1.41421356f)};
             if (Walkable({next.x, player.y}))
             {
                 player.x = next.x;
@@ -1219,7 +1370,7 @@ void Update(float dt)
         looked = looked || cx != 0 || cy != 0;
         if (quest.CanFight() && !EndingSchool() && keys['q'])
         {
-            combat.Attack(player, facing < 0, quest, jumpHeight);
+            combat.Attack(player, facingDirection, quest, jumpHeight, Walkable);
         }
         if (story.step == Step::ReachSchool && Distance(player, yuna) < 3)
         {
@@ -1237,7 +1388,8 @@ void Update(float dt)
     }
     const float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x + cameraOffset.x - camera.x) * follow;
-    camera.y += (player.y + cameraOffset.y - camera.y) * follow;
+    const float focusY = EndingSchool() && !quest.epilogueComplete ? player.y - 2.f : player.y;
+    camera.y += (focusY + cameraOffset.y - camera.y) * follow;
     Performance::Profiler::Get().Gauge("prologue.story_step", static_cast<int>(story.step));
 }
 
@@ -1251,28 +1403,39 @@ void Draw()
     }
     auto& actor = scene.Place("player", {player.x, player.y}, RenderLayer::World);
     PlaceModel("player/shadow", {}, ModelId::Shadow, RenderLayer::Shadow, &actor);
-    const auto model =
+    auto model =
         quest.CanFight() && !EndingSchool()
             ? static_cast<ModelId>(CharacterVisual::FrameIndex(combat.cast, moving, walkFrame))
             : static_cast<ModelId>(static_cast<int>(ModelId::StudentIdle) +
                                    (moving ? 1 + int(walkFrame) % 4 : 0));
+    const bool transforming = quest.active && quest.step == QuestStep::Transform;
+    const auto morph = Transformation::Sample(transformTime, facingDirection.x, facingDirection.y);
+    if (transforming)
+    {
+        model = morph.model;
+    }
     scene.Place(
-        "player/body", {0, 0, jumpHeight}, RenderLayer::World,
-        [model](const Actor&, const Transform& world)
+        "player/body", {0, 0, jumpHeight + (transforming ? morph.lift : 0)}, RenderLayer::World,
+        [model, transforming, morph](const Actor&, const Transform& world)
         {
             Point p = Project(world);
             const float direction =
                 quest.CanFight() && combat.cast > 0 ? (combat.castMirror ? -1.f : 1.f) : facing;
-            graphics->DrawModel(models.Get(model), p.x, p.y, Scale() * direction, Scale());
+            const Point look = transforming      ? Point{morph.x, morph.y}
+                               : combat.cast > 0 ? combat.castDirection
+                                                 : facingDirection;
+            graphics->DrawModel(models.GetFacing(model, look.x, look.y), p.x, p.y,
+                                Scale() * (models.loadedFromResource ? 1.f : direction), Scale());
         },
         &actor);
     if (quest.CanFight() && !EndingSchool())
     {
-        auto& wand =
-            scene.Place("player/wand",
-                        CharacterVisual::WandSocket(
-                            combat.cast > 0, combat.cast > 0 ? combat.castMirror : facing < 0, 40),
-                        RenderLayer::World, {}, &actor);
+        auto& wand = scene.Place(
+            "player/wand",
+            CharacterVisual::FacingSocket(
+                combat.cast > 0, combat.cast > 0 ? combat.castDirection.x : facingDirection.x,
+                combat.cast > 0 ? combat.castDirection.y : facingDirection.y, 40),
+            RenderLayer::World, {}, &actor);
         wand.local.z += jumpHeight;
         if (combat.cast > 0)
         {
@@ -1281,7 +1444,7 @@ void Draw()
     }
     if (quest.active && quest.step == QuestStep::Transform)
     {
-        PlaceGlow("player/transform", {0, 0, 40}, 100 + 70 * std::sin(transformTime * 3), &actor);
+        PlaceGlow("player/transform", {0, 0, 40}, morph.glow, &actor, RenderLayer::Shadow);
     }
     DrawQuestActors();
     scene.Place("sunset", {}, RenderLayer::UserInterface,

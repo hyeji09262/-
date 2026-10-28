@@ -1,0 +1,175 @@
+{
+  "changed_chairs": 13,
+  "chairs": [
+    {
+      "room": "Home",
+      "chair": "Chair_Placed",
+      "desk": "DiningTable_Placed",
+      "position_m": [
+        1.5,
+        -1.2000000476837158,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.001",
+      "desk": "StudyDesk_Placed",
+      "position_m": [
+        -2.4000000953674316,
+        -2.549999952316284,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.002",
+      "desk": "StudyDesk_Placed.001",
+      "position_m": [
+        -2.4000000953674316,
+        -0.75,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.003",
+      "desk": "StudyDesk_Placed.002",
+      "position_m": [
+        0.0,
+        -2.549999952316284,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.004",
+      "desk": "StudyDesk_Placed.003",
+      "position_m": [
+        0.0,
+        -0.75,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.005",
+      "desk": "StudyDesk_Placed.004",
+      "position_m": [
+        2.4000000953674316,
+        -2.549999952316284,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Classroom",
+      "chair": "Chair_Placed.006",
+      "desk": "StudyDesk_Placed.005",
+      "position_m": [
+        2.4000000953674316,
+        -0.75,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Staffroom",
+      "chair": "Chair_Placed.007",
+      "desk": "OfficeDesk_Placed.001",
+      "position_m": [
+        -2.0,
+        -2.299999952316284,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Staffroom",
+      "chair": "Chair_Placed.008",
+      "desk": "OfficeDesk_Placed.002",
+      "position_m": [
+        -2.0,
+        0.5,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Staffroom",
+      "chair": "Chair_Placed.009",
+      "desk": "OfficeDesk_Placed.003",
+      "position_m": [
+        1.0,
+        -2.299999952316284,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Staffroom",
+      "chair": "Chair_Placed.010",
+      "desk": "OfficeDesk_Placed.004",
+      "position_m": [
+        1.0,
+        0.5,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Infirmary",
+      "chair": "Chair_Placed.011",
+      "desk": "OfficeDesk_Placed.005",
+      "position_m": [
+        2.200000047683716,
+        -2.5,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    },
+    {
+      "room": "Guardroom",
+      "chair": "Chair_Placed.012",
+      "desk": "OfficeDesk_Placed.006",
+      "position_m": [
+        0.6000000238418579,
+        -0.5,
+        0.0
+      ],
+      "before_yaw_deg": 0.0,
+      "after_yaw_deg": 180.0,
+      "facing_dot": 1.0
+    }
+  ],
+  "method": "Local chair front is -Y; backrest is +Y. Face the nearest desk/table."
+}

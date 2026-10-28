@@ -6,6 +6,34 @@
 
 namespace RuntimeFiles
 {
+std::wstring ResourcePath(const wchar_t* relative)
+{
+    wchar_t executable[32768] = {};
+    const DWORD length = GetModuleFileNameW(nullptr, executable, 32768);
+    if (length == 0 || length >= 32768)
+    {
+        return {};
+    }
+    std::wstring directory(executable);
+    directory = directory.substr(0, directory.find_last_of(L"\\/"));
+    for (int depth = 0; depth < 6; ++depth)
+    {
+        const auto candidate = directory + L"\\resource\\" + relative;
+        const DWORD attributes = GetFileAttributesW(candidate.c_str());
+        if (attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY))
+        {
+            return candidate;
+        }
+        const auto separator = directory.find_last_of(L"\\/");
+        if (separator == std::wstring::npos)
+        {
+            break;
+        }
+        directory.resize(separator);
+    }
+    return {};
+}
+
 std::wstring Directory()
 {
     wchar_t base[32768] = {};

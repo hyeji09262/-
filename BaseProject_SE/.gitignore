@@ -6,6 +6,8 @@
 /SimpleGame/x64/
 /x64/Debug/Shaders/
 /x64/Release/Shaders/
+/x64/Debug/resource/
+/x64/Release/resource/
 /Debug/Shaders/
 /Release/Shaders/
 *.exe

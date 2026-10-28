@@ -1,0 +1,225 @@
+{
+  "npcs": [
+    {
+      "id": "Villager_01",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_02",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_03",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_04",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_05",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_06",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_07",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_08",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_09",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Villager_10",
+      "role": "villager",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "town"
+    },
+    {
+      "id": "Teacher_01",
+      "role": "teacher",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "school"
+    },
+    {
+      "id": "Teacher_02",
+      "role": "teacher",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "school"
+    },
+    {
+      "id": "Teacher_03",
+      "role": "teacher",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "school"
+    },
+    {
+      "id": "Teacher_04",
+      "role": "teacher",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "school"
+    },
+    {
+      "id": "Security_Guard",
+      "role": "security",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "school_gate"
+    },
+    {
+      "id": "School_Nurse",
+      "role": "nurse",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "infirmary"
+    },
+    {
+      "id": "Department_Staff_01",
+      "role": "department_staff",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "department_store"
+    },
+    {
+      "id": "Department_Staff_02",
+      "role": "department_staff",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "department_store"
+    },
+    {
+      "id": "Department_Staff_03",
+      "role": "department_staff",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "department_store"
+    },
+    {
+      "id": "Convenience_Clerk",
+      "role": "convenience_clerk",
+      "clips": 10,
+      "suggested_walk_speed_mps": 1.1,
+      "suggested_idle_seconds": [
+        2,
+        6
+      ],
+      "location_tag": "convenience_store"
+    }
+  ],
+  "note": "Visual/animation assets only; no wandering AI or routes are implemented."
+}

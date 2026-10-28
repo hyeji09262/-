@@ -12,5 +12,6 @@ void Update(float deltaTime);
 void Draw();
 void Pause();
 void Save();
+bool ConsumeWorldRequest();
 WorldMonitor::Scene MonitorSnapshot();
 } // namespace LevelOne

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <algorithm>
 
 namespace Rpg
 {
@@ -20,10 +21,29 @@ class Progress
   public:
     std::int64_t totalExperience = 0;
     int coins = 0;
-    int potions = 3;
-    int manaPotions = 3;
+    int potions = 5;
+    int manaPotions = 5;
     int crystals = 0;
     Stats stats;
+
+    void EnsureStorySupplies()
+    {
+        potions = (std::max)(5, potions);
+        manaPotions = (std::max)(5, manaPotions);
+    }
+
+    bool BuyPotion(bool magic)
+    {
+        const int price = magic ? 25 : 20;
+        int& quantity = magic ? manaPotions : potions;
+        if (coins < price || quantity >= 99)
+        {
+            return false;
+        }
+        coins -= price;
+        ++quantity;
+        return true;
+    }
 
     static int RequiredExperience(int level);
     std::int64_t LevelStart() const;

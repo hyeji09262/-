@@ -1,0 +1,531 @@
+{
+  "files": [
+    {
+      "category": "characters",
+      "file": "characters/Yuna.blend",
+      "bytes": 2353025
+    },
+    {
+      "category": "characters",
+      "file": "characters/Jisoo.blend",
+      "bytes": 2366453
+    },
+    {
+      "category": "characters",
+      "file": "characters/Male_Student_A.blend",
+      "bytes": 2312877
+    },
+    {
+      "category": "characters",
+      "file": "characters/Male_Student_B.blend",
+      "bytes": 2359073
+    },
+    {
+      "category": "characters",
+      "file": "characters/Lumi.blend",
+      "bytes": 2611830
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/Slime.blend",
+      "bytes": 2168982
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/GhostMage.blend",
+      "bytes": 2193452
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/PoisonMushroom.blend",
+      "bytes": 2385328
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/ShadowRabbit.blend",
+      "bytes": 2550717
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/Grimoire.blend",
+      "bytes": 3697580
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/ShadowEater_Boss.blend",
+      "bytes": 2351176
+    },
+    {
+      "category": "buildings",
+      "file": "buildings/School_Assembly.blend",
+      "bytes": 620639
+    },
+    {
+      "category": "buildings",
+      "file": "buildings/House_Assembly.blend",
+      "bytes": 498819
+    },
+    {
+      "category": "buildings",
+      "file": "buildings/CoastalShop_Assembly.blend",
+      "bytes": 405561
+    },
+    {
+      "category": "buildings",
+      "file": "buildings/Building_Details.blend",
+      "bytes": 402861
+    },
+    {
+      "category": "nature",
+      "file": "nature/Nature_Modules.blend",
+      "bytes": 434361
+    },
+    {
+      "category": "props",
+      "file": "props/Furniture_Props.blend",
+      "bytes": 373163
+    },
+    {
+      "category": "buildings",
+      "file": "buildings/Construction_Modules.blend",
+      "bytes": 368069
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/StarWand_T1.blend",
+      "bytes": 201391
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/StarWand_T2.blend",
+      "bytes": 260819
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/StarWand_T3.blend",
+      "bytes": 309581
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/StarWand_T4.blend",
+      "bytes": 375743
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/MoonStaff_T1.blend",
+      "bytes": 227582
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/MoonStaff_T2.blend",
+      "bytes": 272322
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/MoonStaff_T3.blend",
+      "bytes": 297836
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/MoonStaff_T4.blend",
+      "bytes": 363998
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/RibbonRapier_T1.blend",
+      "bytes": 135804
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/RibbonRapier_T2.blend",
+      "bytes": 276153
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/RibbonRapier_T3.blend",
+      "bytes": 324915
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/RibbonRapier_T4.blend",
+      "bytes": 391077
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/NightmareStaff_T1.blend",
+      "bytes": 196990
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/NightmareStaff_T2.blend",
+      "bytes": 271748
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/NightmareStaff_T3.blend",
+      "bytes": 320510
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/NightmareStaff_T4.blend",
+      "bytes": 386672
+    },
+    {
+      "category": "weapons",
+      "file": "weapons/StarWand_Base.blend",
+      "bytes": 215928
+    },
+    {
+      "category": "nature",
+      "file": "nature/Tree_A.blend",
+      "bytes": 193474
+    },
+    {
+      "category": "nature",
+      "file": "nature/Tree_B.blend",
+      "bytes": 214464
+    },
+    {
+      "category": "nature",
+      "file": "nature/Tree_C.blend",
+      "bytes": 182979
+    },
+    {
+      "category": "nature",
+      "file": "nature/Grass_A.blend",
+      "bytes": 212454
+    },
+    {
+      "category": "nature",
+      "file": "nature/Grass_B.blend",
+      "bytes": 235264
+    },
+    {
+      "category": "nature",
+      "file": "nature/Grass_C.blend",
+      "bytes": 207892
+    },
+    {
+      "category": "nature",
+      "file": "nature/Rock_A.blend",
+      "bytes": 144951
+    },
+    {
+      "category": "nature",
+      "file": "nature/Rock_B.blend",
+      "bytes": 165941
+    },
+    {
+      "category": "nature",
+      "file": "nature/Rock_C.blend",
+      "bytes": 166373
+    },
+    {
+      "category": "characters",
+      "file": "characters/Hero_Student.blend",
+      "bytes": 2458337
+    },
+    {
+      "category": "characters",
+      "file": "characters/Hero_Magical.blend",
+      "bytes": 2656058
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_01.blend",
+      "bytes": 2337603
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_02.blend",
+      "bytes": 2331507
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_03.blend",
+      "bytes": 2344305
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_04.blend",
+      "bytes": 2308559
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_05.blend",
+      "bytes": 2314655
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_06.blend",
+      "bytes": 2315261
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_07.blend",
+      "bytes": 2314355
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_08.blend",
+      "bytes": 2308559
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_09.blend",
+      "bytes": 2344305
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Villager_10.blend",
+      "bytes": 2285611
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Teacher_01.blend",
+      "bytes": 2464614
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Teacher_02.blend",
+      "bytes": 2458518
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Teacher_03.blend",
+      "bytes": 2441666
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Teacher_04.blend",
+      "bytes": 2412322
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Security_Guard.blend",
+      "bytes": 2420731
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/School_Nurse.blend",
+      "bytes": 2386459
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Department_Staff_01.blend",
+      "bytes": 2451509
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Department_Staff_02.blend",
+      "bytes": 2422465
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Department_Staff_03.blend",
+      "bytes": 2428561
+    },
+    {
+      "category": "characters",
+      "file": "characters/npcs/Convenience_Clerk.blend",
+      "bytes": 2386759
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/StudyDesk.blend",
+      "bytes": 206425
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/DiningTable.blend",
+      "bytes": 206425
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/OfficeDesk.blend",
+      "bytes": 234854
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Chair.blend",
+      "bytes": 211606
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Sofa.blend",
+      "bytes": 206425
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Bed.blend",
+      "bytes": 273645
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/MedicalBed.blend",
+      "bytes": 250397
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Bookshelf.blend",
+      "bytes": 387494
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/StoreShelf.blend",
+      "bytes": 387494
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/MedicineCabinet.blend",
+      "bytes": 250397
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Wardrobe.blend",
+      "bytes": 250397
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Locker.blend",
+      "bytes": 250397
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Counter.blend",
+      "bytes": 219311
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Computer.blend",
+      "bytes": 252921
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/CashRegister.blend",
+      "bytes": 247740
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Fridge.blend",
+      "bytes": 219311
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/GlassFridge.blend",
+      "bytes": 219311
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/KitchenUnit.blend",
+      "bytes": 237334
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Whiteboard.blend",
+      "bytes": 229673
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/DisplayTable.blend",
+      "bytes": 291712
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/ClothesRack.blend",
+      "bytes": 325322
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/MedicalCart.blend",
+      "bytes": 367169
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/PrivacyScreen.blend",
+      "bytes": 206425
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/furniture/Mirror.blend",
+      "bytes": 190882
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/Home.blend",
+      "bytes": 782508
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/Classroom.blend",
+      "bytes": 495842
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/Staffroom.blend",
+      "bytes": 678187
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/Infirmary.blend",
+      "bytes": 743568
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/Guardroom.blend",
+      "bytes": 551858
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/DepartmentStore.blend",
+      "bytes": 654367
+    },
+    {
+      "category": "interiors",
+      "file": "interiors/layouts/ConvenienceStore.blend",
+      "bytes": 629935
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/NightmareBat.blend",
+      "bytes": 2155300
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/CoralCrab.blend",
+      "bytes": 2185550
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/MimicChest.blend",
+      "bytes": 2175420
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/LanternWisp.blend",
+      "bytes": 2160454
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/ThornSeed.blend",
+      "bytes": 2206652
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/Gym_EnhancedShadow_Boss.blend",
+      "bytes": 4875108
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/BlackFlower_Boss.blend",
+      "bytes": 6269471
+    },
+    {
+      "category": "monsters",
+      "file": "monsters/BlackConductor_Boss.blend",
+      "bytes": 5914302
+    }
+  ],
+  "packages": 105,
+  "verified": true
+}

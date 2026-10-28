@@ -22,12 +22,37 @@ static int previousTime = 0;
 enum class GameScene
 {
     Prologue,
-    Tutorial,
     Hunting,
-    QuestTwo
+    QuestTwo,
+    World
 };
 
 static GameScene activeScene = GameScene::Prologue;
+
+void OpenWorld()
+{
+    Prologue::Pause();
+    QuestTwo::Pause();
+    LevelOne::Pause();
+    Tutorial::SetExploration(true, Prologue::TransformationUnlocked());
+    Rpg::Progress progress;
+    int fragments = 0;
+    Tutorial::regionsUnlocked = Prologue::QuestTwoStart(progress, fragments);
+    if (Tutorial::regionsUnlocked)
+    {
+        QuestTwo::Open(true, progress, fragments);
+        QuestTwo::Pause();
+    }
+    Tutorial::shopOpen = false;
+    Rpg::Progress inventory;
+    if (QuestTwo::ShopProgress(inventory))
+    {
+        Tutorial::potions = inventory.potions;
+        Tutorial::manaPotions = inventory.manaPotions;
+    }
+    activeScene = GameScene::World;
+    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 세 마을 탐험");
+}
 
 void OpenQuestTwo()
 {
@@ -51,7 +76,7 @@ void RenderScene()
     {
         Prologue::Draw();
     }
-    else if (activeScene == GameScene::Tutorial)
+    else if (activeScene == GameScene::World)
     {
         Tutorial::Draw();
     }
@@ -70,14 +95,14 @@ void RenderScene()
     }
     auto& profiler = Performance::Profiler::Get();
     profiler.Sample("cpu.frame_callback_ms", Performance::Milliseconds(start));
-    const char* sceneName = activeScene == GameScene::Prologue   ? "prologue"
-                            : activeScene == GameScene::Tutorial ? "tutorial"
-                            : activeScene == GameScene::Hunting  ? "level_one"
-                                                                 : "quest_two";
-    profiler.Count(activeScene == GameScene::Prologue   ? "frame.scene.prologue"
-                   : activeScene == GameScene::Tutorial ? "frame.scene.tutorial"
-                   : activeScene == GameScene::Hunting  ? "frame.scene.level_one"
-                                                        : "frame.scene.quest_two");
+    const char* sceneName = activeScene == GameScene::Prologue  ? "prologue"
+                            : activeScene == GameScene::World   ? "world"
+                            : activeScene == GameScene::Hunting ? "level_one"
+                                                                : "quest_two";
+    profiler.Count(activeScene == GameScene::Prologue  ? "frame.scene.prologue"
+                   : activeScene == GameScene::World   ? "frame.scene.world"
+                   : activeScene == GameScene::Hunting ? "frame.scene.level_one"
+                                                       : "frame.scene.quest_two");
     profiler.Frame(interval, sceneName, g_Renderer->LastFrameStats().frame);
 }
 
@@ -96,28 +121,96 @@ void Tick(int)
     if (activeScene == GameScene::Prologue)
     {
         Prologue::Update(dt);
+        if (Prologue::ConsumeWorldRequest())
+        {
+            OpenWorld();
+            Tutorial::LeaveBuilding();
+            const auto& home = CoastalWorld::Buildings()[0];
+            Tutorial::player = {CoastalWorld::DoorX(home), CoastalWorld::DoorY(home)};
+            Tutorial::Say("학교에 가는 길입니다. 별빛 학교의 노란 출입구에서 E를 눌러 들어가세요.");
+        }
         if (Prologue::ConsumeQuestTwoRequest())
         {
             OpenQuestTwo();
         }
     }
-    else if (activeScene == GameScene::Tutorial)
+    else if (activeScene == GameScene::World)
     {
+        Tutorial::storyMagicUnlocked = Prologue::TransformationUnlocked();
         Tutorial::Update(dt);
+        const int request = Tutorial::sceneRequest;
+        Tutorial::sceneRequest = 0;
+        if (request != 0)
+        {
+            Tutorial::paused = true;
+            std::fill(Tutorial::keys, Tutorial::keys + 256, false);
+            if (request == 1)
+            {
+                float x, y;
+                int person;
+                std::string objective;
+                Rpg::Progress progress;
+                int fragments = 0;
+                if (Prologue::WorldObjective(x, y, person, objective))
+                {
+                    Tutorial::LeaveBuilding();
+                    OpenWorld();
+                    Tutorial::Say(objective);
+                }
+                else if (Tutorial::interior > 0 && Prologue::QuestTwoStart(progress, fragments))
+                {
+                    OpenQuestTwo();
+                }
+                else
+                {
+                    Prologue::ResumeFromWorld();
+                    activeScene = GameScene::Prologue;
+                    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 메인 스토리");
+                }
+            }
+            else if (request == 3)
+            {
+                const int room = Tutorial::interiorRoom;
+                const auto position = Tutorial::player;
+                OpenQuestTwo();
+                QuestTwo::EnterFromSchool(room, position.x, position.y);
+            }
+            else
+            {
+                OpenQuestTwo();
+            }
+        }
     }
     else if (activeScene == GameScene::Hunting)
     {
         LevelOne::Update(dt);
+        if (LevelOne::ConsumeWorldRequest())
+        {
+            OpenWorld();
+            Tutorial::LeaveBuilding();
+            Tutorial::Say("마을로 돌아왔습니다.");
+        }
     }
     else if (activeScene == GameScene::QuestTwo)
     {
         QuestTwo::Update(dt);
+        if (QuestTwo::ConsumeWorldRequest())
+        {
+            OpenWorld();
+            Tutorial::LeaveBuilding();
+            const auto& school = CoastalWorld::Buildings()[1];
+            Tutorial::player = {CoastalWorld::DoorX(school), CoastalWorld::DoorY(school) + 1};
+            Tutorial::Say(
+                QuestTwo::Finished()
+                    ? "학교 사건 해결! 노란 목표를 따라 편의점에 가서 직원에게 E로 물약을 구입하세요."
+                    : "학교에서 나왔습니다. 노란 목표를 따라 조사를 이어갈 수 있습니다.");
+        }
     }
 
     if (WorldMonitor::Due())
     {
         Performance::Scope monitorScope("cpu.monitor.collect_ms");
-        const char* active = activeScene == GameScene::Tutorial   ? "tutorial"
+        const char* active = activeScene == GameScene::World      ? "world"
                              : activeScene == GameScene::Hunting  ? "hunting"
                              : activeScene == GameScene::Prologue ? "story"
                                                                   : "quest_two";
@@ -147,7 +240,7 @@ void KeyDown(unsigned char k, int, int)
     {
         Prologue::Key(k, true);
     }
-    else if (activeScene == GameScene::Tutorial)
+    else if (activeScene == GameScene::World)
     {
         Tutorial::Key(k, true);
     }
@@ -161,13 +254,21 @@ void KeyDown(unsigned char k, int, int)
     }
 }
 
+void Mouse(int button, int state, int x, int y)
+{
+    if (activeScene == GameScene::QuestTwo && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+    {
+        QuestTwo::Mouse(x, y);
+    }
+}
+
 void KeyUp(unsigned char k, int, int)
 {
     if (activeScene == GameScene::Prologue)
     {
         Prologue::Key(k, false);
     }
-    else if (activeScene == GameScene::Tutorial)
+    else if (activeScene == GameScene::World)
     {
         Tutorial::Key(k, false);
     }
@@ -183,6 +284,23 @@ void KeyUp(unsigned char k, int, int)
 
 void SpecialKey(int key, int, int)
 {
+    if (key == GLUT_KEY_F6 || key == GLUT_KEY_F1)
+    {
+        OpenWorld();
+        return;
+    }
+    if (key == GLUT_KEY_F3)
+    {
+        float x, y;
+        int person;
+        std::string objective;
+        if (Prologue::WorldObjective(x, y, person, objective))
+        {
+            OpenWorld();
+            Tutorial::Say(objective);
+            return;
+        }
+    }
     if (key == GLUT_KEY_F5)
     {
         Performance::Profiler::Get().Toggle();
@@ -201,20 +319,18 @@ void SpecialKey(int key, int, int)
     Tutorial::paused = true;
     Prologue::Pause();
     QuestTwo::Pause();
-    activeScene = key == GLUT_KEY_F1   ? GameScene::Tutorial
-                  : key == GLUT_KEY_F2 ? GameScene::Hunting
+    activeScene = key == GLUT_KEY_F2   ? GameScene::Hunting
                   : key == GLUT_KEY_F3 ? GameScene::Prologue
                                        : GameScene::QuestTwo;
     if (activeScene == GameScene::QuestTwo)
     {
         OpenQuestTwo();
     }
-    SetWindowTextW(GetActiveWindow(),
-                   activeScene == GameScene::Prologue   ? L"마법소녀 - 프롤로그: 평범한 아침"
-                   : activeScene == GameScene::Tutorial ? L"별빛 학교 - 마법소녀의 첫날"
-                   : activeScene == GameScene::Hunting
-                       ? L"마법소녀 - 방과 후 첫 임무"
-                       : L"마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
+    SetWindowTextW(GetActiveWindow(), activeScene == GameScene::Prologue
+                                          ? L"마법소녀 - 프롤로그: 평범한 아침"
+                                      : activeScene == GameScene::Hunting
+                                          ? L"마법소녀 - 방과 후 첫 임무"
+                                          : L"마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
 }
 
 void SpecialKeyUp(int key, int, int)
@@ -280,10 +396,18 @@ int main(int argc, char** argv)
         return 1;
     }
     Tutorial::renderer = g_Renderer;
+    Tutorial::VisualModels();
     Tutorial::Reset();
     LevelOne::Initialize(g_Renderer);
     Prologue::Initialize(g_Renderer);
     QuestTwo::Initialize(g_Renderer);
+    float objectiveX, objectiveY;
+    int objectivePerson;
+    std::string objectiveText;
+    if (Prologue::WorldObjective(objectiveX, objectiveY, objectivePerson, objectiveText))
+    {
+        OpenWorld();
+    }
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -291,6 +415,7 @@ int main(int argc, char** argv)
     glutDisplayFunc(RenderScene);
     glutReshapeFunc(Resize);
     glutKeyboardFunc(KeyDown);
+    glutMouseFunc(Mouse);
     glutKeyboardUpFunc(KeyUp);
     glutSpecialFunc(SpecialKey);
     glutSpecialUpFunc(SpecialKeyUp);

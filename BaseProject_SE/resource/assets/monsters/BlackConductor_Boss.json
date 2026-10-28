@@ -1,0 +1,168 @@
+{
+  "asset": "BlackConductor_Boss",
+  "quest": "MQ_005_LAST_TRAIN",
+  "fps": 30,
+  "clips": [
+    {
+      "clip": "Idle",
+      "frames": [
+        1,
+        61
+      ]
+    },
+    {
+      "clip": "Walk",
+      "frames": [
+        1,
+        31
+      ]
+    },
+    {
+      "clip": "Run",
+      "frames": [
+        1,
+        21
+      ]
+    },
+    {
+      "clip": "Jump_Start",
+      "frames": [
+        1,
+        13
+      ]
+    },
+    {
+      "clip": "Jump_Air",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "clip": "Jump_Land",
+      "frames": [
+        1,
+        13
+      ]
+    },
+    {
+      "clip": "Turn_Left_90",
+      "frames": [
+        1,
+        19
+      ]
+    },
+    {
+      "clip": "Turn_Right_90",
+      "frames": [
+        1,
+        19
+      ]
+    },
+    {
+      "clip": "Turn_Neutral",
+      "frames": [
+        1,
+        3
+      ]
+    },
+    {
+      "clip": "Attack",
+      "frames": [
+        1,
+        37
+      ]
+    },
+    {
+      "clip": "Punch",
+      "frames": [
+        1,
+        37
+      ]
+    },
+    {
+      "clip": "Ground_Slam",
+      "frames": [
+        1,
+        49
+      ]
+    },
+    {
+      "clip": "Rush_Charge",
+      "frames": [
+        1,
+        31
+      ]
+    },
+    {
+      "clip": "Rush",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "clip": "Rush_Recovery",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "clip": "Hit",
+      "frames": [
+        1,
+        19
+      ]
+    },
+    {
+      "clip": "Death",
+      "frames": [
+        1,
+        61
+      ]
+    },
+    {
+      "clip": "Electric_Attack",
+      "frames": [
+        1,
+        43
+      ]
+    },
+    {
+      "clip": "Teleport_Out",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "clip": "Teleport_In",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "clip": "Monster_Summon",
+      "frames": [
+        1,
+        61
+      ]
+    }
+  ],
+  "special_attacks": [
+    "Electric_Attack",
+    "Teleport_Out",
+    "Teleport_In",
+    "Monster_Summon"
+  ],
+  "validated": "weights and sampled bone matrices; rendered rest and attack poses",
+  "in_place": [
+    "Walk",
+    "Run",
+    "Rush"
+  ],
+  "suggested_blend_seconds": 0.2,
+  "gameplay_effects_included": false
+}

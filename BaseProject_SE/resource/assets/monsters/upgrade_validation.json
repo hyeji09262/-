@@ -1,0 +1,283 @@
+{
+  "changes": [
+    {
+      "id": "Slime",
+      "upgrade": "Rounded gel silhouette, crest bubbles, eyes and cheek patches"
+    },
+    {
+      "id": "GhostMage",
+      "upgrade": "Scalloped floating cloak, hood cavity, hat, crystal staff"
+    },
+    {
+      "id": "PoisonMushroom",
+      "upgrade": "Domed spotted cap, underside gills, toxin sacs"
+    },
+    {
+      "id": "ShadowRabbit",
+      "upgrade": "Luminous eyes, ear insets, paws, forehead marks and tail"
+    },
+    {
+      "id": "Grimoire",
+      "upgrade": "Open floating spellbook with hinged covers, curved pages, page flip, rune seal and charm",
+      "extra_clips": [
+        "Book_Open",
+        "Book_Close"
+      ]
+    },
+    {
+      "id": "ShadowEater_Boss",
+      "upgrade": "Broad armor silhouette, thorn mantle, luminous core and crown"
+    }
+  ],
+  "skin_weights_valid": true,
+  "sampled_clips": [
+    {
+      "monster": "Slime",
+      "clip": "Idle"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Walk"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Run"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Attack"
+    },
+    {
+      "monster": "Slime",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Idle"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Walk"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Run"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Attack"
+    },
+    {
+      "monster": "GhostMage",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Idle"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Walk"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Run"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Attack"
+    },
+    {
+      "monster": "PoisonMushroom",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Idle"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Walk"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Run"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Attack"
+    },
+    {
+      "monster": "ShadowRabbit",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Idle"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Walk"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Run"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Attack"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Book_Open"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Book_Close"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Idle"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Walk"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Run"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Attack"
+    },
+    {
+      "monster": "ShadowEater_Boss",
+      "clip": "Turn_Neutral"
+    }
+  ]
+}

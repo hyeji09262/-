@@ -1,0 +1,253 @@
+{
+  "sampled_clips": [
+    {
+      "monster": "Grimoire",
+      "clip": "Idle"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Walk"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Run"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Attack"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Book_Open"
+    },
+    {
+      "monster": "Grimoire",
+      "clip": "Book_Close"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Idle"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Walk"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Run"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Attack"
+    },
+    {
+      "monster": "NightmareBat",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Idle"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Walk"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Run"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Attack"
+    },
+    {
+      "monster": "CoralCrab",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Idle"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Walk"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Run"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Attack"
+    },
+    {
+      "monster": "MimicChest",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Idle"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Walk"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Run"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Attack"
+    },
+    {
+      "monster": "LanternWisp",
+      "clip": "Turn_Neutral"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Idle"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Walk"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Run"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Jump_Start"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Jump_Air"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Jump_Land"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Turn_Left_90"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Turn_Right_90"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Attack"
+    },
+    {
+      "monster": "ThornSeed",
+      "clip": "Turn_Neutral"
+    }
+  ],
+  "weights_checked": true
+}

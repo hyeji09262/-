@@ -1,0 +1,4770 @@
+{
+  "source": "assets",
+  "source_sha256": {
+    "characters/Hero_Magical.blend": "60e5193498fe0ba91f1d1d098c28002270f7b935dfe7bc9494e3083a7b9ea255",
+    "characters/Hero_Student.blend": "af86a82c4b00a46a881f2282af6743f96cff09272e6466d243ce1091e8f3e53f",
+    "monsters/Slime.blend": "f513c328afa1d4d0a20246822c7c95ee6c542e734a5a70a2128dd4ad0ac761ef",
+    "monsters/GhostMage.blend": "626980e8e0ea40c97f1549bbf4d59e03869f54dd5509928943f65376842bd58a",
+    "characters/Yuna.blend": "21f5afcac70c17eab51f33224dcfc204e425755665ad3b35c7546ba983b3ba9f",
+    "characters/Jisoo.blend": "ea19069e9ee0504ed28412c46332a1b9e7a366a8ebf4c54c8b826fb285fecf01",
+    "characters/Lumi.blend": "3c022ffadf232eef0530ddc0627b95fad320349afc9329af16666a441c4132ec",
+    "monsters/ShadowEater_Boss.blend": "30c6399fcf589777f30eb88e9fa5222bca034e2cd327f155542ce908067c1ee2",
+    "monsters/ShadowRabbit.blend": "aa34ffce6f3f0e1efe2bdad36962d1ff03aaa8ab7de8d264a5cdb086692c28a7",
+    "monsters/PoisonMushroom.blend": "492d168c3a5b9c6708155aa176723d334c08ad3bc94ffabfedbfdec306b67432",
+    "monsters/Grimoire.blend": "ce48ea9923f7ac908f78211e44435548d914af2b7643783e0636d379f6750295",
+    "characters/Male_Student_A.blend": "e05d17d2a2a6e876af77d3e837885ff2fd1b312a0e587b457741c3ebfc141921",
+    "characters/Male_Student_B.blend": "cd4ff2abdfae0242234088a983720bc8cb1e0664bfdec4e823fe83e8d711563b",
+    "buildings/Construction_Modules.blend": "a8071c67f89ce6c774ba6e7e33eadea6e8979a209a24c8d3a46439aa3ef72fc8",
+    "nature/Nature_Modules.blend": "fd1224a4a21d93936ca00125ad08238f7793a5ef4966fdb47f564d24147ddb40",
+    "props/Furniture_Props.blend": "573ceea2d823c3fbb22d7d5bd233fbbcb32bd2579fbc97d7ca96f1f704a9f104",
+    "buildings/Building_Details.blend": "e04c09bdd37669e06a09753d98bccc680daf69b4ed8adc7db428ceb66217d2d6",
+    "nature/Grass_A.blend": "c8a0356429c97d572c84e8510130e2db3d0768d6e41ac6f87cfa8160767354b5",
+    "weapons/NightmareStaff_T1.blend": "4d3f9431468443cba232b9be65a1a4c7bf04b75bf2a2c4028a059c6917f7a9db",
+    "weapons/StarWand_Base.blend": "ad456a91cd6a938401d9be2555346da1dcc380c5dc3c02dce4f43a4ba2970cc6",
+    "nature/Tree_A.blend": "63b0ecf57bb8dd1cdce3bcb6e602645459310ab8a1456398db4d413b9c4e5624",
+    "nature/Tree_B.blend": "e9d9e91a8ad13874c892e838b503ee9e46f261fed120f8648853cb391e250c2d",
+    "nature/Tree_C.blend": "341e317964e38f7ad2f932cff45e89d796e3e564489f843cb584b6f05e468d26",
+    "nature/Rock_A.blend": "79497b756b1fb6cef97933f0cb6d8139520be54de3d399a4b9a7122c8d97d36b",
+    "nature/Rock_B.blend": "8a0597fa1dd44eaaacb455dae218dda35cf20201e2ea63cc2954a69619d19812",
+    "nature/Rock_C.blend": "c27fdb678a9d4fb89db8d404bf877b2f159e010c1d0e4e7c3d6fbad528a81bb2",
+    "nature/Grass_B.blend": "488631cd9a52d25e937a7a57702473a36970b3bd5701ab0d65adb7f354a096e7",
+    "nature/Grass_C.blend": "8ebae656d76e0a270de4fa2549ff1c2b4ed7faced2a3fc7348a8851cbc08e8b4",
+    "buildings/House_Assembly.blend": "26288a8d0444bd571d6cf8d2946d9a19abe2c3ac471cfbb036c32547367b21d6",
+    "buildings/CoastalShop_Assembly.blend": "e6567f94f6e3c68f92962e9fd49f0b22a66036d64b1a33fb0230defe0a79a16e",
+    "buildings/School_Assembly.blend": "5af70691a5f3dbd0e04fef1e871f23d9124ed6d81925000da1f719e9ac22b2ee",
+    "characters/npcs/Villager_01.blend": "d526533fb351e765b924ebf47336beec8f870013137bcaf6e5847374c57dd58c",
+    "characters/npcs/Villager_02.blend": "ab4e1c180b1658b616ec386f00dab1c8663dfabb578dc9e6e728b0aba9cbc9d7",
+    "characters/npcs/Villager_03.blend": "31db1af6b8a055b12e7ee09ee92ee6682671e408b3cbecf0dfe24664418d23fb",
+    "characters/npcs/Villager_04.blend": "af9e6ddb2636cd41af145ba9522037607ae4f7ebd47ac8e460ddf8f9c3d047d8",
+    "characters/npcs/Villager_05.blend": "e1c30ab8f24507afb94cb603062c2960e6fb9bd24092128e3801aa1bca573e6b",
+    "characters/npcs/Villager_06.blend": "a49ae328ab6f496a7de3247b38eaf9e326186cf1ece9a5edb35351f4a19b486b",
+    "characters/npcs/Villager_07.blend": "12c87b70a234fe1fdec41b01010604ce6a359a5a3226dc2bde77654275a895b7",
+    "characters/npcs/Villager_08.blend": "09e5797fea89b44d87cb67777d560a6c9ee0ee03697dd0160226badc47c37f14",
+    "characters/npcs/Villager_09.blend": "17eb2dbaeda3d6c4a5ff9d421e5a7d95fb21d6d367cc51a6c4b521dbf0423009",
+    "characters/npcs/Villager_10.blend": "e3ec987eebf6ed333706481249e3823727b95083c47724b89fab4be96a9979c3",
+    "characters/npcs/Teacher_01.blend": "021e315e915f4e32b98563165e4a1a6684200f4eeb0d705768fcfc74e2a0b5de",
+    "characters/npcs/Teacher_02.blend": "586a82769c6d453eb340eac57bfa0bae01ea1e9d9dab258e42886424d218facb",
+    "characters/npcs/Teacher_03.blend": "cc841b52b15caf3ab76ab20db9061d2a7d1895d705af7830b736b1fe1939ff7e",
+    "characters/npcs/Teacher_04.blend": "539e2741e974b327083a94429223c36d4fd21b44bb1d52589fbb9962463e87b9",
+    "characters/npcs/Security_Guard.blend": "0cde79bb26035d87ca97ec0f59dc6a995b64b3b762c593c3a182dac373f0aeeb",
+    "characters/npcs/School_Nurse.blend": "e605024b5445c5e1c7b1d36f124199d85890b89a9b725792467933fcaaec73a7",
+    "characters/npcs/Department_Staff_01.blend": "b74d7e4f7378498b3618921e2f282ad49eb61388b50b5261636f74fa45ffc785",
+    "characters/npcs/Department_Staff_02.blend": "94c38e75b115a21d8db8e71abfca60446ab171e52e0ab945c3ac04d6ba81a156",
+    "characters/npcs/Department_Staff_03.blend": "390c474a051b881b5f442d4806f06d018659e2e8fcb6fc5537fefc339ea12c49",
+    "characters/npcs/Convenience_Clerk.blend": "c5c04d1810424c3a4c398afa398a0d4fb9b7b5c1986585fb1ccd70edf4962258",
+    "interiors/furniture/Bed.blend": "4043a85dd4087e6a4a6e74ef712bcfaf72be6c0e7c11d2d4a487729fc0d58835",
+    "interiors/furniture/Bookshelf.blend": "d916ff3b7a80f4641c51e3820db7a857a7f85d096cfebb0a69b01f8556ad4252",
+    "interiors/furniture/CashRegister.blend": "34c708330cb2b5f980941b3045bbe2339faee43a87d318782b333e08067c77c2",
+    "interiors/furniture/Chair.blend": "5678c31f2eadc0a0873c46032406d8b99811ad8daa2ba4c319df1377bf4346ee",
+    "interiors/furniture/ClothesRack.blend": "5b20ac342bafbfe681fc1faefa0eeb28bd52ce15381bebcf1a85ed39a121f0bd",
+    "interiors/furniture/Computer.blend": "72137b706bdcc51b9ace809765fc8225fd330f0be2ba55be2b5a563090d165c7",
+    "interiors/furniture/Counter.blend": "edc8c4b5013c8272e10892ea74da718588b1eba5e9760a04f8209d4b55c760ce",
+    "interiors/furniture/DiningTable.blend": "dd2141dee0e385ecd7e4f10a7e0d03da0e980a5e2799ea6a6949c0f04b260b24",
+    "interiors/furniture/DisplayTable.blend": "5b085fa9d717adc824c857228ce55c66dbd5f4a603eb1e6d1de801b456a728b3",
+    "interiors/furniture/Fridge.blend": "7355865738a76e4ea80bff8a9a011accd6091bfa66fc75982f35e3c2e70b1c95",
+    "interiors/furniture/GlassFridge.blend": "05b8bdf194e83a96cc54235791893082b056b1cb0eee4039ca1a4169fd22b310",
+    "interiors/furniture/KitchenUnit.blend": "ce555824bd7309e0e224fa6276f77058fe42935cea8cdca6e041e8130f1f8a7f",
+    "interiors/furniture/Locker.blend": "db9e349bf2e5999b92bbb3e8c90a40cea387cc1c36a3e997857ffcee12cb7bf5",
+    "interiors/furniture/MedicalBed.blend": "78bb644690a991c58fce11a31a4ec84cff5a91f311ffe6ab0a61ee8b178d07e5",
+    "interiors/furniture/MedicalCart.blend": "1edf032c3858158e6781a01dcb511b0460c3f119a520a83d38dab201efed3638",
+    "interiors/furniture/MedicineCabinet.blend": "a1aa9385c499ae5da09f018d1aa1e40183b3acd5a567a4ac4f48f09dee6b62c9",
+    "interiors/furniture/Mirror.blend": "3e2b59888cc7398a3a6ffc1241c6874a9fff2131c6e650633582911b0fa35baa",
+    "interiors/furniture/OfficeDesk.blend": "d89d05ef1090ff52cfa09b70fc428e5369711ebe1fc21d470d0e46beed79e9f0",
+    "interiors/furniture/PrivacyScreen.blend": "a8a39cdc099f568bfb2de0ed5cdcfd5cd67f533f0e5755c4eb807fe6583f3a3d",
+    "interiors/furniture/Sofa.blend": "6216161cfb89704c6679a2e8b434b3ce999b97a23f772fa0784030233411bfb5",
+    "interiors/furniture/StoreShelf.blend": "50ab119bce699d99910c38b3fe54f781c5e205320d9503f3a759517afdbfe9de",
+    "interiors/furniture/StudyDesk.blend": "70c6f0c1379a771c39059b618046f906cbaa71481348ff0f7531c00570f244c4",
+    "interiors/furniture/Wardrobe.blend": "c4e64f9aac2e2c4451dc9fabab29264860887ff053d54b73c8cb23668a7ea78f",
+    "interiors/furniture/Whiteboard.blend": "f0e96a08346cbdb1a825699cde2c1c067356f62f3fa84c1dc8dc1d5e24f53b12",
+    "monsters/NightmareBat.blend": "6aed521e1390cba84e7c2d6b15fb05fdf2e3b6f56030875f3a0300de2ab5f0bf",
+    "monsters/CoralCrab.blend": "720c818b37ec299ab5b487b16e615bb1476964b5d54ef7f66bb9052fac377ad7",
+    "monsters/MimicChest.blend": "66aff285036cc34461f3c6bad094051d2df4a69eb5ac31e2e80c8c46ecbb884b",
+    "monsters/LanternWisp.blend": "fdd232935d1fa8b820c60278c054e505f2d1b25d2a3de691341b33b39f07fbc8",
+    "monsters/ThornSeed.blend": "0a7e16cc54121c2d2aadf78616fc96948ac44589565f2a18b88384611f6b2257",
+    "monsters/Gym_EnhancedShadow_Boss.blend": "60a9bd8ec2e24a1308910c510ef65c9c87cf1d953c02aa7149b046c0393d6858"
+  },
+  "format": "MGSRES03",
+  "model_count": 1435,
+  "facing_poses": 11,
+  "facing_directions": 8,
+  "wand_sockets_pixels": [
+    34.85263013839722,
+    -59.3554573059082,
+    36.774179458618164,
+    -56.87139177322388,
+    38.17635774612427,
+    -44.23065185546875,
+    40.16350269317627,
+    -40.937068462371826,
+    19.136900782585144,
+    -32.36069267988205,
+    20.025598526000977,
+    -28.471502780914307,
+    -11.112690925598145,
+    -30.698825120925903,
+    -11.84302806854248,
+    -26.776837825775146,
+    -34.852633476257324,
+    -40.21855902671814,
+    -36.774184465408325,
+    -36.84579575061798,
+    -38.17637026309967,
+    -55.34334820508957,
+    -40.1635160446167,
+    -52.780099868774414,
+    -19.136906623840332,
+    -67.2133207321167,
+    -20.02560603618622,
+    -65.24568182229996,
+    11.112705111503601,
+    -68.87518745660782,
+    11.843043088912964,
+    -66.94034469127655
+  ],
+  "building_layout": [
+    [
+      2.1550000858306886,
+      1.7874996376037597,
+      0,
+      2.851499528884888,
+      226.06239128112793,
+      48.37500214576721
+    ],
+    [
+      2.6925001096725465,
+      1.952499599456787,
+      0,
+      3.1284994792938234,
+      250.5999927520752,
+      61.81250274181366
+    ],
+    [
+      3.4450001430511477,
+      2.117499561309814,
+      0,
+      3.4054994297027585,
+      227.6479949951172,
+      80.62500357627869
+    ],
+    [
+      2.799999828338623,
+      1.704999656677246,
+      0,
+      2.71299955368042,
+      155.64799880981445,
+      64.49999570846558
+    ],
+    [
+      3.8699998569488527,
+      1.8699996185302734,
+      0,
+      2.9899995040893557,
+      296.9599895477295,
+      91.24999642372131
+    ],
+    [
+      2.3699998569488527,
+      1.8699996185302734,
+      0,
+      2.9899995040893557,
+      189.76000213623047,
+      53.74999642372131
+    ],
+    [
+      2.1550000858306886,
+      1.7874996376037597,
+      0,
+      2.851499528884888,
+      226.06239128112793,
+      48.37500214576721
+    ],
+    [
+      2.3699998569488527,
+      1.8699996185302734,
+      0,
+      2.9899995040893557,
+      189.76000213623047,
+      53.74999642372131
+    ],
+    [
+      3.5,
+      2.5,
+      0,
+      3.2,
+      173.55562591552734,
+      70
+    ]
+  ],
+  "models": {
+    "PlayerIdle": {
+      "triangles": 2745
+    },
+    "PlayerWalk0": {
+      "triangles": 2745
+    },
+    "PlayerWalk1": {
+      "triangles": 2745
+    },
+    "PlayerWalk2": {
+      "triangles": 2745
+    },
+    "PlayerWalk3": {
+      "triangles": 2746
+    },
+    "PlayerCast": {
+      "triangles": 2745
+    },
+    "Slime0": {
+      "triangles": 688
+    },
+    "Slime1": {
+      "triangles": 683
+    },
+    "Slime2": {
+      "triangles": 688
+    },
+    "Slime3": {
+      "triangles": 690
+    },
+    "Shade0": {
+      "triangles": 672
+    },
+    "Shade1": {
+      "triangles": 673
+    },
+    "Shade2": {
+      "triangles": 674
+    },
+    "Shade3": {
+      "triangles": 670
+    },
+    "Tree": {
+      "triangles": 218
+    },
+    "Rock": {
+      "triangles": 34
+    },
+    "Shelter": {
+      "triangles": 432
+    },
+    "Campfire": {
+      "triangles": 99
+    },
+    "Coin": {
+      "triangles": 20
+    },
+    "Potion": {
+      "triangles": 22
+    },
+    "Crystal": {
+      "triangles": 22
+    },
+    "Shadow": {
+      "triangles": 20
+    },
+    "StudentIdle": {
+      "triangles": 1920
+    },
+    "StudentWalk0": {
+      "triangles": 1920
+    },
+    "StudentWalk1": {
+      "triangles": 1923
+    },
+    "StudentWalk2": {
+      "triangles": 1919
+    },
+    "StudentWalk3": {
+      "triangles": 1921
+    },
+    "Yuna": {
+      "triangles": 1379
+    },
+    "Jisoo": {
+      "triangles": 1470
+    },
+    "SchoolGuard": {
+      "triangles": 1145
+    },
+    "StoreClerk": {
+      "triangles": 1257
+    },
+    "Lumi": {
+      "triangles": 657
+    },
+    "BlackFragment": {
+      "triangles": 22
+    },
+    "YunaBag": {
+      "triangles": 87
+    },
+    "ShadowEater": {
+      "triangles": 873
+    },
+    "YunaFallen": {
+      "triangles": 1379
+    },
+    "VillageHouseLilac": {
+      "triangles": 240
+    },
+    "VillageHousePink": {
+      "triangles": 258
+    },
+    "VillageHouseBlue": {
+      "triangles": 264
+    },
+    "VillageHouseYellow": {
+      "triangles": 156
+    },
+    "VillageSchool": {
+      "triangles": 432
+    },
+    "VillageStore": {
+      "triangles": 132
+    },
+    "VillageAcademy": {
+      "triangles": 240
+    },
+    "VillageClinic": {
+      "triangles": 132
+    },
+    "VillageArtsAcademy": {
+      "triangles": 722
+    },
+    "FloorWood": {
+      "triangles": 11
+    },
+    "FloorStone": {
+      "triangles": 11
+    },
+    "TerrainGrass": {
+      "triangles": 11
+    },
+    "TerrainSand": {
+      "triangles": 11
+    },
+    "TerrainWater": {
+      "triangles": 11
+    },
+    "Wall": {
+      "triangles": 12
+    },
+    "Window": {
+      "triangles": 12
+    },
+    "Door": {
+      "triangles": 13
+    },
+    "Desk": {
+      "triangles": 30
+    },
+    "Chair": {
+      "triangles": 34
+    },
+    "Bed": {
+      "triangles": 30
+    },
+    "Cabinet": {
+      "triangles": 24
+    },
+    "Bench": {
+      "triangles": 24
+    },
+    "StreetLamp": {
+      "triangles": 32
+    },
+    "Fence": {
+      "triangles": 66
+    },
+    "Planter": {
+      "triangles": 77
+    },
+    "Book": {
+      "triangles": 1252
+    },
+    "Blackboard": {
+      "triangles": 13
+    },
+    "Bookshelf": {
+      "triangles": 15048
+    },
+    "ShadowRabbit": {
+      "triangles": 718
+    },
+    "PoisonMushroom": {
+      "triangles": 1308
+    },
+    "Grimoire": {
+      "triangles": 1252
+    },
+    "TreeB": {
+      "triangles": 298
+    },
+    "TreeC": {
+      "triangles": 178
+    },
+    "RockB": {
+      "triangles": 118
+    },
+    "RockC": {
+      "triangles": 118
+    },
+    "GrassA": {
+      "triangles": 14
+    },
+    "GrassB": {
+      "triangles": 24
+    },
+    "GrassC": {
+      "triangles": 12
+    },
+    "Television": {
+      "triangles": 30
+    },
+    "YunaFacing0": {
+      "triangles": 1379
+    },
+    "YunaFacing1": {
+      "triangles": 1375
+    },
+    "YunaFacing2": {
+      "triangles": 1384
+    },
+    "YunaFacing3": {
+      "triangles": 1373
+    },
+    "YunaFacing4": {
+      "triangles": 1379
+    },
+    "YunaFacing5": {
+      "triangles": 1371
+    },
+    "YunaFacing6": {
+      "triangles": 1380
+    },
+    "YunaFacing7": {
+      "triangles": 1380
+    },
+    "JisooFacing0": {
+      "triangles": 1470
+    },
+    "JisooFacing1": {
+      "triangles": 1469
+    },
+    "JisooFacing2": {
+      "triangles": 1479
+    },
+    "JisooFacing3": {
+      "triangles": 1467
+    },
+    "JisooFacing4": {
+      "triangles": 1473
+    },
+    "JisooFacing5": {
+      "triangles": 1466
+    },
+    "JisooFacing6": {
+      "triangles": 1469
+    },
+    "JisooFacing7": {
+      "triangles": 1474
+    },
+    "SchoolGuardFacing0": {
+      "triangles": 1145
+    },
+    "SchoolGuardFacing1": {
+      "triangles": 1139
+    },
+    "SchoolGuardFacing2": {
+      "triangles": 1148
+    },
+    "SchoolGuardFacing3": {
+      "triangles": 1134
+    },
+    "SchoolGuardFacing4": {
+      "triangles": 1146
+    },
+    "SchoolGuardFacing5": {
+      "triangles": 1135
+    },
+    "SchoolGuardFacing6": {
+      "triangles": 1142
+    },
+    "SchoolGuardFacing7": {
+      "triangles": 1142
+    },
+    "StoreClerkFacing0": {
+      "triangles": 1257
+    },
+    "StoreClerkFacing1": {
+      "triangles": 1251
+    },
+    "StoreClerkFacing2": {
+      "triangles": 1260
+    },
+    "StoreClerkFacing3": {
+      "triangles": 1246
+    },
+    "StoreClerkFacing4": {
+      "triangles": 1258
+    },
+    "StoreClerkFacing5": {
+      "triangles": 1247
+    },
+    "StoreClerkFacing6": {
+      "triangles": 1254
+    },
+    "StoreClerkFacing7": {
+      "triangles": 1254
+    },
+    "Villager_01View0": {
+      "triangles": 1524
+    },
+    "Villager_01View1": {
+      "triangles": 1523
+    },
+    "Villager_01View2": {
+      "triangles": 1524
+    },
+    "Villager_01View3": {
+      "triangles": 1518
+    },
+    "Villager_01View4": {
+      "triangles": 1523
+    },
+    "Villager_01View5": {
+      "triangles": 1519
+    },
+    "Villager_01View6": {
+      "triangles": 1525
+    },
+    "Villager_01View7": {
+      "triangles": 1526
+    },
+    "Villager_02View0": {
+      "triangles": 1309
+    },
+    "Villager_02View1": {
+      "triangles": 1305
+    },
+    "Villager_02View2": {
+      "triangles": 1308
+    },
+    "Villager_02View3": {
+      "triangles": 1296
+    },
+    "Villager_02View4": {
+      "triangles": 1308
+    },
+    "Villager_02View5": {
+      "triangles": 1303
+    },
+    "Villager_02View6": {
+      "triangles": 1308
+    },
+    "Villager_02View7": {
+      "triangles": 1304
+    },
+    "Villager_03View0": {
+      "triangles": 1418
+    },
+    "Villager_03View1": {
+      "triangles": 1417
+    },
+    "Villager_03View2": {
+      "triangles": 1418
+    },
+    "Villager_03View3": {
+      "triangles": 1412
+    },
+    "Villager_03View4": {
+      "triangles": 1417
+    },
+    "Villager_03View5": {
+      "triangles": 1413
+    },
+    "Villager_03View6": {
+      "triangles": 1419
+    },
+    "Villager_03View7": {
+      "triangles": 1420
+    },
+    "Villager_04View0": {
+      "triangles": 1197
+    },
+    "Villager_04View1": {
+      "triangles": 1193
+    },
+    "Villager_04View2": {
+      "triangles": 1196
+    },
+    "Villager_04View3": {
+      "triangles": 1184
+    },
+    "Villager_04View4": {
+      "triangles": 1196
+    },
+    "Villager_04View5": {
+      "triangles": 1191
+    },
+    "Villager_04View6": {
+      "triangles": 1196
+    },
+    "Villager_04View7": {
+      "triangles": 1192
+    },
+    "Villager_05View0": {
+      "triangles": 1412
+    },
+    "Villager_05View1": {
+      "triangles": 1411
+    },
+    "Villager_05View2": {
+      "triangles": 1412
+    },
+    "Villager_05View3": {
+      "triangles": 1406
+    },
+    "Villager_05View4": {
+      "triangles": 1411
+    },
+    "Villager_05View5": {
+      "triangles": 1407
+    },
+    "Villager_05View6": {
+      "triangles": 1413
+    },
+    "Villager_05View7": {
+      "triangles": 1414
+    },
+    "Villager_06View0": {
+      "triangles": 1091
+    },
+    "Villager_06View1": {
+      "triangles": 1087
+    },
+    "Villager_06View2": {
+      "triangles": 1090
+    },
+    "Villager_06View3": {
+      "triangles": 1078
+    },
+    "Villager_06View4": {
+      "triangles": 1090
+    },
+    "Villager_06View5": {
+      "triangles": 1085
+    },
+    "Villager_06View6": {
+      "triangles": 1090
+    },
+    "Villager_06View7": {
+      "triangles": 1086
+    },
+    "Villager_07View0": {
+      "triangles": 1524
+    },
+    "Villager_07View1": {
+      "triangles": 1523
+    },
+    "Villager_07View2": {
+      "triangles": 1524
+    },
+    "Villager_07View3": {
+      "triangles": 1518
+    },
+    "Villager_07View4": {
+      "triangles": 1523
+    },
+    "Villager_07View5": {
+      "triangles": 1519
+    },
+    "Villager_07View6": {
+      "triangles": 1525
+    },
+    "Villager_07View7": {
+      "triangles": 1526
+    },
+    "Villager_08View0": {
+      "triangles": 1197
+    },
+    "Villager_08View1": {
+      "triangles": 1193
+    },
+    "Villager_08View2": {
+      "triangles": 1196
+    },
+    "Villager_08View3": {
+      "triangles": 1184
+    },
+    "Villager_08View4": {
+      "triangles": 1196
+    },
+    "Villager_08View5": {
+      "triangles": 1191
+    },
+    "Villager_08View6": {
+      "triangles": 1196
+    },
+    "Villager_08View7": {
+      "triangles": 1192
+    },
+    "Villager_09View0": {
+      "triangles": 1418
+    },
+    "Villager_09View1": {
+      "triangles": 1417
+    },
+    "Villager_09View2": {
+      "triangles": 1418
+    },
+    "Villager_09View3": {
+      "triangles": 1412
+    },
+    "Villager_09View4": {
+      "triangles": 1417
+    },
+    "Villager_09View5": {
+      "triangles": 1413
+    },
+    "Villager_09View6": {
+      "triangles": 1419
+    },
+    "Villager_09View7": {
+      "triangles": 1420
+    },
+    "Villager_10View0": {
+      "triangles": 1085
+    },
+    "Villager_10View1": {
+      "triangles": 1081
+    },
+    "Villager_10View2": {
+      "triangles": 1084
+    },
+    "Villager_10View3": {
+      "triangles": 1072
+    },
+    "Villager_10View4": {
+      "triangles": 1084
+    },
+    "Villager_10View5": {
+      "triangles": 1079
+    },
+    "Villager_10View6": {
+      "triangles": 1084
+    },
+    "Villager_10View7": {
+      "triangles": 1080
+    },
+    "Teacher_01View0": {
+      "triangles": 1570
+    },
+    "Teacher_01View1": {
+      "triangles": 1565
+    },
+    "Teacher_01View2": {
+      "triangles": 1570
+    },
+    "Teacher_01View3": {
+      "triangles": 1564
+    },
+    "Teacher_01View4": {
+      "triangles": 1569
+    },
+    "Teacher_01View5": {
+      "triangles": 1563
+    },
+    "Teacher_01View6": {
+      "triangles": 1571
+    },
+    "Teacher_01View7": {
+      "triangles": 1572
+    },
+    "Teacher_02View0": {
+      "triangles": 1355
+    },
+    "Teacher_02View1": {
+      "triangles": 1347
+    },
+    "Teacher_02View2": {
+      "triangles": 1354
+    },
+    "Teacher_02View3": {
+      "triangles": 1342
+    },
+    "Teacher_02View4": {
+      "triangles": 1354
+    },
+    "Teacher_02View5": {
+      "triangles": 1347
+    },
+    "Teacher_02View6": {
+      "triangles": 1354
+    },
+    "Teacher_02View7": {
+      "triangles": 1350
+    },
+    "Teacher_03View0": {
+      "triangles": 1458
+    },
+    "Teacher_03View1": {
+      "triangles": 1453
+    },
+    "Teacher_03View2": {
+      "triangles": 1458
+    },
+    "Teacher_03View3": {
+      "triangles": 1452
+    },
+    "Teacher_03View4": {
+      "triangles": 1457
+    },
+    "Teacher_03View5": {
+      "triangles": 1451
+    },
+    "Teacher_03View6": {
+      "triangles": 1459
+    },
+    "Teacher_03View7": {
+      "triangles": 1460
+    },
+    "Teacher_04View0": {
+      "triangles": 1243
+    },
+    "Teacher_04View1": {
+      "triangles": 1235
+    },
+    "Teacher_04View2": {
+      "triangles": 1242
+    },
+    "Teacher_04View3": {
+      "triangles": 1230
+    },
+    "Teacher_04View4": {
+      "triangles": 1242
+    },
+    "Teacher_04View5": {
+      "triangles": 1235
+    },
+    "Teacher_04View6": {
+      "triangles": 1242
+    },
+    "Teacher_04View7": {
+      "triangles": 1238
+    },
+    "Security_GuardView0": {
+      "triangles": 1265
+    },
+    "Security_GuardView1": {
+      "triangles": 1257
+    },
+    "Security_GuardView2": {
+      "triangles": 1264
+    },
+    "Security_GuardView3": {
+      "triangles": 1252
+    },
+    "Security_GuardView4": {
+      "triangles": 1264
+    },
+    "Security_GuardView5": {
+      "triangles": 1259
+    },
+    "Security_GuardView6": {
+      "triangles": 1264
+    },
+    "Security_GuardView7": {
+      "triangles": 1260
+    },
+    "School_NurseView0": {
+      "triangles": 1548
+    },
+    "School_NurseView1": {
+      "triangles": 1541
+    },
+    "School_NurseView2": {
+      "triangles": 1548
+    },
+    "School_NurseView3": {
+      "triangles": 1540
+    },
+    "School_NurseView4": {
+      "triangles": 1547
+    },
+    "School_NurseView5": {
+      "triangles": 1543
+    },
+    "School_NurseView6": {
+      "triangles": 1549
+    },
+    "School_NurseView7": {
+      "triangles": 1546
+    },
+    "Department_Staff_01View0": {
+      "triangles": 1670
+    },
+    "Department_Staff_01View1": {
+      "triangles": 1667
+    },
+    "Department_Staff_01View2": {
+      "triangles": 1670
+    },
+    "Department_Staff_01View3": {
+      "triangles": 1664
+    },
+    "Department_Staff_01View4": {
+      "triangles": 1669
+    },
+    "Department_Staff_01View5": {
+      "triangles": 1665
+    },
+    "Department_Staff_01View6": {
+      "triangles": 1671
+    },
+    "Department_Staff_01View7": {
+      "triangles": 1672
+    },
+    "Department_Staff_02View0": {
+      "triangles": 1343
+    },
+    "Department_Staff_02View1": {
+      "triangles": 1337
+    },
+    "Department_Staff_02View2": {
+      "triangles": 1342
+    },
+    "Department_Staff_02View3": {
+      "triangles": 1330
+    },
+    "Department_Staff_02View4": {
+      "triangles": 1342
+    },
+    "Department_Staff_02View5": {
+      "triangles": 1337
+    },
+    "Department_Staff_02View6": {
+      "triangles": 1342
+    },
+    "Department_Staff_02View7": {
+      "triangles": 1338
+    },
+    "Department_Staff_03View0": {
+      "triangles": 1558
+    },
+    "Department_Staff_03View1": {
+      "triangles": 1555
+    },
+    "Department_Staff_03View2": {
+      "triangles": 1558
+    },
+    "Department_Staff_03View3": {
+      "triangles": 1552
+    },
+    "Department_Staff_03View4": {
+      "triangles": 1557
+    },
+    "Department_Staff_03View5": {
+      "triangles": 1553
+    },
+    "Department_Staff_03View6": {
+      "triangles": 1559
+    },
+    "Department_Staff_03View7": {
+      "triangles": 1560
+    },
+    "Convenience_ClerkView0": {
+      "triangles": 1436
+    },
+    "Convenience_ClerkView1": {
+      "triangles": 1433
+    },
+    "Convenience_ClerkView2": {
+      "triangles": 1436
+    },
+    "Convenience_ClerkView3": {
+      "triangles": 1430
+    },
+    "Convenience_ClerkView4": {
+      "triangles": 1435
+    },
+    "Convenience_ClerkView5": {
+      "triangles": 1431
+    },
+    "Convenience_ClerkView6": {
+      "triangles": 1437
+    },
+    "Convenience_ClerkView7": {
+      "triangles": 1434
+    },
+    "InteriorBedView0": {
+      "triangles": 178
+    },
+    "InteriorBedView1": {
+      "triangles": 184
+    },
+    "InteriorBedView2": {
+      "triangles": 218
+    },
+    "InteriorBedView3": {
+      "triangles": 140
+    },
+    "InteriorBookshelfView0": {
+      "triangles": 328
+    },
+    "InteriorBookshelfView1": {
+      "triangles": 500
+    },
+    "InteriorBookshelfView2": {
+      "triangles": 510
+    },
+    "InteriorBookshelfView3": {
+      "triangles": 440
+    },
+    "InteriorCashRegisterView0": {
+      "triangles": 54
+    },
+    "InteriorCashRegisterView1": {
+      "triangles": 70
+    },
+    "InteriorCashRegisterView2": {
+      "triangles": 70
+    },
+    "InteriorCashRegisterView3": {
+      "triangles": 58
+    },
+    "InteriorChairView0": {
+      "triangles": 73
+    },
+    "InteriorChairView1": {
+      "triangles": 62
+    },
+    "InteriorChairView2": {
+      "triangles": 80
+    },
+    "InteriorChairView3": {
+      "triangles": 86
+    },
+    "InteriorClothesRackView0": {
+      "triangles": 124
+    },
+    "InteriorClothesRackView1": {
+      "triangles": 132
+    },
+    "InteriorClothesRackView2": {
+      "triangles": 140
+    },
+    "InteriorClothesRackView3": {
+      "triangles": 138
+    },
+    "InteriorComputerView0": {
+      "triangles": 70
+    },
+    "InteriorComputerView1": {
+      "triangles": 66
+    },
+    "InteriorComputerView2": {
+      "triangles": 62
+    },
+    "InteriorComputerView3": {
+      "triangles": 62
+    },
+    "InteriorCounterView0": {
+      "triangles": 42
+    },
+    "InteriorCounterView1": {
+      "triangles": 48
+    },
+    "InteriorCounterView2": {
+      "triangles": 50
+    },
+    "InteriorCounterView3": {
+      "triangles": 30
+    },
+    "InteriorDiningTableView0": {
+      "triangles": 46
+    },
+    "InteriorDiningTableView1": {
+      "triangles": 42
+    },
+    "InteriorDiningTableView2": {
+      "triangles": 44
+    },
+    "InteriorDiningTableView3": {
+      "triangles": 52
+    },
+    "InteriorDisplayTableView0": {
+      "triangles": 74
+    },
+    "InteriorDisplayTableView1": {
+      "triangles": 76
+    },
+    "InteriorDisplayTableView2": {
+      "triangles": 84
+    },
+    "InteriorDisplayTableView3": {
+      "triangles": 78
+    },
+    "InteriorFridgeView0": {
+      "triangles": 28
+    },
+    "InteriorFridgeView1": {
+      "triangles": 46
+    },
+    "InteriorFridgeView2": {
+      "triangles": 42
+    },
+    "InteriorFridgeView3": {
+      "triangles": 28
+    },
+    "InteriorGlassFridgeView0": {
+      "triangles": 28
+    },
+    "InteriorGlassFridgeView1": {
+      "triangles": 46
+    },
+    "InteriorGlassFridgeView2": {
+      "triangles": 42
+    },
+    "InteriorGlassFridgeView3": {
+      "triangles": 28
+    },
+    "InteriorKitchenUnitView0": {
+      "triangles": 256
+    },
+    "InteriorKitchenUnitView1": {
+      "triangles": 254
+    },
+    "InteriorKitchenUnitView2": {
+      "triangles": 228
+    },
+    "InteriorKitchenUnitView3": {
+      "triangles": 216
+    },
+    "InteriorLockerView0": {
+      "triangles": 202
+    },
+    "InteriorLockerView1": {
+      "triangles": 178
+    },
+    "InteriorLockerView2": {
+      "triangles": 168
+    },
+    "InteriorLockerView3": {
+      "triangles": 194
+    },
+    "InteriorMedicalBedView0": {
+      "triangles": 178
+    },
+    "InteriorMedicalBedView1": {
+      "triangles": 184
+    },
+    "InteriorMedicalBedView2": {
+      "triangles": 218
+    },
+    "InteriorMedicalBedView3": {
+      "triangles": 140
+    },
+    "InteriorMedicalCartView0": {
+      "triangles": 1246
+    },
+    "InteriorMedicalCartView1": {
+      "triangles": 1368
+    },
+    "InteriorMedicalCartView2": {
+      "triangles": 1303
+    },
+    "InteriorMedicalCartView3": {
+      "triangles": 1274
+    },
+    "InteriorMedicineCabinetView0": {
+      "triangles": 202
+    },
+    "InteriorMedicineCabinetView1": {
+      "triangles": 178
+    },
+    "InteriorMedicineCabinetView2": {
+      "triangles": 168
+    },
+    "InteriorMedicineCabinetView3": {
+      "triangles": 194
+    },
+    "InteriorMirrorView0": {
+      "triangles": 22
+    },
+    "InteriorMirrorView1": {
+      "triangles": 24
+    },
+    "InteriorMirrorView2": {
+      "triangles": 22
+    },
+    "InteriorMirrorView3": {
+      "triangles": 22
+    },
+    "InteriorOfficeDeskView0": {
+      "triangles": 66
+    },
+    "InteriorOfficeDeskView1": {
+      "triangles": 64
+    },
+    "InteriorOfficeDeskView2": {
+      "triangles": 76
+    },
+    "InteriorOfficeDeskView3": {
+      "triangles": 72
+    },
+    "InteriorPrivacyScreenView0": {
+      "triangles": 54
+    },
+    "InteriorPrivacyScreenView1": {
+      "triangles": 62
+    },
+    "InteriorPrivacyScreenView2": {
+      "triangles": 62
+    },
+    "InteriorPrivacyScreenView3": {
+      "triangles": 62
+    },
+    "InteriorSofaView0": {
+      "triangles": 68
+    },
+    "InteriorSofaView1": {
+      "triangles": 98
+    },
+    "InteriorSofaView2": {
+      "triangles": 98
+    },
+    "InteriorSofaView3": {
+      "triangles": 64
+    },
+    "InteriorStoreShelfView0": {
+      "triangles": 328
+    },
+    "InteriorStoreShelfView1": {
+      "triangles": 500
+    },
+    "InteriorStoreShelfView2": {
+      "triangles": 510
+    },
+    "InteriorStoreShelfView3": {
+      "triangles": 440
+    },
+    "InteriorStudyDeskView0": {
+      "triangles": 46
+    },
+    "InteriorStudyDeskView1": {
+      "triangles": 42
+    },
+    "InteriorStudyDeskView2": {
+      "triangles": 44
+    },
+    "InteriorStudyDeskView3": {
+      "triangles": 52
+    },
+    "InteriorWardrobeView0": {
+      "triangles": 202
+    },
+    "InteriorWardrobeView1": {
+      "triangles": 178
+    },
+    "InteriorWardrobeView2": {
+      "triangles": 168
+    },
+    "InteriorWardrobeView3": {
+      "triangles": 194
+    },
+    "InteriorWhiteboardView0": {
+      "triangles": 92
+    },
+    "InteriorWhiteboardView1": {
+      "triangles": 78
+    },
+    "InteriorWhiteboardView2": {
+      "triangles": 76
+    },
+    "InteriorWhiteboardView3": {
+      "triangles": 78
+    },
+    "Mob0Frame0": {
+      "triangles": 688
+    },
+    "Mob0Frame1": {
+      "triangles": 683
+    },
+    "Mob0Frame2": {
+      "triangles": 688
+    },
+    "Mob0Frame3": {
+      "triangles": 690
+    },
+    "Mob0Frame4": {
+      "triangles": 688
+    },
+    "Mob0Frame5": {
+      "triangles": 690
+    },
+    "Mob0Frame6": {
+      "triangles": 690
+    },
+    "Mob0Frame7": {
+      "triangles": 688
+    },
+    "Mob0Frame8": {
+      "triangles": 683
+    },
+    "Mob0Frame9": {
+      "triangles": 688
+    },
+    "Mob1Frame0": {
+      "triangles": 672
+    },
+    "Mob1Frame1": {
+      "triangles": 673
+    },
+    "Mob1Frame2": {
+      "triangles": 672
+    },
+    "Mob1Frame3": {
+      "triangles": 670
+    },
+    "Mob1Frame4": {
+      "triangles": 672
+    },
+    "Mob1Frame5": {
+      "triangles": 669
+    },
+    "Mob1Frame6": {
+      "triangles": 667
+    },
+    "Mob1Frame7": {
+      "triangles": 666
+    },
+    "Mob1Frame8": {
+      "triangles": 670
+    },
+    "Mob1Frame9": {
+      "triangles": 672
+    },
+    "Mob2Frame0": {
+      "triangles": 1308
+    },
+    "Mob2Frame1": {
+      "triangles": 1307
+    },
+    "Mob2Frame2": {
+      "triangles": 1308
+    },
+    "Mob2Frame3": {
+      "triangles": 1308
+    },
+    "Mob2Frame4": {
+      "triangles": 1308
+    },
+    "Mob2Frame5": {
+      "triangles": 1314
+    },
+    "Mob2Frame6": {
+      "triangles": 1312
+    },
+    "Mob2Frame7": {
+      "triangles": 1302
+    },
+    "Mob2Frame8": {
+      "triangles": 1298
+    },
+    "Mob2Frame9": {
+      "triangles": 1308
+    },
+    "Mob3Frame0": {
+      "triangles": 718
+    },
+    "Mob3Frame1": {
+      "triangles": 718
+    },
+    "Mob3Frame2": {
+      "triangles": 718
+    },
+    "Mob3Frame3": {
+      "triangles": 719
+    },
+    "Mob3Frame4": {
+      "triangles": 718
+    },
+    "Mob3Frame5": {
+      "triangles": 713
+    },
+    "Mob3Frame6": {
+      "triangles": 713
+    },
+    "Mob3Frame7": {
+      "triangles": 718
+    },
+    "Mob3Frame8": {
+      "triangles": 713
+    },
+    "Mob3Frame9": {
+      "triangles": 718
+    },
+    "Mob4Frame0": {
+      "triangles": 1252
+    },
+    "Mob4Frame1": {
+      "triangles": 1252
+    },
+    "Mob4Frame2": {
+      "triangles": 1252
+    },
+    "Mob4Frame3": {
+      "triangles": 1252
+    },
+    "Mob4Frame4": {
+      "triangles": 1252
+    },
+    "Mob4Frame5": {
+      "triangles": 1250
+    },
+    "Mob4Frame6": {
+      "triangles": 1250
+    },
+    "Mob4Frame7": {
+      "triangles": 1250
+    },
+    "Mob4Frame8": {
+      "triangles": 1250
+    },
+    "Mob4Frame9": {
+      "triangles": 1252
+    },
+    "Mob5Frame0": {
+      "triangles": 408
+    },
+    "Mob5Frame1": {
+      "triangles": 408
+    },
+    "Mob5Frame2": {
+      "triangles": 408
+    },
+    "Mob5Frame3": {
+      "triangles": 408
+    },
+    "Mob5Frame4": {
+      "triangles": 408
+    },
+    "Mob5Frame5": {
+      "triangles": 408
+    },
+    "Mob5Frame6": {
+      "triangles": 408
+    },
+    "Mob5Frame7": {
+      "triangles": 408
+    },
+    "Mob5Frame8": {
+      "triangles": 408
+    },
+    "Mob5Frame9": {
+      "triangles": 408
+    },
+    "Mob6Frame0": {
+      "triangles": 524
+    },
+    "Mob6Frame1": {
+      "triangles": 524
+    },
+    "Mob6Frame2": {
+      "triangles": 524
+    },
+    "Mob6Frame3": {
+      "triangles": 524
+    },
+    "Mob6Frame4": {
+      "triangles": 524
+    },
+    "Mob6Frame5": {
+      "triangles": 524
+    },
+    "Mob6Frame6": {
+      "triangles": 524
+    },
+    "Mob6Frame7": {
+      "triangles": 524
+    },
+    "Mob6Frame8": {
+      "triangles": 524
+    },
+    "Mob6Frame9": {
+      "triangles": 524
+    },
+    "Mob7Frame0": {
+      "triangles": 328
+    },
+    "Mob7Frame1": {
+      "triangles": 328
+    },
+    "Mob7Frame2": {
+      "triangles": 328
+    },
+    "Mob7Frame3": {
+      "triangles": 328
+    },
+    "Mob7Frame4": {
+      "triangles": 328
+    },
+    "Mob7Frame5": {
+      "triangles": 328
+    },
+    "Mob7Frame6": {
+      "triangles": 340
+    },
+    "Mob7Frame7": {
+      "triangles": 340
+    },
+    "Mob7Frame8": {
+      "triangles": 340
+    },
+    "Mob7Frame9": {
+      "triangles": 328
+    },
+    "Mob8Frame0": {
+      "triangles": 520
+    },
+    "Mob8Frame1": {
+      "triangles": 520
+    },
+    "Mob8Frame2": {
+      "triangles": 520
+    },
+    "Mob8Frame3": {
+      "triangles": 520
+    },
+    "Mob8Frame4": {
+      "triangles": 520
+    },
+    "Mob8Frame5": {
+      "triangles": 524
+    },
+    "Mob8Frame6": {
+      "triangles": 526
+    },
+    "Mob8Frame7": {
+      "triangles": 526
+    },
+    "Mob8Frame8": {
+      "triangles": 524
+    },
+    "Mob8Frame9": {
+      "triangles": 520
+    },
+    "Mob9Frame0": {
+      "triangles": 712
+    },
+    "Mob9Frame1": {
+      "triangles": 712
+    },
+    "Mob9Frame2": {
+      "triangles": 712
+    },
+    "Mob9Frame3": {
+      "triangles": 712
+    },
+    "Mob9Frame4": {
+      "triangles": 712
+    },
+    "Mob9Frame5": {
+      "triangles": 712
+    },
+    "Mob9Frame6": {
+      "triangles": 712
+    },
+    "Mob9Frame7": {
+      "triangles": 712
+    },
+    "Mob9Frame8": {
+      "triangles": 712
+    },
+    "Mob9Frame9": {
+      "triangles": 712
+    },
+    "Mob10Frame0": {
+      "triangles": 873
+    },
+    "Mob10Frame1": {
+      "triangles": 872
+    },
+    "Mob10Frame2": {
+      "triangles": 873
+    },
+    "Mob10Frame3": {
+      "triangles": 870
+    },
+    "Mob10Frame4": {
+      "triangles": 873
+    },
+    "Mob10Frame5": {
+      "triangles": 871
+    },
+    "Mob10Frame6": {
+      "triangles": 870
+    },
+    "Mob10Frame7": {
+      "triangles": 862
+    },
+    "Mob10Frame8": {
+      "triangles": 854
+    },
+    "Mob10Frame9": {
+      "triangles": 873
+    },
+    "HealthPotion": {
+      "triangles": 66
+    },
+    "ManaPotion": {
+      "triangles": 66
+    },
+    "MobFacing0_0_0": {
+      "triangles": 688
+    },
+    "MobFacing0_0_1": {
+      "triangles": 692
+    },
+    "MobFacing0_0_2": {
+      "triangles": 687
+    },
+    "MobFacing0_0_3": {
+      "triangles": 684
+    },
+    "MobFacing0_0_4": {
+      "triangles": 688
+    },
+    "MobFacing0_0_5": {
+      "triangles": 692
+    },
+    "MobFacing0_0_6": {
+      "triangles": 687
+    },
+    "MobFacing0_0_7": {
+      "triangles": 684
+    },
+    "MobFacing0_1_0": {
+      "triangles": 683
+    },
+    "MobFacing0_1_1": {
+      "triangles": 685
+    },
+    "MobFacing0_1_2": {
+      "triangles": 684
+    },
+    "MobFacing0_1_3": {
+      "triangles": 684
+    },
+    "MobFacing0_1_4": {
+      "triangles": 683
+    },
+    "MobFacing0_1_5": {
+      "triangles": 685
+    },
+    "MobFacing0_1_6": {
+      "triangles": 684
+    },
+    "MobFacing0_1_7": {
+      "triangles": 684
+    },
+    "MobFacing0_2_0": {
+      "triangles": 688
+    },
+    "MobFacing0_2_1": {
+      "triangles": 692
+    },
+    "MobFacing0_2_2": {
+      "triangles": 687
+    },
+    "MobFacing0_2_3": {
+      "triangles": 684
+    },
+    "MobFacing0_2_4": {
+      "triangles": 688
+    },
+    "MobFacing0_2_5": {
+      "triangles": 692
+    },
+    "MobFacing0_2_6": {
+      "triangles": 687
+    },
+    "MobFacing0_2_7": {
+      "triangles": 684
+    },
+    "MobFacing0_3_0": {
+      "triangles": 690
+    },
+    "MobFacing0_3_1": {
+      "triangles": 688
+    },
+    "MobFacing0_3_2": {
+      "triangles": 689
+    },
+    "MobFacing0_3_3": {
+      "triangles": 684
+    },
+    "MobFacing0_3_4": {
+      "triangles": 690
+    },
+    "MobFacing0_3_5": {
+      "triangles": 688
+    },
+    "MobFacing0_3_6": {
+      "triangles": 689
+    },
+    "MobFacing0_3_7": {
+      "triangles": 684
+    },
+    "MobFacing0_4_0": {
+      "triangles": 688
+    },
+    "MobFacing0_4_1": {
+      "triangles": 692
+    },
+    "MobFacing0_4_2": {
+      "triangles": 687
+    },
+    "MobFacing0_4_3": {
+      "triangles": 684
+    },
+    "MobFacing0_4_4": {
+      "triangles": 688
+    },
+    "MobFacing0_4_5": {
+      "triangles": 692
+    },
+    "MobFacing0_4_6": {
+      "triangles": 687
+    },
+    "MobFacing0_4_7": {
+      "triangles": 684
+    },
+    "MobFacing0_5_0": {
+      "triangles": 690
+    },
+    "MobFacing0_5_1": {
+      "triangles": 692
+    },
+    "MobFacing0_5_2": {
+      "triangles": 690
+    },
+    "MobFacing0_5_3": {
+      "triangles": 688
+    },
+    "MobFacing0_5_4": {
+      "triangles": 680
+    },
+    "MobFacing0_5_5": {
+      "triangles": 680
+    },
+    "MobFacing0_5_6": {
+      "triangles": 680
+    },
+    "MobFacing0_5_7": {
+      "triangles": 688
+    },
+    "MobFacing0_6_0": {
+      "triangles": 690
+    },
+    "MobFacing0_6_1": {
+      "triangles": 692
+    },
+    "MobFacing0_6_2": {
+      "triangles": 690
+    },
+    "MobFacing0_6_3": {
+      "triangles": 688
+    },
+    "MobFacing0_6_4": {
+      "triangles": 680
+    },
+    "MobFacing0_6_5": {
+      "triangles": 680
+    },
+    "MobFacing0_6_6": {
+      "triangles": 680
+    },
+    "MobFacing0_6_7": {
+      "triangles": 688
+    },
+    "MobFacing0_7_0": {
+      "triangles": 688
+    },
+    "MobFacing0_7_1": {
+      "triangles": 692
+    },
+    "MobFacing0_7_2": {
+      "triangles": 687
+    },
+    "MobFacing0_7_3": {
+      "triangles": 684
+    },
+    "MobFacing0_7_4": {
+      "triangles": 688
+    },
+    "MobFacing0_7_5": {
+      "triangles": 692
+    },
+    "MobFacing0_7_6": {
+      "triangles": 687
+    },
+    "MobFacing0_7_7": {
+      "triangles": 684
+    },
+    "MobFacing0_8_0": {
+      "triangles": 683
+    },
+    "MobFacing0_8_1": {
+      "triangles": 680
+    },
+    "MobFacing0_8_2": {
+      "triangles": 682
+    },
+    "MobFacing0_8_3": {
+      "triangles": 688
+    },
+    "MobFacing0_8_4": {
+      "triangles": 690
+    },
+    "MobFacing0_8_5": {
+      "triangles": 692
+    },
+    "MobFacing0_8_6": {
+      "triangles": 690
+    },
+    "MobFacing0_8_7": {
+      "triangles": 688
+    },
+    "MobFacing0_9_0": {
+      "triangles": 688
+    },
+    "MobFacing0_9_1": {
+      "triangles": 692
+    },
+    "MobFacing0_9_2": {
+      "triangles": 687
+    },
+    "MobFacing0_9_3": {
+      "triangles": 684
+    },
+    "MobFacing0_9_4": {
+      "triangles": 688
+    },
+    "MobFacing0_9_5": {
+      "triangles": 692
+    },
+    "MobFacing0_9_6": {
+      "triangles": 687
+    },
+    "MobFacing0_9_7": {
+      "triangles": 684
+    },
+    "MobFacing1_0_0": {
+      "triangles": 672
+    },
+    "MobFacing1_0_1": {
+      "triangles": 671
+    },
+    "MobFacing1_0_2": {
+      "triangles": 673
+    },
+    "MobFacing1_0_3": {
+      "triangles": 678
+    },
+    "MobFacing1_0_4": {
+      "triangles": 670
+    },
+    "MobFacing1_0_5": {
+      "triangles": 671
+    },
+    "MobFacing1_0_6": {
+      "triangles": 671
+    },
+    "MobFacing1_0_7": {
+      "triangles": 676
+    },
+    "MobFacing1_1_0": {
+      "triangles": 673
+    },
+    "MobFacing1_1_1": {
+      "triangles": 666
+    },
+    "MobFacing1_1_2": {
+      "triangles": 669
+    },
+    "MobFacing1_1_3": {
+      "triangles": 673
+    },
+    "MobFacing1_1_4": {
+      "triangles": 670
+    },
+    "MobFacing1_1_5": {
+      "triangles": 664
+    },
+    "MobFacing1_1_6": {
+      "triangles": 672
+    },
+    "MobFacing1_1_7": {
+      "triangles": 680
+    },
+    "MobFacing1_2_0": {
+      "triangles": 672
+    },
+    "MobFacing1_2_1": {
+      "triangles": 671
+    },
+    "MobFacing1_2_2": {
+      "triangles": 673
+    },
+    "MobFacing1_2_3": {
+      "triangles": 678
+    },
+    "MobFacing1_2_4": {
+      "triangles": 670
+    },
+    "MobFacing1_2_5": {
+      "triangles": 671
+    },
+    "MobFacing1_2_6": {
+      "triangles": 671
+    },
+    "MobFacing1_2_7": {
+      "triangles": 676
+    },
+    "MobFacing1_3_0": {
+      "triangles": 670
+    },
+    "MobFacing1_3_1": {
+      "triangles": 672
+    },
+    "MobFacing1_3_2": {
+      "triangles": 675
+    },
+    "MobFacing1_3_3": {
+      "triangles": 674
+    },
+    "MobFacing1_3_4": {
+      "triangles": 666
+    },
+    "MobFacing1_3_5": {
+      "triangles": 670
+    },
+    "MobFacing1_3_6": {
+      "triangles": 668
+    },
+    "MobFacing1_3_7": {
+      "triangles": 675
+    },
+    "MobFacing1_4_0": {
+      "triangles": 672
+    },
+    "MobFacing1_4_1": {
+      "triangles": 671
+    },
+    "MobFacing1_4_2": {
+      "triangles": 673
+    },
+    "MobFacing1_4_3": {
+      "triangles": 678
+    },
+    "MobFacing1_4_4": {
+      "triangles": 670
+    },
+    "MobFacing1_4_5": {
+      "triangles": 671
+    },
+    "MobFacing1_4_6": {
+      "triangles": 671
+    },
+    "MobFacing1_4_7": {
+      "triangles": 676
+    },
+    "MobFacing1_5_0": {
+      "triangles": 669
+    },
+    "MobFacing1_5_1": {
+      "triangles": 673
+    },
+    "MobFacing1_5_2": {
+      "triangles": 676
+    },
+    "MobFacing1_5_3": {
+      "triangles": 670
+    },
+    "MobFacing1_5_4": {
+      "triangles": 669
+    },
+    "MobFacing1_5_5": {
+      "triangles": 664
+    },
+    "MobFacing1_5_6": {
+      "triangles": 671
+    },
+    "MobFacing1_5_7": {
+      "triangles": 668
+    },
+    "MobFacing1_6_0": {
+      "triangles": 667
+    },
+    "MobFacing1_6_1": {
+      "triangles": 669
+    },
+    "MobFacing1_6_2": {
+      "triangles": 677
+    },
+    "MobFacing1_6_3": {
+      "triangles": 670
+    },
+    "MobFacing1_6_4": {
+      "triangles": 673
+    },
+    "MobFacing1_6_5": {
+      "triangles": 666
+    },
+    "MobFacing1_6_6": {
+      "triangles": 670
+    },
+    "MobFacing1_6_7": {
+      "triangles": 665
+    },
+    "MobFacing1_7_0": {
+      "triangles": 666
+    },
+    "MobFacing1_7_1": {
+      "triangles": 666
+    },
+    "MobFacing1_7_2": {
+      "triangles": 672
+    },
+    "MobFacing1_7_3": {
+      "triangles": 676
+    },
+    "MobFacing1_7_4": {
+      "triangles": 672
+    },
+    "MobFacing1_7_5": {
+      "triangles": 672
+    },
+    "MobFacing1_7_6": {
+      "triangles": 671
+    },
+    "MobFacing1_7_7": {
+      "triangles": 673
+    },
+    "MobFacing1_8_0": {
+      "triangles": 670
+    },
+    "MobFacing1_8_1": {
+      "triangles": 661
+    },
+    "MobFacing1_8_2": {
+      "triangles": 668
+    },
+    "MobFacing1_8_3": {
+      "triangles": 670
+    },
+    "MobFacing1_8_4": {
+      "triangles": 674
+    },
+    "MobFacing1_8_5": {
+      "triangles": 674
+    },
+    "MobFacing1_8_6": {
+      "triangles": 671
+    },
+    "MobFacing1_8_7": {
+      "triangles": 665
+    },
+    "MobFacing1_9_0": {
+      "triangles": 672
+    },
+    "MobFacing1_9_1": {
+      "triangles": 671
+    },
+    "MobFacing1_9_2": {
+      "triangles": 673
+    },
+    "MobFacing1_9_3": {
+      "triangles": 678
+    },
+    "MobFacing1_9_4": {
+      "triangles": 670
+    },
+    "MobFacing1_9_5": {
+      "triangles": 671
+    },
+    "MobFacing1_9_6": {
+      "triangles": 671
+    },
+    "MobFacing1_9_7": {
+      "triangles": 676
+    },
+    "MobFacing2_0_0": {
+      "triangles": 1308
+    },
+    "MobFacing2_0_1": {
+      "triangles": 1302
+    },
+    "MobFacing2_0_2": {
+      "triangles": 1307
+    },
+    "MobFacing2_0_3": {
+      "triangles": 1316
+    },
+    "MobFacing2_0_4": {
+      "triangles": 1308
+    },
+    "MobFacing2_0_5": {
+      "triangles": 1300
+    },
+    "MobFacing2_0_6": {
+      "triangles": 1306
+    },
+    "MobFacing2_0_7": {
+      "triangles": 1313
+    },
+    "MobFacing2_1_0": {
+      "triangles": 1307
+    },
+    "MobFacing2_1_1": {
+      "triangles": 1301
+    },
+    "MobFacing2_1_2": {
+      "triangles": 1305
+    },
+    "MobFacing2_1_3": {
+      "triangles": 1311
+    },
+    "MobFacing2_1_4": {
+      "triangles": 1306
+    },
+    "MobFacing2_1_5": {
+      "triangles": 1299
+    },
+    "MobFacing2_1_6": {
+      "triangles": 1307
+    },
+    "MobFacing2_1_7": {
+      "triangles": 1313
+    },
+    "MobFacing2_2_0": {
+      "triangles": 1308
+    },
+    "MobFacing2_2_1": {
+      "triangles": 1302
+    },
+    "MobFacing2_2_2": {
+      "triangles": 1307
+    },
+    "MobFacing2_2_3": {
+      "triangles": 1316
+    },
+    "MobFacing2_2_4": {
+      "triangles": 1308
+    },
+    "MobFacing2_2_5": {
+      "triangles": 1300
+    },
+    "MobFacing2_2_6": {
+      "triangles": 1306
+    },
+    "MobFacing2_2_7": {
+      "triangles": 1313
+    },
+    "MobFacing2_3_0": {
+      "triangles": 1308
+    },
+    "MobFacing2_3_1": {
+      "triangles": 1299
+    },
+    "MobFacing2_3_2": {
+      "triangles": 1309
+    },
+    "MobFacing2_3_3": {
+      "triangles": 1312
+    },
+    "MobFacing2_3_4": {
+      "triangles": 1305
+    },
+    "MobFacing2_3_5": {
+      "triangles": 1299
+    },
+    "MobFacing2_3_6": {
+      "triangles": 1305
+    },
+    "MobFacing2_3_7": {
+      "triangles": 1308
+    },
+    "MobFacing2_4_0": {
+      "triangles": 1308
+    },
+    "MobFacing2_4_1": {
+      "triangles": 1302
+    },
+    "MobFacing2_4_2": {
+      "triangles": 1307
+    },
+    "MobFacing2_4_3": {
+      "triangles": 1316
+    },
+    "MobFacing2_4_4": {
+      "triangles": 1308
+    },
+    "MobFacing2_4_5": {
+      "triangles": 1300
+    },
+    "MobFacing2_4_6": {
+      "triangles": 1306
+    },
+    "MobFacing2_4_7": {
+      "triangles": 1313
+    },
+    "MobFacing2_5_0": {
+      "triangles": 1314
+    },
+    "MobFacing2_5_1": {
+      "triangles": 1316
+    },
+    "MobFacing2_5_2": {
+      "triangles": 1316
+    },
+    "MobFacing2_5_3": {
+      "triangles": 1314
+    },
+    "MobFacing2_5_4": {
+      "triangles": 1301
+    },
+    "MobFacing2_5_5": {
+      "triangles": 1287
+    },
+    "MobFacing2_5_6": {
+      "triangles": 1299
+    },
+    "MobFacing2_5_7": {
+      "triangles": 1312
+    },
+    "MobFacing2_6_0": {
+      "triangles": 1312
+    },
+    "MobFacing2_6_1": {
+      "triangles": 1312
+    },
+    "MobFacing2_6_2": {
+      "triangles": 1317
+    },
+    "MobFacing2_6_3": {
+      "triangles": 1314
+    },
+    "MobFacing2_6_4": {
+      "triangles": 1305
+    },
+    "MobFacing2_6_5": {
+      "triangles": 1289
+    },
+    "MobFacing2_6_6": {
+      "triangles": 1298
+    },
+    "MobFacing2_6_7": {
+      "triangles": 1309
+    },
+    "MobFacing2_7_0": {
+      "triangles": 1302
+    },
+    "MobFacing2_7_1": {
+      "triangles": 1297
+    },
+    "MobFacing2_7_2": {
+      "triangles": 1306
+    },
+    "MobFacing2_7_3": {
+      "triangles": 1315
+    },
+    "MobFacing2_7_4": {
+      "triangles": 1310
+    },
+    "MobFacing2_7_5": {
+      "triangles": 1301
+    },
+    "MobFacing2_7_6": {
+      "triangles": 1306
+    },
+    "MobFacing2_7_7": {
+      "triangles": 1308
+    },
+    "MobFacing2_8_0": {
+      "triangles": 1298
+    },
+    "MobFacing2_8_1": {
+      "triangles": 1283
+    },
+    "MobFacing2_8_2": {
+      "triangles": 1297
+    },
+    "MobFacing2_8_3": {
+      "triangles": 1314
+    },
+    "MobFacing2_8_4": {
+      "triangles": 1319
+    },
+    "MobFacing2_8_5": {
+      "triangles": 1316
+    },
+    "MobFacing2_8_6": {
+      "triangles": 1312
+    },
+    "MobFacing2_8_7": {
+      "triangles": 1308
+    },
+    "MobFacing2_9_0": {
+      "triangles": 1308
+    },
+    "MobFacing2_9_1": {
+      "triangles": 1302
+    },
+    "MobFacing2_9_2": {
+      "triangles": 1307
+    },
+    "MobFacing2_9_3": {
+      "triangles": 1316
+    },
+    "MobFacing2_9_4": {
+      "triangles": 1308
+    },
+    "MobFacing2_9_5": {
+      "triangles": 1300
+    },
+    "MobFacing2_9_6": {
+      "triangles": 1306
+    },
+    "MobFacing2_9_7": {
+      "triangles": 1313
+    },
+    "MobFacing3_0_0": {
+      "triangles": 718
+    },
+    "MobFacing3_0_1": {
+      "triangles": 711
+    },
+    "MobFacing3_0_2": {
+      "triangles": 711
+    },
+    "MobFacing3_0_3": {
+      "triangles": 709
+    },
+    "MobFacing3_0_4": {
+      "triangles": 707
+    },
+    "MobFacing3_0_5": {
+      "triangles": 709
+    },
+    "MobFacing3_0_6": {
+      "triangles": 710
+    },
+    "MobFacing3_0_7": {
+      "triangles": 712
+    },
+    "MobFacing3_1_0": {
+      "triangles": 718
+    },
+    "MobFacing3_1_1": {
+      "triangles": 711
+    },
+    "MobFacing3_1_2": {
+      "triangles": 713
+    },
+    "MobFacing3_1_3": {
+      "triangles": 710
+    },
+    "MobFacing3_1_4": {
+      "triangles": 709
+    },
+    "MobFacing3_1_5": {
+      "triangles": 711
+    },
+    "MobFacing3_1_6": {
+      "triangles": 711
+    },
+    "MobFacing3_1_7": {
+      "triangles": 711
+    },
+    "MobFacing3_2_0": {
+      "triangles": 718
+    },
+    "MobFacing3_2_1": {
+      "triangles": 711
+    },
+    "MobFacing3_2_2": {
+      "triangles": 711
+    },
+    "MobFacing3_2_3": {
+      "triangles": 709
+    },
+    "MobFacing3_2_4": {
+      "triangles": 707
+    },
+    "MobFacing3_2_5": {
+      "triangles": 709
+    },
+    "MobFacing3_2_6": {
+      "triangles": 710
+    },
+    "MobFacing3_2_7": {
+      "triangles": 712
+    },
+    "MobFacing3_3_0": {
+      "triangles": 719
+    },
+    "MobFacing3_3_1": {
+      "triangles": 711
+    },
+    "MobFacing3_3_2": {
+      "triangles": 713
+    },
+    "MobFacing3_3_3": {
+      "triangles": 710
+    },
+    "MobFacing3_3_4": {
+      "triangles": 710
+    },
+    "MobFacing3_3_5": {
+      "triangles": 711
+    },
+    "MobFacing3_3_6": {
+      "triangles": 711
+    },
+    "MobFacing3_3_7": {
+      "triangles": 711
+    },
+    "MobFacing3_4_0": {
+      "triangles": 718
+    },
+    "MobFacing3_4_1": {
+      "triangles": 711
+    },
+    "MobFacing3_4_2": {
+      "triangles": 711
+    },
+    "MobFacing3_4_3": {
+      "triangles": 709
+    },
+    "MobFacing3_4_4": {
+      "triangles": 707
+    },
+    "MobFacing3_4_5": {
+      "triangles": 709
+    },
+    "MobFacing3_4_6": {
+      "triangles": 710
+    },
+    "MobFacing3_4_7": {
+      "triangles": 712
+    },
+    "MobFacing3_5_0": {
+      "triangles": 713
+    },
+    "MobFacing3_5_1": {
+      "triangles": 710
+    },
+    "MobFacing3_5_2": {
+      "triangles": 710
+    },
+    "MobFacing3_5_3": {
+      "triangles": 710
+    },
+    "MobFacing3_5_4": {
+      "triangles": 710
+    },
+    "MobFacing3_5_5": {
+      "triangles": 711
+    },
+    "MobFacing3_5_6": {
+      "triangles": 714
+    },
+    "MobFacing3_5_7": {
+      "triangles": 713
+    },
+    "MobFacing3_6_0": {
+      "triangles": 713
+    },
+    "MobFacing3_6_1": {
+      "triangles": 710
+    },
+    "MobFacing3_6_2": {
+      "triangles": 710
+    },
+    "MobFacing3_6_3": {
+      "triangles": 710
+    },
+    "MobFacing3_6_4": {
+      "triangles": 710
+    },
+    "MobFacing3_6_5": {
+      "triangles": 711
+    },
+    "MobFacing3_6_6": {
+      "triangles": 714
+    },
+    "MobFacing3_6_7": {
+      "triangles": 713
+    },
+    "MobFacing3_7_0": {
+      "triangles": 718
+    },
+    "MobFacing3_7_1": {
+      "triangles": 711
+    },
+    "MobFacing3_7_2": {
+      "triangles": 711
+    },
+    "MobFacing3_7_3": {
+      "triangles": 709
+    },
+    "MobFacing3_7_4": {
+      "triangles": 707
+    },
+    "MobFacing3_7_5": {
+      "triangles": 709
+    },
+    "MobFacing3_7_6": {
+      "triangles": 710
+    },
+    "MobFacing3_7_7": {
+      "triangles": 712
+    },
+    "MobFacing3_8_0": {
+      "triangles": 713
+    },
+    "MobFacing3_8_1": {
+      "triangles": 711
+    },
+    "MobFacing3_8_2": {
+      "triangles": 708
+    },
+    "MobFacing3_8_3": {
+      "triangles": 710
+    },
+    "MobFacing3_8_4": {
+      "triangles": 708
+    },
+    "MobFacing3_8_5": {
+      "triangles": 710
+    },
+    "MobFacing3_8_6": {
+      "triangles": 715
+    },
+    "MobFacing3_8_7": {
+      "triangles": 713
+    },
+    "MobFacing3_9_0": {
+      "triangles": 718
+    },
+    "MobFacing3_9_1": {
+      "triangles": 711
+    },
+    "MobFacing3_9_2": {
+      "triangles": 711
+    },
+    "MobFacing3_9_3": {
+      "triangles": 709
+    },
+    "MobFacing3_9_4": {
+      "triangles": 707
+    },
+    "MobFacing3_9_5": {
+      "triangles": 709
+    },
+    "MobFacing3_9_6": {
+      "triangles": 710
+    },
+    "MobFacing3_9_7": {
+      "triangles": 712
+    },
+    "MobFacing4_0_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_0_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_0_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_0_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_0_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_0_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_0_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_0_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_1_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_1_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_1_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_1_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_1_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_1_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_1_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_1_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_2_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_2_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_2_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_2_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_2_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_2_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_2_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_2_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_3_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_3_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_3_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_3_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_3_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_3_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_3_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_3_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_4_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_4_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_4_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_4_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_4_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_4_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_4_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_4_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_5_0": {
+      "triangles": 1250
+    },
+    "MobFacing4_5_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_5_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_5_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_5_4": {
+      "triangles": 1252
+    },
+    "MobFacing4_5_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_5_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_5_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_6_0": {
+      "triangles": 1250
+    },
+    "MobFacing4_6_1": {
+      "triangles": 1250
+    },
+    "MobFacing4_6_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_6_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_6_4": {
+      "triangles": 1252
+    },
+    "MobFacing4_6_5": {
+      "triangles": 1252
+    },
+    "MobFacing4_6_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_6_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_7_0": {
+      "triangles": 1250
+    },
+    "MobFacing4_7_1": {
+      "triangles": 1250
+    },
+    "MobFacing4_7_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_7_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_7_4": {
+      "triangles": 1252
+    },
+    "MobFacing4_7_5": {
+      "triangles": 1252
+    },
+    "MobFacing4_7_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_7_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_8_0": {
+      "triangles": 1250
+    },
+    "MobFacing4_8_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_8_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_8_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_8_4": {
+      "triangles": 1252
+    },
+    "MobFacing4_8_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_8_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_8_7": {
+      "triangles": 1194
+    },
+    "MobFacing4_9_0": {
+      "triangles": 1252
+    },
+    "MobFacing4_9_1": {
+      "triangles": 1252
+    },
+    "MobFacing4_9_2": {
+      "triangles": 1252
+    },
+    "MobFacing4_9_3": {
+      "triangles": 1308
+    },
+    "MobFacing4_9_4": {
+      "triangles": 1250
+    },
+    "MobFacing4_9_5": {
+      "triangles": 1250
+    },
+    "MobFacing4_9_6": {
+      "triangles": 1250
+    },
+    "MobFacing4_9_7": {
+      "triangles": 1194
+    },
+    "MobFacing5_0_0": {
+      "triangles": 408
+    },
+    "MobFacing5_0_1": {
+      "triangles": 404
+    },
+    "MobFacing5_0_2": {
+      "triangles": 408
+    },
+    "MobFacing5_0_3": {
+      "triangles": 404
+    },
+    "MobFacing5_0_4": {
+      "triangles": 408
+    },
+    "MobFacing5_0_5": {
+      "triangles": 404
+    },
+    "MobFacing5_0_6": {
+      "triangles": 408
+    },
+    "MobFacing5_0_7": {
+      "triangles": 404
+    },
+    "MobFacing5_1_0": {
+      "triangles": 408
+    },
+    "MobFacing5_1_1": {
+      "triangles": 404
+    },
+    "MobFacing5_1_2": {
+      "triangles": 408
+    },
+    "MobFacing5_1_3": {
+      "triangles": 402
+    },
+    "MobFacing5_1_4": {
+      "triangles": 408
+    },
+    "MobFacing5_1_5": {
+      "triangles": 404
+    },
+    "MobFacing5_1_6": {
+      "triangles": 408
+    },
+    "MobFacing5_1_7": {
+      "triangles": 406
+    },
+    "MobFacing5_2_0": {
+      "triangles": 408
+    },
+    "MobFacing5_2_1": {
+      "triangles": 404
+    },
+    "MobFacing5_2_2": {
+      "triangles": 408
+    },
+    "MobFacing5_2_3": {
+      "triangles": 404
+    },
+    "MobFacing5_2_4": {
+      "triangles": 408
+    },
+    "MobFacing5_2_5": {
+      "triangles": 404
+    },
+    "MobFacing5_2_6": {
+      "triangles": 408
+    },
+    "MobFacing5_2_7": {
+      "triangles": 404
+    },
+    "MobFacing5_3_0": {
+      "triangles": 408
+    },
+    "MobFacing5_3_1": {
+      "triangles": 404
+    },
+    "MobFacing5_3_2": {
+      "triangles": 408
+    },
+    "MobFacing5_3_3": {
+      "triangles": 404
+    },
+    "MobFacing5_3_4": {
+      "triangles": 408
+    },
+    "MobFacing5_3_5": {
+      "triangles": 404
+    },
+    "MobFacing5_3_6": {
+      "triangles": 408
+    },
+    "MobFacing5_3_7": {
+      "triangles": 404
+    },
+    "MobFacing5_4_0": {
+      "triangles": 408
+    },
+    "MobFacing5_4_1": {
+      "triangles": 404
+    },
+    "MobFacing5_4_2": {
+      "triangles": 408
+    },
+    "MobFacing5_4_3": {
+      "triangles": 404
+    },
+    "MobFacing5_4_4": {
+      "triangles": 408
+    },
+    "MobFacing5_4_5": {
+      "triangles": 404
+    },
+    "MobFacing5_4_6": {
+      "triangles": 408
+    },
+    "MobFacing5_4_7": {
+      "triangles": 404
+    },
+    "MobFacing5_5_0": {
+      "triangles": 408
+    },
+    "MobFacing5_5_1": {
+      "triangles": 404
+    },
+    "MobFacing5_5_2": {
+      "triangles": 408
+    },
+    "MobFacing5_5_3": {
+      "triangles": 406
+    },
+    "MobFacing5_5_4": {
+      "triangles": 408
+    },
+    "MobFacing5_5_5": {
+      "triangles": 404
+    },
+    "MobFacing5_5_6": {
+      "triangles": 408
+    },
+    "MobFacing5_5_7": {
+      "triangles": 410
+    },
+    "MobFacing5_6_0": {
+      "triangles": 408
+    },
+    "MobFacing5_6_1": {
+      "triangles": 404
+    },
+    "MobFacing5_6_2": {
+      "triangles": 408
+    },
+    "MobFacing5_6_3": {
+      "triangles": 410
+    },
+    "MobFacing5_6_4": {
+      "triangles": 404
+    },
+    "MobFacing5_6_5": {
+      "triangles": 404
+    },
+    "MobFacing5_6_6": {
+      "triangles": 404
+    },
+    "MobFacing5_6_7": {
+      "triangles": 414
+    },
+    "MobFacing5_7_0": {
+      "triangles": 408
+    },
+    "MobFacing5_7_1": {
+      "triangles": 404
+    },
+    "MobFacing5_7_2": {
+      "triangles": 408
+    },
+    "MobFacing5_7_3": {
+      "triangles": 408
+    },
+    "MobFacing5_7_4": {
+      "triangles": 404
+    },
+    "MobFacing5_7_5": {
+      "triangles": 404
+    },
+    "MobFacing5_7_6": {
+      "triangles": 404
+    },
+    "MobFacing5_7_7": {
+      "triangles": 408
+    },
+    "MobFacing5_8_0": {
+      "triangles": 408
+    },
+    "MobFacing5_8_1": {
+      "triangles": 404
+    },
+    "MobFacing5_8_2": {
+      "triangles": 408
+    },
+    "MobFacing5_8_3": {
+      "triangles": 412
+    },
+    "MobFacing5_8_4": {
+      "triangles": 404
+    },
+    "MobFacing5_8_5": {
+      "triangles": 404
+    },
+    "MobFacing5_8_6": {
+      "triangles": 404
+    },
+    "MobFacing5_8_7": {
+      "triangles": 412
+    },
+    "MobFacing5_9_0": {
+      "triangles": 408
+    },
+    "MobFacing5_9_1": {
+      "triangles": 404
+    },
+    "MobFacing5_9_2": {
+      "triangles": 408
+    },
+    "MobFacing5_9_3": {
+      "triangles": 404
+    },
+    "MobFacing5_9_4": {
+      "triangles": 408
+    },
+    "MobFacing5_9_5": {
+      "triangles": 404
+    },
+    "MobFacing5_9_6": {
+      "triangles": 408
+    },
+    "MobFacing5_9_7": {
+      "triangles": 404
+    },
+    "MobFacing6_0_0": {
+      "triangles": 524
+    },
+    "MobFacing6_0_1": {
+      "triangles": 564
+    },
+    "MobFacing6_0_2": {
+      "triangles": 524
+    },
+    "MobFacing6_0_3": {
+      "triangles": 510
+    },
+    "MobFacing6_0_4": {
+      "triangles": 508
+    },
+    "MobFacing6_0_5": {
+      "triangles": 468
+    },
+    "MobFacing6_0_6": {
+      "triangles": 508
+    },
+    "MobFacing6_0_7": {
+      "triangles": 502
+    },
+    "MobFacing6_1_0": {
+      "triangles": 524
+    },
+    "MobFacing6_1_1": {
+      "triangles": 548
+    },
+    "MobFacing6_1_2": {
+      "triangles": 524
+    },
+    "MobFacing6_1_3": {
+      "triangles": 516
+    },
+    "MobFacing6_1_4": {
+      "triangles": 508
+    },
+    "MobFacing6_1_5": {
+      "triangles": 468
+    },
+    "MobFacing6_1_6": {
+      "triangles": 508
+    },
+    "MobFacing6_1_7": {
+      "triangles": 516
+    },
+    "MobFacing6_2_0": {
+      "triangles": 524
+    },
+    "MobFacing6_2_1": {
+      "triangles": 564
+    },
+    "MobFacing6_2_2": {
+      "triangles": 524
+    },
+    "MobFacing6_2_3": {
+      "triangles": 510
+    },
+    "MobFacing6_2_4": {
+      "triangles": 508
+    },
+    "MobFacing6_2_5": {
+      "triangles": 468
+    },
+    "MobFacing6_2_6": {
+      "triangles": 508
+    },
+    "MobFacing6_2_7": {
+      "triangles": 502
+    },
+    "MobFacing6_3_0": {
+      "triangles": 524
+    },
+    "MobFacing6_3_1": {
+      "triangles": 564
+    },
+    "MobFacing6_3_2": {
+      "triangles": 524
+    },
+    "MobFacing6_3_3": {
+      "triangles": 516
+    },
+    "MobFacing6_3_4": {
+      "triangles": 508
+    },
+    "MobFacing6_3_5": {
+      "triangles": 484
+    },
+    "MobFacing6_3_6": {
+      "triangles": 508
+    },
+    "MobFacing6_3_7": {
+      "triangles": 516
+    },
+    "MobFacing6_4_0": {
+      "triangles": 524
+    },
+    "MobFacing6_4_1": {
+      "triangles": 564
+    },
+    "MobFacing6_4_2": {
+      "triangles": 524
+    },
+    "MobFacing6_4_3": {
+      "triangles": 510
+    },
+    "MobFacing6_4_4": {
+      "triangles": 508
+    },
+    "MobFacing6_4_5": {
+      "triangles": 468
+    },
+    "MobFacing6_4_6": {
+      "triangles": 508
+    },
+    "MobFacing6_4_7": {
+      "triangles": 502
+    },
+    "MobFacing6_5_0": {
+      "triangles": 524
+    },
+    "MobFacing6_5_1": {
+      "triangles": 556
+    },
+    "MobFacing6_5_2": {
+      "triangles": 524
+    },
+    "MobFacing6_5_3": {
+      "triangles": 515
+    },
+    "MobFacing6_5_4": {
+      "triangles": 508
+    },
+    "MobFacing6_5_5": {
+      "triangles": 468
+    },
+    "MobFacing6_5_6": {
+      "triangles": 508
+    },
+    "MobFacing6_5_7": {
+      "triangles": 517
+    },
+    "MobFacing6_6_0": {
+      "triangles": 524
+    },
+    "MobFacing6_6_1": {
+      "triangles": 556
+    },
+    "MobFacing6_6_2": {
+      "triangles": 524
+    },
+    "MobFacing6_6_3": {
+      "triangles": 515
+    },
+    "MobFacing6_6_4": {
+      "triangles": 508
+    },
+    "MobFacing6_6_5": {
+      "triangles": 468
+    },
+    "MobFacing6_6_6": {
+      "triangles": 508
+    },
+    "MobFacing6_6_7": {
+      "triangles": 517
+    },
+    "MobFacing6_7_0": {
+      "triangles": 524
+    },
+    "MobFacing6_7_1": {
+      "triangles": 564
+    },
+    "MobFacing6_7_2": {
+      "triangles": 524
+    },
+    "MobFacing6_7_3": {
+      "triangles": 510
+    },
+    "MobFacing6_7_4": {
+      "triangles": 508
+    },
+    "MobFacing6_7_5": {
+      "triangles": 468
+    },
+    "MobFacing6_7_6": {
+      "triangles": 508
+    },
+    "MobFacing6_7_7": {
+      "triangles": 502
+    },
+    "MobFacing6_8_0": {
+      "triangles": 524
+    },
+    "MobFacing6_8_1": {
+      "triangles": 564
+    },
+    "MobFacing6_8_2": {
+      "triangles": 524
+    },
+    "MobFacing6_8_3": {
+      "triangles": 515
+    },
+    "MobFacing6_8_4": {
+      "triangles": 508
+    },
+    "MobFacing6_8_5": {
+      "triangles": 484
+    },
+    "MobFacing6_8_6": {
+      "triangles": 508
+    },
+    "MobFacing6_8_7": {
+      "triangles": 517
+    },
+    "MobFacing6_9_0": {
+      "triangles": 524
+    },
+    "MobFacing6_9_1": {
+      "triangles": 564
+    },
+    "MobFacing6_9_2": {
+      "triangles": 524
+    },
+    "MobFacing6_9_3": {
+      "triangles": 510
+    },
+    "MobFacing6_9_4": {
+      "triangles": 508
+    },
+    "MobFacing6_9_5": {
+      "triangles": 468
+    },
+    "MobFacing6_9_6": {
+      "triangles": 508
+    },
+    "MobFacing6_9_7": {
+      "triangles": 502
+    },
+    "MobFacing7_0_0": {
+      "triangles": 328
+    },
+    "MobFacing7_0_1": {
+      "triangles": 340
+    },
+    "MobFacing7_0_2": {
+      "triangles": 328
+    },
+    "MobFacing7_0_3": {
+      "triangles": 336
+    },
+    "MobFacing7_0_4": {
+      "triangles": 328
+    },
+    "MobFacing7_0_5": {
+      "triangles": 340
+    },
+    "MobFacing7_0_6": {
+      "triangles": 328
+    },
+    "MobFacing7_0_7": {
+      "triangles": 338
+    },
+    "MobFacing7_1_0": {
+      "triangles": 328
+    },
+    "MobFacing7_1_1": {
+      "triangles": 340
+    },
+    "MobFacing7_1_2": {
+      "triangles": 328
+    },
+    "MobFacing7_1_3": {
+      "triangles": 338
+    },
+    "MobFacing7_1_4": {
+      "triangles": 328
+    },
+    "MobFacing7_1_5": {
+      "triangles": 340
+    },
+    "MobFacing7_1_6": {
+      "triangles": 328
+    },
+    "MobFacing7_1_7": {
+      "triangles": 340
+    },
+    "MobFacing7_2_0": {
+      "triangles": 328
+    },
+    "MobFacing7_2_1": {
+      "triangles": 340
+    },
+    "MobFacing7_2_2": {
+      "triangles": 328
+    },
+    "MobFacing7_2_3": {
+      "triangles": 336
+    },
+    "MobFacing7_2_4": {
+      "triangles": 328
+    },
+    "MobFacing7_2_5": {
+      "triangles": 340
+    },
+    "MobFacing7_2_6": {
+      "triangles": 328
+    },
+    "MobFacing7_2_7": {
+      "triangles": 338
+    },
+    "MobFacing7_3_0": {
+      "triangles": 328
+    },
+    "MobFacing7_3_1": {
+      "triangles": 340
+    },
+    "MobFacing7_3_2": {
+      "triangles": 328
+    },
+    "MobFacing7_3_3": {
+      "triangles": 338
+    },
+    "MobFacing7_3_4": {
+      "triangles": 328
+    },
+    "MobFacing7_3_5": {
+      "triangles": 340
+    },
+    "MobFacing7_3_6": {
+      "triangles": 328
+    },
+    "MobFacing7_3_7": {
+      "triangles": 338
+    },
+    "MobFacing7_4_0": {
+      "triangles": 328
+    },
+    "MobFacing7_4_1": {
+      "triangles": 340
+    },
+    "MobFacing7_4_2": {
+      "triangles": 328
+    },
+    "MobFacing7_4_3": {
+      "triangles": 336
+    },
+    "MobFacing7_4_4": {
+      "triangles": 328
+    },
+    "MobFacing7_4_5": {
+      "triangles": 340
+    },
+    "MobFacing7_4_6": {
+      "triangles": 328
+    },
+    "MobFacing7_4_7": {
+      "triangles": 338
+    },
+    "MobFacing7_5_0": {
+      "triangles": 328
+    },
+    "MobFacing7_5_1": {
+      "triangles": 340
+    },
+    "MobFacing7_5_2": {
+      "triangles": 328
+    },
+    "MobFacing7_5_3": {
+      "triangles": 336
+    },
+    "MobFacing7_5_4": {
+      "triangles": 328
+    },
+    "MobFacing7_5_5": {
+      "triangles": 340
+    },
+    "MobFacing7_5_6": {
+      "triangles": 328
+    },
+    "MobFacing7_5_7": {
+      "triangles": 338
+    },
+    "MobFacing7_6_0": {
+      "triangles": 340
+    },
+    "MobFacing7_6_1": {
+      "triangles": 340
+    },
+    "MobFacing7_6_2": {
+      "triangles": 340
+    },
+    "MobFacing7_6_3": {
+      "triangles": 336
+    },
+    "MobFacing7_6_4": {
+      "triangles": 328
+    },
+    "MobFacing7_6_5": {
+      "triangles": 340
+    },
+    "MobFacing7_6_6": {
+      "triangles": 328
+    },
+    "MobFacing7_6_7": {
+      "triangles": 338
+    },
+    "MobFacing7_7_0": {
+      "triangles": 340
+    },
+    "MobFacing7_7_1": {
+      "triangles": 316
+    },
+    "MobFacing7_7_2": {
+      "triangles": 340
+    },
+    "MobFacing7_7_3": {
+      "triangles": 324
+    },
+    "MobFacing7_7_4": {
+      "triangles": 328
+    },
+    "MobFacing7_7_5": {
+      "triangles": 340
+    },
+    "MobFacing7_7_6": {
+      "triangles": 328
+    },
+    "MobFacing7_7_7": {
+      "triangles": 326
+    },
+    "MobFacing7_8_0": {
+      "triangles": 340
+    },
+    "MobFacing7_8_1": {
+      "triangles": 341
+    },
+    "MobFacing7_8_2": {
+      "triangles": 340
+    },
+    "MobFacing7_8_3": {
+      "triangles": 338
+    },
+    "MobFacing7_8_4": {
+      "triangles": 328
+    },
+    "MobFacing7_8_5": {
+      "triangles": 340
+    },
+    "MobFacing7_8_6": {
+      "triangles": 328
+    },
+    "MobFacing7_8_7": {
+      "triangles": 336
+    },
+    "MobFacing7_9_0": {
+      "triangles": 328
+    },
+    "MobFacing7_9_1": {
+      "triangles": 340
+    },
+    "MobFacing7_9_2": {
+      "triangles": 328
+    },
+    "MobFacing7_9_3": {
+      "triangles": 336
+    },
+    "MobFacing7_9_4": {
+      "triangles": 328
+    },
+    "MobFacing7_9_5": {
+      "triangles": 340
+    },
+    "MobFacing7_9_6": {
+      "triangles": 328
+    },
+    "MobFacing7_9_7": {
+      "triangles": 338
+    },
+    "MobFacing8_0_0": {
+      "triangles": 520
+    },
+    "MobFacing8_0_1": {
+      "triangles": 522
+    },
+    "MobFacing8_0_2": {
+      "triangles": 520
+    },
+    "MobFacing8_0_3": {
+      "triangles": 512
+    },
+    "MobFacing8_0_4": {
+      "triangles": 520
+    },
+    "MobFacing8_0_5": {
+      "triangles": 522
+    },
+    "MobFacing8_0_6": {
+      "triangles": 520
+    },
+    "MobFacing8_0_7": {
+      "triangles": 511
+    },
+    "MobFacing8_1_0": {
+      "triangles": 520
+    },
+    "MobFacing8_1_1": {
+      "triangles": 520
+    },
+    "MobFacing8_1_2": {
+      "triangles": 520
+    },
+    "MobFacing8_1_3": {
+      "triangles": 520
+    },
+    "MobFacing8_1_4": {
+      "triangles": 520
+    },
+    "MobFacing8_1_5": {
+      "triangles": 522
+    },
+    "MobFacing8_1_6": {
+      "triangles": 520
+    },
+    "MobFacing8_1_7": {
+      "triangles": 502
+    },
+    "MobFacing8_2_0": {
+      "triangles": 520
+    },
+    "MobFacing8_2_1": {
+      "triangles": 522
+    },
+    "MobFacing8_2_2": {
+      "triangles": 520
+    },
+    "MobFacing8_2_3": {
+      "triangles": 512
+    },
+    "MobFacing8_2_4": {
+      "triangles": 520
+    },
+    "MobFacing8_2_5": {
+      "triangles": 522
+    },
+    "MobFacing8_2_6": {
+      "triangles": 520
+    },
+    "MobFacing8_2_7": {
+      "triangles": 511
+    },
+    "MobFacing8_3_0": {
+      "triangles": 520
+    },
+    "MobFacing8_3_1": {
+      "triangles": 520
+    },
+    "MobFacing8_3_2": {
+      "triangles": 520
+    },
+    "MobFacing8_3_3": {
+      "triangles": 512
+    },
+    "MobFacing8_3_4": {
+      "triangles": 520
+    },
+    "MobFacing8_3_5": {
+      "triangles": 522
+    },
+    "MobFacing8_3_6": {
+      "triangles": 520
+    },
+    "MobFacing8_3_7": {
+      "triangles": 511
+    },
+    "MobFacing8_4_0": {
+      "triangles": 520
+    },
+    "MobFacing8_4_1": {
+      "triangles": 522
+    },
+    "MobFacing8_4_2": {
+      "triangles": 520
+    },
+    "MobFacing8_4_3": {
+      "triangles": 512
+    },
+    "MobFacing8_4_4": {
+      "triangles": 520
+    },
+    "MobFacing8_4_5": {
+      "triangles": 522
+    },
+    "MobFacing8_4_6": {
+      "triangles": 520
+    },
+    "MobFacing8_4_7": {
+      "triangles": 511
+    },
+    "MobFacing8_5_0": {
+      "triangles": 524
+    },
+    "MobFacing8_5_1": {
+      "triangles": 520
+    },
+    "MobFacing8_5_2": {
+      "triangles": 524
+    },
+    "MobFacing8_5_3": {
+      "triangles": 518
+    },
+    "MobFacing8_5_4": {
+      "triangles": 520
+    },
+    "MobFacing8_5_5": {
+      "triangles": 518
+    },
+    "MobFacing8_5_6": {
+      "triangles": 520
+    },
+    "MobFacing8_5_7": {
+      "triangles": 518
+    },
+    "MobFacing8_6_0": {
+      "triangles": 526
+    },
+    "MobFacing8_6_1": {
+      "triangles": 524
+    },
+    "MobFacing8_6_2": {
+      "triangles": 526
+    },
+    "MobFacing8_6_3": {
+      "triangles": 516
+    },
+    "MobFacing8_6_4": {
+      "triangles": 518
+    },
+    "MobFacing8_6_5": {
+      "triangles": 518
+    },
+    "MobFacing8_6_6": {
+      "triangles": 518
+    },
+    "MobFacing8_6_7": {
+      "triangles": 516
+    },
+    "MobFacing8_7_0": {
+      "triangles": 526
+    },
+    "MobFacing8_7_1": {
+      "triangles": 526
+    },
+    "MobFacing8_7_2": {
+      "triangles": 526
+    },
+    "MobFacing8_7_3": {
+      "triangles": 516
+    },
+    "MobFacing8_7_4": {
+      "triangles": 518
+    },
+    "MobFacing8_7_5": {
+      "triangles": 518
+    },
+    "MobFacing8_7_6": {
+      "triangles": 518
+    },
+    "MobFacing8_7_7": {
+      "triangles": 518
+    },
+    "MobFacing8_8_0": {
+      "triangles": 524
+    },
+    "MobFacing8_8_1": {
+      "triangles": 526
+    },
+    "MobFacing8_8_2": {
+      "triangles": 524
+    },
+    "MobFacing8_8_3": {
+      "triangles": 518
+    },
+    "MobFacing8_8_4": {
+      "triangles": 518
+    },
+    "MobFacing8_8_5": {
+      "triangles": 518
+    },
+    "MobFacing8_8_6": {
+      "triangles": 518
+    },
+    "MobFacing8_8_7": {
+      "triangles": 520
+    },
+    "MobFacing8_9_0": {
+      "triangles": 520
+    },
+    "MobFacing8_9_1": {
+      "triangles": 522
+    },
+    "MobFacing8_9_2": {
+      "triangles": 520
+    },
+    "MobFacing8_9_3": {
+      "triangles": 512
+    },
+    "MobFacing8_9_4": {
+      "triangles": 520
+    },
+    "MobFacing8_9_5": {
+      "triangles": 522
+    },
+    "MobFacing8_9_6": {
+      "triangles": 520
+    },
+    "MobFacing8_9_7": {
+      "triangles": 511
+    },
+    "MobFacing9_0_0": {
+      "triangles": 712
+    },
+    "MobFacing9_0_1": {
+      "triangles": 716
+    },
+    "MobFacing9_0_2": {
+      "triangles": 712
+    },
+    "MobFacing9_0_3": {
+      "triangles": 716
+    },
+    "MobFacing9_0_4": {
+      "triangles": 712
+    },
+    "MobFacing9_0_5": {
+      "triangles": 716
+    },
+    "MobFacing9_0_6": {
+      "triangles": 712
+    },
+    "MobFacing9_0_7": {
+      "triangles": 716
+    },
+    "MobFacing9_1_0": {
+      "triangles": 712
+    },
+    "MobFacing9_1_1": {
+      "triangles": 712
+    },
+    "MobFacing9_1_2": {
+      "triangles": 712
+    },
+    "MobFacing9_1_3": {
+      "triangles": 714
+    },
+    "MobFacing9_1_4": {
+      "triangles": 712
+    },
+    "MobFacing9_1_5": {
+      "triangles": 712
+    },
+    "MobFacing9_1_6": {
+      "triangles": 712
+    },
+    "MobFacing9_1_7": {
+      "triangles": 714
+    },
+    "MobFacing9_2_0": {
+      "triangles": 712
+    },
+    "MobFacing9_2_1": {
+      "triangles": 716
+    },
+    "MobFacing9_2_2": {
+      "triangles": 712
+    },
+    "MobFacing9_2_3": {
+      "triangles": 716
+    },
+    "MobFacing9_2_4": {
+      "triangles": 712
+    },
+    "MobFacing9_2_5": {
+      "triangles": 716
+    },
+    "MobFacing9_2_6": {
+      "triangles": 712
+    },
+    "MobFacing9_2_7": {
+      "triangles": 716
+    },
+    "MobFacing9_3_0": {
+      "triangles": 712
+    },
+    "MobFacing9_3_1": {
+      "triangles": 712
+    },
+    "MobFacing9_3_2": {
+      "triangles": 712
+    },
+    "MobFacing9_3_3": {
+      "triangles": 714
+    },
+    "MobFacing9_3_4": {
+      "triangles": 712
+    },
+    "MobFacing9_3_5": {
+      "triangles": 712
+    },
+    "MobFacing9_3_6": {
+      "triangles": 712
+    },
+    "MobFacing9_3_7": {
+      "triangles": 714
+    },
+    "MobFacing9_4_0": {
+      "triangles": 712
+    },
+    "MobFacing9_4_1": {
+      "triangles": 716
+    },
+    "MobFacing9_4_2": {
+      "triangles": 712
+    },
+    "MobFacing9_4_3": {
+      "triangles": 716
+    },
+    "MobFacing9_4_4": {
+      "triangles": 712
+    },
+    "MobFacing9_4_5": {
+      "triangles": 716
+    },
+    "MobFacing9_4_6": {
+      "triangles": 712
+    },
+    "MobFacing9_4_7": {
+      "triangles": 716
+    },
+    "MobFacing9_5_0": {
+      "triangles": 712
+    },
+    "MobFacing9_5_1": {
+      "triangles": 712
+    },
+    "MobFacing9_5_2": {
+      "triangles": 712
+    },
+    "MobFacing9_5_3": {
+      "triangles": 714
+    },
+    "MobFacing9_5_4": {
+      "triangles": 712
+    },
+    "MobFacing9_5_5": {
+      "triangles": 712
+    },
+    "MobFacing9_5_6": {
+      "triangles": 712
+    },
+    "MobFacing9_5_7": {
+      "triangles": 714
+    },
+    "MobFacing9_6_0": {
+      "triangles": 712
+    },
+    "MobFacing9_6_1": {
+      "triangles": 712
+    },
+    "MobFacing9_6_2": {
+      "triangles": 712
+    },
+    "MobFacing9_6_3": {
+      "triangles": 714
+    },
+    "MobFacing9_6_4": {
+      "triangles": 712
+    },
+    "MobFacing9_6_5": {
+      "triangles": 712
+    },
+    "MobFacing9_6_6": {
+      "triangles": 712
+    },
+    "MobFacing9_6_7": {
+      "triangles": 714
+    },
+    "MobFacing9_7_0": {
+      "triangles": 712
+    },
+    "MobFacing9_7_1": {
+      "triangles": 716
+    },
+    "MobFacing9_7_2": {
+      "triangles": 712
+    },
+    "MobFacing9_7_3": {
+      "triangles": 716
+    },
+    "MobFacing9_7_4": {
+      "triangles": 712
+    },
+    "MobFacing9_7_5": {
+      "triangles": 716
+    },
+    "MobFacing9_7_6": {
+      "triangles": 712
+    },
+    "MobFacing9_7_7": {
+      "triangles": 716
+    },
+    "MobFacing9_8_0": {
+      "triangles": 712
+    },
+    "MobFacing9_8_1": {
+      "triangles": 712
+    },
+    "MobFacing9_8_2": {
+      "triangles": 712
+    },
+    "MobFacing9_8_3": {
+      "triangles": 714
+    },
+    "MobFacing9_8_4": {
+      "triangles": 712
+    },
+    "MobFacing9_8_5": {
+      "triangles": 712
+    },
+    "MobFacing9_8_6": {
+      "triangles": 712
+    },
+    "MobFacing9_8_7": {
+      "triangles": 714
+    },
+    "MobFacing9_9_0": {
+      "triangles": 712
+    },
+    "MobFacing9_9_1": {
+      "triangles": 716
+    },
+    "MobFacing9_9_2": {
+      "triangles": 712
+    },
+    "MobFacing9_9_3": {
+      "triangles": 716
+    },
+    "MobFacing9_9_4": {
+      "triangles": 712
+    },
+    "MobFacing9_9_5": {
+      "triangles": 716
+    },
+    "MobFacing9_9_6": {
+      "triangles": 712
+    },
+    "MobFacing9_9_7": {
+      "triangles": 716
+    },
+    "MobFacing10_0_0": {
+      "triangles": 873
+    },
+    "MobFacing10_0_1": {
+      "triangles": 852
+    },
+    "MobFacing10_0_2": {
+      "triangles": 866
+    },
+    "MobFacing10_0_3": {
+      "triangles": 855
+    },
+    "MobFacing10_0_4": {
+      "triangles": 866
+    },
+    "MobFacing10_0_5": {
+      "triangles": 843
+    },
+    "MobFacing10_0_6": {
+      "triangles": 863
+    },
+    "MobFacing10_0_7": {
+      "triangles": 852
+    },
+    "MobFacing10_1_0": {
+      "triangles": 872
+    },
+    "MobFacing10_1_1": {
+      "triangles": 850
+    },
+    "MobFacing10_1_2": {
+      "triangles": 864
+    },
+    "MobFacing10_1_3": {
+      "triangles": 855
+    },
+    "MobFacing10_1_4": {
+      "triangles": 861
+    },
+    "MobFacing10_1_5": {
+      "triangles": 839
+    },
+    "MobFacing10_1_6": {
+      "triangles": 866
+    },
+    "MobFacing10_1_7": {
+      "triangles": 856
+    },
+    "MobFacing10_2_0": {
+      "triangles": 873
+    },
+    "MobFacing10_2_1": {
+      "triangles": 852
+    },
+    "MobFacing10_2_2": {
+      "triangles": 866
+    },
+    "MobFacing10_2_3": {
+      "triangles": 855
+    },
+    "MobFacing10_2_4": {
+      "triangles": 866
+    },
+    "MobFacing10_2_5": {
+      "triangles": 843
+    },
+    "MobFacing10_2_6": {
+      "triangles": 863
+    },
+    "MobFacing10_2_7": {
+      "triangles": 852
+    },
+    "MobFacing10_3_0": {
+      "triangles": 870
+    },
+    "MobFacing10_3_1": {
+      "triangles": 852
+    },
+    "MobFacing10_3_2": {
+      "triangles": 867
+    },
+    "MobFacing10_3_3": {
+      "triangles": 857
+    },
+    "MobFacing10_3_4": {
+      "triangles": 866
+    },
+    "MobFacing10_3_5": {
+      "triangles": 840
+    },
+    "MobFacing10_3_6": {
+      "triangles": 865
+    },
+    "MobFacing10_3_7": {
+      "triangles": 853
+    },
+    "MobFacing10_4_0": {
+      "triangles": 873
+    },
+    "MobFacing10_4_1": {
+      "triangles": 852
+    },
+    "MobFacing10_4_2": {
+      "triangles": 866
+    },
+    "MobFacing10_4_3": {
+      "triangles": 855
+    },
+    "MobFacing10_4_4": {
+      "triangles": 866
+    },
+    "MobFacing10_4_5": {
+      "triangles": 843
+    },
+    "MobFacing10_4_6": {
+      "triangles": 863
+    },
+    "MobFacing10_4_7": {
+      "triangles": 852
+    },
+    "MobFacing10_5_0": {
+      "triangles": 871
+    },
+    "MobFacing10_5_1": {
+      "triangles": 852
+    },
+    "MobFacing10_5_2": {
+      "triangles": 869
+    },
+    "MobFacing10_5_3": {
+      "triangles": 852
+    },
+    "MobFacing10_5_4": {
+      "triangles": 863
+    },
+    "MobFacing10_5_5": {
+      "triangles": 838
+    },
+    "MobFacing10_5_6": {
+      "triangles": 854
+    },
+    "MobFacing10_5_7": {
+      "triangles": 845
+    },
+    "MobFacing10_6_0": {
+      "triangles": 870
+    },
+    "MobFacing10_6_1": {
+      "triangles": 850
+    },
+    "MobFacing10_6_2": {
+      "triangles": 870
+    },
+    "MobFacing10_6_3": {
+      "triangles": 850
+    },
+    "MobFacing10_6_4": {
+      "triangles": 866
+    },
+    "MobFacing10_6_5": {
+      "triangles": 839
+    },
+    "MobFacing10_6_6": {
+      "triangles": 854
+    },
+    "MobFacing10_6_7": {
+      "triangles": 843
+    },
+    "MobFacing10_7_0": {
+      "triangles": 862
+    },
+    "MobFacing10_7_1": {
+      "triangles": 847
+    },
+    "MobFacing10_7_2": {
+      "triangles": 867
+    },
+    "MobFacing10_7_3": {
+      "triangles": 856
+    },
+    "MobFacing10_7_4": {
+      "triangles": 867
+    },
+    "MobFacing10_7_5": {
+      "triangles": 839
+    },
+    "MobFacing10_7_6": {
+      "triangles": 858
+    },
+    "MobFacing10_7_7": {
+      "triangles": 843
+    },
+    "MobFacing10_8_0": {
+      "triangles": 854
+    },
+    "MobFacing10_8_1": {
+      "triangles": 840
+    },
+    "MobFacing10_8_2": {
+      "triangles": 854
+    },
+    "MobFacing10_8_3": {
+      "triangles": 847
+    },
+    "MobFacing10_8_4": {
+      "triangles": 870
+    },
+    "MobFacing10_8_5": {
+      "triangles": 845
+    },
+    "MobFacing10_8_6": {
+      "triangles": 862
+    },
+    "MobFacing10_8_7": {
+      "triangles": 849
+    },
+    "MobFacing10_9_0": {
+      "triangles": 873
+    },
+    "MobFacing10_9_1": {
+      "triangles": 852
+    },
+    "MobFacing10_9_2": {
+      "triangles": 866
+    },
+    "MobFacing10_9_3": {
+      "triangles": 855
+    },
+    "MobFacing10_9_4": {
+      "triangles": 866
+    },
+    "MobFacing10_9_5": {
+      "triangles": 843
+    },
+    "MobFacing10_9_6": {
+      "triangles": 863
+    },
+    "MobFacing10_9_7": {
+      "triangles": 852
+    },
+    "MobFacing11_0_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_0_1": {
+      "triangles": 1562
+    },
+    "MobFacing11_0_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_0_3": {
+      "triangles": 1552
+    },
+    "MobFacing11_0_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_0_5": {
+      "triangles": 1568
+    },
+    "MobFacing11_0_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_0_7": {
+      "triangles": 1553
+    },
+    "MobFacing11_1_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_1_1": {
+      "triangles": 1560
+    },
+    "MobFacing11_1_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_1_3": {
+      "triangles": 1555
+    },
+    "MobFacing11_1_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_1_5": {
+      "triangles": 1564
+    },
+    "MobFacing11_1_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_1_7": {
+      "triangles": 1551
+    },
+    "MobFacing11_2_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_2_1": {
+      "triangles": 1562
+    },
+    "MobFacing11_2_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_2_3": {
+      "triangles": 1552
+    },
+    "MobFacing11_2_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_2_5": {
+      "triangles": 1568
+    },
+    "MobFacing11_2_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_2_7": {
+      "triangles": 1553
+    },
+    "MobFacing11_3_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_3_1": {
+      "triangles": 1560
+    },
+    "MobFacing11_3_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_3_3": {
+      "triangles": 1555
+    },
+    "MobFacing11_3_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_3_5": {
+      "triangles": 1564
+    },
+    "MobFacing11_3_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_3_7": {
+      "triangles": 1551
+    },
+    "MobFacing11_4_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_4_1": {
+      "triangles": 1562
+    },
+    "MobFacing11_4_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_4_3": {
+      "triangles": 1552
+    },
+    "MobFacing11_4_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_4_5": {
+      "triangles": 1568
+    },
+    "MobFacing11_4_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_4_7": {
+      "triangles": 1553
+    },
+    "MobFacing11_5_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_5_1": {
+      "triangles": 1560
+    },
+    "MobFacing11_5_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_5_3": {
+      "triangles": 1555
+    },
+    "MobFacing11_5_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_5_5": {
+      "triangles": 1568
+    },
+    "MobFacing11_5_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_5_7": {
+      "triangles": 1549
+    },
+    "MobFacing11_6_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_6_1": {
+      "triangles": 1560
+    },
+    "MobFacing11_6_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_6_3": {
+      "triangles": 1555
+    },
+    "MobFacing11_6_4": {
+      "triangles": 1568
+    },
+    "MobFacing11_6_5": {
+      "triangles": 1566
+    },
+    "MobFacing11_6_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_6_7": {
+      "triangles": 1551
+    },
+    "MobFacing11_7_0": {
+      "triangles": 1552
+    },
+    "MobFacing11_7_1": {
+      "triangles": 1560
+    },
+    "MobFacing11_7_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_7_3": {
+      "triangles": 1565
+    },
+    "MobFacing11_7_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_7_5": {
+      "triangles": 1566
+    },
+    "MobFacing11_7_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_7_7": {
+      "triangles": 1560
+    },
+    "MobFacing11_8_0": {
+      "triangles": 1554
+    },
+    "MobFacing11_8_1": {
+      "triangles": 1568
+    },
+    "MobFacing11_8_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_8_3": {
+      "triangles": 1563
+    },
+    "MobFacing11_8_4": {
+      "triangles": 1564
+    },
+    "MobFacing11_8_5": {
+      "triangles": 1578
+    },
+    "MobFacing11_8_6": {
+      "triangles": 1567
+    },
+    "MobFacing11_8_7": {
+      "triangles": 1552
+    },
+    "MobFacing11_9_0": {
+      "triangles": 1554
+    },
+    "MobFacing11_9_1": {
+      "triangles": 1562
+    },
+    "MobFacing11_9_2": {
+      "triangles": 1552
+    },
+    "MobFacing11_9_3": {
+      "triangles": 1563
+    },
+    "MobFacing11_9_4": {
+      "triangles": 1566
+    },
+    "MobFacing11_9_5": {
+      "triangles": 1566
+    },
+    "MobFacing11_9_6": {
+      "triangles": 1566
+    },
+    "MobFacing11_9_7": {
+      "triangles": 1550
+    },
+    "facing_0": {
+      "triangles": 2745
+    },
+    "facing_1": {
+      "triangles": 2744
+    },
+    "facing_2": {
+      "triangles": 2744
+    },
+    "facing_3": {
+      "triangles": 2740
+    },
+    "facing_4": {
+      "triangles": 2749
+    },
+    "facing_5": {
+      "triangles": 2742
+    },
+    "facing_6": {
+      "triangles": 2746
+    },
+    "facing_7": {
+      "triangles": 2743
+    },
+    "facing_8": {
+      "triangles": 2745
+    },
+    "facing_9": {
+      "triangles": 2744
+    },
+    "facing_10": {
+      "triangles": 2744
+    },
+    "facing_11": {
+      "triangles": 2740
+    },
+    "facing_12": {
+      "triangles": 2749
+    },
+    "facing_13": {
+      "triangles": 2742
+    },
+    "facing_14": {
+      "triangles": 2746
+    },
+    "facing_15": {
+      "triangles": 2743
+    },
+    "facing_16": {
+      "triangles": 2745
+    },
+    "facing_17": {
+      "triangles": 2741
+    },
+    "facing_18": {
+      "triangles": 2743
+    },
+    "facing_19": {
+      "triangles": 2744
+    },
+    "facing_20": {
+      "triangles": 2750
+    },
+    "facing_21": {
+      "triangles": 2742
+    },
+    "facing_22": {
+      "triangles": 2745
+    },
+    "facing_23": {
+      "triangles": 2747
+    },
+    "facing_24": {
+      "triangles": 2745
+    },
+    "facing_25": {
+      "triangles": 2742
+    },
+    "facing_26": {
+      "triangles": 2744
+    },
+    "facing_27": {
+      "triangles": 2743
+    },
+    "facing_28": {
+      "triangles": 2748
+    },
+    "facing_29": {
+      "triangles": 2745
+    },
+    "facing_30": {
+      "triangles": 2745
+    },
+    "facing_31": {
+      "triangles": 2741
+    },
+    "facing_32": {
+      "triangles": 2746
+    },
+    "facing_33": {
+      "triangles": 2745
+    },
+    "facing_34": {
+      "triangles": 2746
+    },
+    "facing_35": {
+      "triangles": 2744
+    },
+    "facing_36": {
+      "triangles": 2748
+    },
+    "facing_37": {
+      "triangles": 2748
+    },
+    "facing_38": {
+      "triangles": 2746
+    },
+    "facing_39": {
+      "triangles": 2741
+    },
+    "facing_40": {
+      "triangles": 2745
+    },
+    "facing_41": {
+      "triangles": 2742
+    },
+    "facing_42": {
+      "triangles": 2743
+    },
+    "facing_43": {
+      "triangles": 2737
+    },
+    "facing_44": {
+      "triangles": 2744
+    },
+    "facing_45": {
+      "triangles": 2740
+    },
+    "facing_46": {
+      "triangles": 2746
+    },
+    "facing_47": {
+      "triangles": 2740
+    },
+    "facing_48": {
+      "triangles": 1920
+    },
+    "facing_49": {
+      "triangles": 1917
+    },
+    "facing_50": {
+      "triangles": 1924
+    },
+    "facing_51": {
+      "triangles": 1916
+    },
+    "facing_52": {
+      "triangles": 1921
+    },
+    "facing_53": {
+      "triangles": 1911
+    },
+    "facing_54": {
+      "triangles": 1919
+    },
+    "facing_55": {
+      "triangles": 1924
+    },
+    "facing_56": {
+      "triangles": 1920
+    },
+    "facing_57": {
+      "triangles": 1917
+    },
+    "facing_58": {
+      "triangles": 1924
+    },
+    "facing_59": {
+      "triangles": 1916
+    },
+    "facing_60": {
+      "triangles": 1921
+    },
+    "facing_61": {
+      "triangles": 1911
+    },
+    "facing_62": {
+      "triangles": 1919
+    },
+    "facing_63": {
+      "triangles": 1924
+    },
+    "facing_64": {
+      "triangles": 1923
+    },
+    "facing_65": {
+      "triangles": 1916
+    },
+    "facing_66": {
+      "triangles": 1922
+    },
+    "facing_67": {
+      "triangles": 1918
+    },
+    "facing_68": {
+      "triangles": 1920
+    },
+    "facing_69": {
+      "triangles": 1911
+    },
+    "facing_70": {
+      "triangles": 1919
+    },
+    "facing_71": {
+      "triangles": 1920
+    },
+    "facing_72": {
+      "triangles": 1919
+    },
+    "facing_73": {
+      "triangles": 1916
+    },
+    "facing_74": {
+      "triangles": 1925
+    },
+    "facing_75": {
+      "triangles": 1917
+    },
+    "facing_76": {
+      "triangles": 1922
+    },
+    "facing_77": {
+      "triangles": 1913
+    },
+    "facing_78": {
+      "triangles": 1922
+    },
+    "facing_79": {
+      "triangles": 1923
+    },
+    "facing_80": {
+      "triangles": 1921
+    },
+    "facing_81": {
+      "triangles": 1918
+    },
+    "facing_82": {
+      "triangles": 1924
+    },
+    "facing_83": {
+      "triangles": 1918
+    },
+    "facing_84": {
+      "triangles": 1922
+    },
+    "facing_85": {
+      "triangles": 1920
+    },
+    "facing_86": {
+      "triangles": 1922
+    },
+    "facing_87": {
+      "triangles": 1920
+    }
+  },
+  "bytes": 100422556
+}

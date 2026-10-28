@@ -1,0 +1,279 @@
+{
+  "npcs": [
+    {
+      "id": "Villager_01",
+      "role": "villager",
+      "mesh_count": 21,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_02",
+      "role": "villager",
+      "mesh_count": 21,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_03",
+      "role": "villager",
+      "mesh_count": 21,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_04",
+      "role": "villager",
+      "mesh_count": 20,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_05",
+      "role": "villager",
+      "mesh_count": 20,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_06",
+      "role": "villager",
+      "mesh_count": 20,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_07",
+      "role": "villager",
+      "mesh_count": 21,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_08",
+      "role": "villager",
+      "mesh_count": 20,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_09",
+      "role": "villager",
+      "mesh_count": 21,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Villager_10",
+      "role": "villager",
+      "mesh_count": 19,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Teacher_01",
+      "role": "teacher",
+      "mesh_count": 26,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Teacher_02",
+      "role": "teacher",
+      "mesh_count": 26,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Teacher_03",
+      "role": "teacher",
+      "mesh_count": 25,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Teacher_04",
+      "role": "teacher",
+      "mesh_count": 25,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Security_Guard",
+      "role": "security",
+      "mesh_count": 26,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "School_Nurse",
+      "role": "nurse",
+      "mesh_count": 25,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Department_Staff_01",
+      "role": "department_staff",
+      "mesh_count": 25,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Department_Staff_02",
+      "role": "department_staff",
+      "mesh_count": 24,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Department_Staff_03",
+      "role": "department_staff",
+      "mesh_count": 24,
+      "clips": 10,
+      "skin_valid": true
+    },
+    {
+      "id": "Convenience_Clerk",
+      "role": "convenience_clerk",
+      "mesh_count": 24,
+      "clips": 10,
+      "skin_valid": true
+    }
+  ],
+  "interiors": [
+    {
+      "room": "Home",
+      "furniture_instances": 8,
+      "references_resolved": true
+    },
+    {
+      "room": "Classroom",
+      "furniture_instances": 16,
+      "references_resolved": true
+    },
+    {
+      "room": "Staffroom",
+      "furniture_instances": 15,
+      "references_resolved": true
+    },
+    {
+      "room": "Infirmary",
+      "furniture_instances": 8,
+      "references_resolved": true
+    },
+    {
+      "room": "Guardroom",
+      "furniture_instances": 5,
+      "references_resolved": true
+    },
+    {
+      "room": "DepartmentStore",
+      "furniture_instances": 8,
+      "references_resolved": true
+    },
+    {
+      "room": "ConvenienceStore",
+      "furniture_instances": 8,
+      "references_resolved": true
+    }
+  ],
+  "furniture": [
+    {
+      "name": "Bed",
+      "mesh_count": 9
+    },
+    {
+      "name": "Bookshelf",
+      "mesh_count": 22
+    },
+    {
+      "name": "CashRegister",
+      "mesh_count": 4
+    },
+    {
+      "name": "Chair",
+      "mesh_count": 6
+    },
+    {
+      "name": "ClothesRack",
+      "mesh_count": 10
+    },
+    {
+      "name": "Computer",
+      "mesh_count": 5
+    },
+    {
+      "name": "Counter",
+      "mesh_count": 3
+    },
+    {
+      "name": "DiningTable",
+      "mesh_count": 5
+    },
+    {
+      "name": "DisplayTable",
+      "mesh_count": 8
+    },
+    {
+      "name": "Fridge",
+      "mesh_count": 3
+    },
+    {
+      "name": "GlassFridge",
+      "mesh_count": 3
+    },
+    {
+      "name": "KitchenUnit",
+      "mesh_count": 6
+    },
+    {
+      "name": "Locker",
+      "mesh_count": 9
+    },
+    {
+      "name": "MedicalBed",
+      "mesh_count": 9
+    },
+    {
+      "name": "MedicalCart",
+      "mesh_count": 13
+    },
+    {
+      "name": "MedicineCabinet",
+      "mesh_count": 9
+    },
+    {
+      "name": "Mirror",
+      "mesh_count": 2
+    },
+    {
+      "name": "OfficeDesk",
+      "mesh_count": 6
+    },
+    {
+      "name": "PrivacyScreen",
+      "mesh_count": 5
+    },
+    {
+      "name": "Sofa",
+      "mesh_count": 5
+    },
+    {
+      "name": "StoreShelf",
+      "mesh_count": 22
+    },
+    {
+      "name": "StudyDesk",
+      "mesh_count": 5
+    },
+    {
+      "name": "Wardrobe",
+      "mesh_count": 9
+    },
+    {
+      "name": "Whiteboard",
+      "mesh_count": 5
+    }
+  ]
+}

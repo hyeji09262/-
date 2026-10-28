@@ -159,6 +159,18 @@
     <ClInclude Include="Profiler.h" />
     <ClInclude Include="Tutorial.h" />
     <ClInclude Include="TutorialArt.h" />
+    <ClInclude Include="VillageWorld.h" />
+    <ClInclude Include="VillageInterior.h" />
+    <ClInclude Include="TownPopulation.h" />
+    <ClInclude Include="MonsterAnimation.h" />
+    <ClInclude Include="MonsterSkills.h" />
+    <ClInclude Include="Transformation.h" />
+    <ClInclude Include="VillageRuntime.h" />
+    <ClInclude Include="SchoolLayout.h" />
+    <ClInclude Include="SchoolScene.h" />
+    <ClInclude Include="BuildingVisuals.h" />
+    <ClInclude Include="NatureVisuals.h" />
+    <ClInclude Include="AutoTarget.h" />
     <ClInclude Include="LevelOne.h" />
     <ClInclude Include="Prologue.h" />
     <ClInclude Include="PrologueStory.h" />
@@ -225,4 +237,9 @@
   </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <Target Name="CopyResourceMeshes" AfterTargets="Build">
+    <Error Condition="!Exists('$(ProjectDir)..\resource\runtime\school_models.bin')" Text="Missing resource/runtime/school_models.bin. Run the Blender resource/export_runtime_models.py exporter." />
+    <MakeDir Directories="$(OutDir)resource\runtime" />
+    <Copy SourceFiles="$(ProjectDir)..\resource\runtime\school_models.bin" DestinationFolder="$(OutDir)resource\runtime" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

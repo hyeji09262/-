@@ -13,6 +13,9 @@
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
 #include "RuntimeFiles.h"
+#include "SchoolScene.h"
+#include "TownPopulation.h"
+#include "Transformation.h"
 
 namespace QuestTwo
 {
@@ -44,11 +47,64 @@ std::array<bool, 256> keys{};
 int width = 1280, height = 800;
 bool available = false, loaded = false, paused = true, saveOk = true, loadError = false;
 bool moving = false, mirror = false;
+Point facingDirection{.70710678f, -.70710678f};
 float clockTime = 0, walkFrame = 0;
 std::string speaker, dialogue;
 int pendingClue = -1;
 bool pendingAdvance = false;
 bool builtGym = false;
+int schoolRoom = 0;
+bool worldRequested = false;
+bool awaitingHall = false, magicalForm = false;
+Transformation::Sequence transformation;
+float introTime = 0;
+
+bool BattleReady()
+{
+    return !awaitingHall &&
+           story.ReadyToFight(story.Gym() ? 2 : schoolRoom, transformation.Active());
+}
+
+Point LumiPosition()
+{
+    if (story.step == Step::Reaction)
+    {
+        return {SchoolLayout::IntroLumiX, SchoolLayout::IntroLumiY};
+    }
+    return story.Gym()       ? Places::Lumi
+           : schoolRoom != 0 ? Point{player.x + 1, player.y}
+                             : Point{3, 8};
+}
+
+Point SupplyPosition()
+{
+    return story.Gym() ? Point{5, 23} : Point{2, 9};
+}
+
+int SceneRoom()
+{
+    return story.Gym() ? 2 : schoolRoom;
+}
+
+Point RoomExit()
+{
+    const auto& room = SchoolLayout::Get(SceneRoom());
+    return {room.width * .5f, room.height - 1.5f};
+}
+
+Point CluePosition(unsigned index)
+{
+    if (schoolRoom == 0)
+    {
+        return index == 0 ? Point{6, 4} : index == 1 ? Point{24, 3} : Point{29, 3};
+    }
+    const auto& site = Investigations()[index];
+    if (schoolRoom == site.room)
+    {
+        return {site.x, site.y};
+    }
+    return RoomExit();
+}
 
 float Scale()
 {
@@ -135,10 +191,11 @@ void Label(const std::string& id, Transform pose, const std::string& text, Color
         parent);
 }
 
-void Glow(const std::string& id, Transform pose, float size, Actor* parent = nullptr)
+void Glow(const std::string& id, Transform pose, float size, Actor* parent = nullptr,
+          RenderLayer layer = RenderLayer::World)
 {
     graph.Place(
-        id, pose, RenderLayer::World,
+        id, pose, layer,
         [size](const Actor&, const Transform& world)
         {
             Point p = Project(world);
@@ -150,12 +207,11 @@ void Glow(const std::string& id, Transform pose, float size, Actor* parent = nul
 
 bool Walkable(Point p)
 {
-    if (p.x < .5f || p.x > 23 || p.y < 2.5f || p.y > 12.5f)
+    if (!SchoolLayout::Walkable(SceneRoom(), p.x, p.y))
     {
         return false;
     }
-    // The optional storage area is never on the main quest route.
-    return !(story.Gym() && !story.sealOpened && p.x > 19 && p.y < 6);
+    return true;
 }
 
 bool Save()
@@ -169,12 +225,14 @@ bool Save()
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::trunc);
-        file << "MAGICAL_QUEST_002_V1\n"
+        file << "MAGICAL_QUEST_002_V2\n"
              << int(story.step) << ' ' << story.clues << ' ' << story.fragments << ' '
              << story.sealOpened << ' ' << story.treasureTaken << '\n'
              << story.progress.totalExperience << ' ' << story.progress.coins << ' '
              << story.progress.crystals << ' ' << story.progress.potions << ' '
-             << story.progress.manaPotions << '\n';
+             << story.progress.manaPotions << '\n'
+             << story.rewardClaimed << '\n'
+             << story.shopVisited << '\n';
         file.flush();
         if (!file)
         {
@@ -205,13 +263,13 @@ bool Load()
     auto& p = candidate.progress;
     if (!(file >> magic >> step >> candidate.clues >> candidate.fragments >> seal >> treasure >>
           p.totalExperience >> p.coins >> p.crystals >> p.potions >> p.manaPotions) ||
-        magic != "MAGICAL_QUEST_002_V1" || step < 0 || step > int(Step::Complete) ||
-        candidate.clues > 7 || (step >= int(Step::Shadows) && candidate.clues != 7) ||
+        (magic != "MAGICAL_QUEST_002_V1" && magic != "MAGICAL_QUEST_002_V2") || step < 0 ||
+        step > int(Step::Complete) || candidate.clues > 7 ||
+        (step >= int(Step::Shadows) && candidate.clues != 7) ||
         (step == int(Step::Reaction) && candidate.clues != 0) ||
-        (step == int(Step::Investigate) && candidate.clues == 7) ||
-        candidate.fragments != (step >= int(Step::Report) ? 5 : 4) || seal < 0 || seal > 1 ||
-        treasure < 0 || treasure > 1 || (treasure && !seal) ||
-        (seal && step != int(Step::Complete)) || p.totalExperience < 0 ||
+        (step == int(Step::Investigate) && candidate.clues == 7) || candidate.fragments < 0 ||
+        candidate.fragments > 1000000 || seal < 0 || seal > 1 || treasure < 0 || treasure > 1 ||
+        (treasure && !seal) || (seal && step != int(Step::Complete)) || p.totalExperience < 0 ||
         p.totalExperience > Rpg::ExperienceLimit || p.coins < 0 || p.coins > 1000000 ||
         p.crystals < 0 || p.crystals > 1000000 || p.potions < 0 || p.potions > 99 ||
         p.manaPotions < 0 || p.manaPotions > 99)
@@ -222,6 +280,57 @@ bool Load()
     candidate.step = static_cast<Step>(step);
     candidate.sealOpened = seal != 0;
     candidate.treasureTaken = treasure != 0;
+    if (magic == "MAGICAL_QUEST_002_V2")
+    {
+        int claimed = 0;
+        if (!(file >> claimed) || claimed < 0 || claimed > 1 || step == int(Step::Shadows) ||
+            step == int(Step::Fragment) || step == int(Step::Report) ||
+            (step == int(Step::Complete) && (!claimed || !seal || !treasure)))
+        {
+            loadError = true;
+            return false;
+        }
+        candidate.rewardClaimed = claimed != 0;
+        int visited = 0;
+        if (file >> visited)
+        {
+            if (visited < 0 || visited > 1)
+            {
+                loadError = true;
+                return false;
+            }
+            candidate.shopVisited = visited != 0;
+        }
+        else if (!file.eof())
+        {
+            loadError = true;
+            return false;
+        }
+    }
+    else
+    {
+        file.close();
+        const auto backup = path + L".before_v2.bak";
+        if (GetFileAttributesW(backup.c_str()) == INVALID_FILE_ATTRIBUTES &&
+            !CopyFileW(path.c_str(), backup.c_str(), TRUE))
+        {
+            loadError = true;
+            return false;
+        }
+        candidate.rewardClaimed = candidate.step == Step::Complete;
+        if (candidate.step == Step::Shadows)
+        {
+            candidate.step = Step::Gym;
+        }
+        if (candidate.step == Step::Fragment || candidate.step == Step::Report)
+        {
+            candidate.step = Step::Elite;
+        }
+        if (candidate.step == Step::Complete)
+        {
+            candidate.sealOpened = candidate.treasureTaken = true;
+        }
+    }
     p.Recalculate();
     story = candidate;
     return true;
@@ -233,68 +342,45 @@ void BuildScene()
     graph.Clear();
     builtGym = story.Gym();
     auto& root = graph.Place("school", {}, RenderLayer::Ground);
-    for (int y = 0; y < 14; ++y)
+    SchoolScene::Build(graph, SceneRoom(),
+                       [](ModelId model, const Transform& world)
+                       {
+                           const Point p = Project(world);
+                           graphics->DrawModel(models.Get(model), p.x, p.y,
+                                               Scale() * world.scale * 1.25f,
+                                               Scale() * world.scale * 1.25f);
+                       });
+    Label("school/name", {12, 1, 120}, SchoolLayout::Get(SceneRoom()).name, gold, &root);
+    if (!builtGym && schoolRoom == 0)
     {
-        for (int x = 0; x < 24; ++x)
-        {
-            Color floor = builtGym ? Color{.61f, .42f, .31f} : Color{.65f, .69f, .76f};
-            graph.Place(
-                "floor/" + std::to_string(y * 24 + x), {float(x), float(y)}, RenderLayer::Ground,
-                [floor](const Actor&, const Transform& p)
-                {
-                    Floor(p, 1.005f, 1.005f, floor);
-                },
-                &root);
-        }
-    }
-    for (int i = 0; i < 6; ++i)
-    {
-        graph.Place(
-            "wall/" + std::to_string(i), {i * 4.f, 1}, RenderLayer::World,
-            [](const Actor&, const Transform& p)
-            {
-                Box(p, 3.9f, .3f, 95, {.70f, .75f, .84f});
-                Box({p.x + .6f, p.y + .31f, 40}, 2.4f, .05f, 40, {.36f, .59f, .76f});
-            },
-            &root);
-    }
-    Label("school/name", {12, 1, 115}, builtGym ? "별빛 학교 · 체육관" : "별빛 학교 · 복도", gold,
-          &root);
-    if (!builtGym)
-    {
-        for (int i = 0; i < 3; ++i)
-        {
-            const auto site = Investigations()[i];
-            graph.Place(
-                "station/" + std::to_string(i), {site.x, 1.5f}, RenderLayer::World,
-                [i](const Actor&, const Transform& p)
-                {
-                    Box(p, 1.5f, .6f, 45 + i * 10.f,
-                        i == 0 ? Color{.40f, .55f, .72f} : Color{.61f, .45f, .39f});
-                },
-                &root);
-            Label("station/name/" + std::to_string(i), {site.x, 2, 85}, site.name, paper, &root);
-        }
         auto& yuna = Model("yuna", {3, 11}, ModelId::Yuna, &root);
         Label("yuna/name", {0, 0, 80}, "유나 · 수업 대기", paper, &yuna);
         auto& jisoo = Model("jisoo", {7, 11}, ModelId::Jisoo, &root);
         Label("jisoo/name", {0, 0, 80}, "지수 · 수업 대기", paper, &jisoo);
-        Label("gym/door", {21, 8, 70}, "체육관 입구 [E]", gold, &root);
     }
-    else
+    else if (SceneRoom() == 2)
     {
         graph.Place(
-            "court", {7, 5, 1}, RenderLayer::Ground,
+            "court", {7, 6, 1}, RenderLayer::Ground,
             [](const Actor&, const Transform& p)
             {
-                Floor(p, 10, .06f, paper);
-                Floor({p.x, p.y + 6, 1}, 10, .06f, paper);
-                Floor(p, .06f, 6, paper);
-                Floor({p.x + 10, p.y, 1}, .06f, 6, paper);
-                Floor({p.x + 5, p.y, 1}, .06f, 6, paper);
+                Floor(p, 18, .06f, paper);
+                Floor({p.x, p.y + 15, 1}, 18, .06f, paper);
+                Floor(p, .06f, 15, paper);
+                Floor({p.x + 18, p.y, 1}, .06f, 15, paper);
+                Floor({p.x, p.y + 7.5f, 1}, 18, .06f, paper);
             },
             &root);
-        Label("storage/name", {21, 3, 75}, "봉인된 체육 창고", blue, &root);
+    }
+    for (size_t i = 0; i < TownPopulation::StaffMembers().size(); ++i)
+    {
+        const auto& staff = TownPopulation::StaffMembers()[i];
+        if (staff.kind == 1 && staff.room == SceneRoom())
+        {
+            auto& actor =
+                Model("school/staff/" + std::to_string(i), {staff.x, staff.y}, staff.model, &root);
+            Label("school/staff/name/" + std::to_string(i), {0, 0, 112}, staff.name, paper, &actor);
+        }
     }
     graph.RetainSubtree(root);
 }
@@ -309,19 +395,48 @@ void EnterStep(bool retry = false)
                      : story.step == Step::Elite ? MainQuest::Step::Boss
                                                  : MainQuest::Step::Complete;
     combat.Enter(encounter);
+    combat.variedSkills = true;
+    if (story.step == Step::Shadows)
+    {
+        const int kinds[] = {1, 4, 9};
+        for (size_t i = 0; i < combat.enemies.size(); ++i)
+        {
+            auto& enemy = combat.enemies[i];
+            enemy.kind = kinds[i % 3];
+            enemy.position = {12.f + float(i) * 7, 7.f + float(i % 2)};
+            enemy.health = 24.f + story.progress.stats.level * 6;
+            enemy.timer = 1.f + float(i) * .4f;
+        }
+    }
     if (story.step == Step::Elite && !combat.enemies.empty())
     {
-        combat.enemies.front().health = 220;
+        combat.enemies.front().health = 220.f + (story.progress.stats.level - 1) * 24;
     }
     if (retry || builtGym != story.Gym())
     {
-        player = {3, 9};
+        schoolRoom = story.step == Step::Reaction ? 4 : story.step == Step::Gym ? 2 : 0;
+        player = story.step == Step::Reaction
+                     ? Point{SchoolLayout::IntroPlayerX, SchoolLayout::IntroPlayerY}
+                 : story.Gym() || story.step == Step::Gym ? Places::GymEntry
+                                                          : Point{3, 9};
         camera = player;
+        if (story.step == Step::Reaction)
+        {
+            camera.y = 7.f;
+            introTime = 0;
+        }
     }
-    if (graph.Find("school") == nullptr || builtGym != story.Gym())
+    if (retry)
     {
-        BuildScene();
+        magicalForm = false;
     }
+    awaitingHall = story.step == Step::Shadows && schoolRoom != 0;
+    transformation.remaining = 0;
+    if (story.step == Step::Elite && !magicalForm)
+    {
+        transformation.Start();
+    }
+    BuildScene();
     keys.fill(false);
     moving = false;
     saveOk = Save();
@@ -334,6 +449,37 @@ void Talk(const std::string& name, const std::string& text)
     dialogue = text;
     keys.fill(false);
     moving = false;
+}
+
+void RestartStory()
+{
+    if (!available || !loaded || loadError)
+    {
+        return;
+    }
+    Performance::Scope scope("cpu.quest_two.restart_ms");
+    const auto path = RuntimeFiles::Path(L"main_quest_002.txt");
+    SYSTEMTIME now{};
+    GetLocalTime(&now);
+    wchar_t suffix[96];
+    swprintf_s(suffix, L".restart-%04d%02d%02d-%02d%02d%02d-%03d.bak", now.wYear, now.wMonth,
+               now.wDay, now.wHour, now.wMinute, now.wSecond, now.wMilliseconds);
+    const auto backup = path + suffix;
+    if (path.empty() || (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES &&
+                         !CopyFileW(path.c_str(), backup.c_str(), TRUE)))
+    {
+        Talk("다시 시작 실패", "기존 저장을 백업하지 못했어. 현재 진행은 그대로 유지했어.");
+        return;
+    }
+    story.Restart();
+    dialogue.clear();
+    pendingAdvance = false;
+    pendingClue = -1;
+    worldRequested = false;
+    introTime = 0;
+    paused = false;
+    EnterStep(true);
+    Performance::Profiler::Get().Count("quest_two.story_restarts_count");
 }
 
 void Interact()
@@ -360,18 +506,115 @@ void Interact()
         {
             saveOk = Save();
         }
+        if (story.step == Step::Complete && story.treasureTaken)
+        {
+            worldRequested = true;
+            keys.fill(false);
+        }
         return;
     }
     if (combat.actions.height > 0)
     {
         return;
     }
+    if (transformation.Active())
+    {
+        return;
+    }
+    if (story.step == Step::Reaction)
+    {
+        if (introTime >= 4.f)
+        {
+            story.Advance(MainQuest::Event::Interact);
+            EnterStep();
+        }
+        return;
+    }
+    if (story.step == Step::Complete && story.treasureTaken)
+    {
+        saveOk = Save();
+        worldRequested = true;
+        keys.fill(false);
+        return;
+    }
+    if (!story.Fighting() && Distance(player, RoomExit()) < 2.1f &&
+        (story.Gym() || schoolRoom == 0))
+    {
+        saveOk = Save();
+        worldRequested = true;
+        keys.fill(false);
+        return;
+    }
+    if (!story.Gym() && (!story.Fighting() || awaitingHall))
+    {
+        if (schoolRoom != 0 && Distance(player, RoomExit()) < 2.1f)
+        {
+            if (story.step == Step::Reaction)
+            {
+                Talk("루미", "먼저 창가 쪽으로 와서 검은 조각의 반응을 확인하자.");
+                return;
+            }
+            for (const auto& door : SchoolLayout::Doors())
+            {
+                if (door.room == schoolRoom)
+                {
+                    player = {door.x, door.y + 2};
+                    break;
+                }
+            }
+            schoolRoom = 0;
+            if (awaitingHall)
+            {
+                awaitingHall = false;
+                transformation.remaining = 0;
+            }
+            camera = player;
+            keys.fill(false);
+            BuildScene();
+            return;
+        }
+        if (schoolRoom == 0)
+        {
+            for (const auto& door : SchoolLayout::Doors())
+            {
+                if (Distance(player, {door.x, door.y}) >= 2.f)
+                {
+                    continue;
+                }
+                if (door.room == 2)
+                {
+                    if (story.step == Step::Gym)
+                    {
+                        schoolRoom = 2;
+                        player = Places::GymEntry;
+                        camera = player;
+                        keys.fill(false);
+                        BuildScene();
+                    }
+                    else
+                    {
+                        Talk("체육관",
+                             "먼저 복도, 도서관, 방송실의 흔적을 확인하고 그림자를 물리치자.");
+                    }
+                    return;
+                }
+                schoolRoom = door.room;
+                const auto& room = SchoolLayout::Get(schoolRoom);
+                player = {room.width * .5f, room.height - 3.f};
+                camera = player;
+                keys.fill(false);
+                BuildScene();
+                return;
+            }
+        }
+    }
     if (story.step == Step::Investigate)
     {
         for (unsigned i = 0; i < 3; ++i)
         {
             const auto& site = Investigations()[i];
-            if (!(story.clues & (1u << i)) && Distance(player, {site.x, site.y}) < 1.8f)
+            const bool inRoom = schoolRoom == site.room;
+            if (inRoom && !(story.clues & (1u << i)) && Distance(player, CluePosition(i)) < 2.3f)
             {
                 pendingClue = int(i);
                 Talk(site.name, site.text);
@@ -380,23 +623,39 @@ void Interact()
         }
     }
     const auto& goal = story.Current();
+    if (!story.Gym() && schoolRoom != 0 && story.step != Step::Reaction && story.step != Step::Gym)
+    {
+        return;
+    }
     if (story.step != Step::Complete && story.step != Step::Investigate &&
-        goal.event == MainQuest::Event::Interact && Distance(player, {goal.x, goal.y}) < 1.8f)
+        goal.event == MainQuest::Event::Interact && Distance(player, {goal.x, goal.y}) < 2.3f)
     {
         pendingAdvance = true;
         Talk(goal.speaker, goal.dialogue);
         return;
     }
-    if (story.step == Step::Complete && Distance(player, {21, 4}) < 1.8f && story.TakeTreasure())
+    if (story.step == Step::Complete && Distance(player, Places::Treasure) < 1.8f &&
+        story.TakeTreasure())
     {
         saveOk = Save();
         Talk(
             "창고의 작은 보상",
-            "정화 마법으로 열린 길! 마력석 2개와 마나 물약 2개를 얻었다. 다음 목적지는 미아의 가게다.");
+            "체력 물약 2개와 마나 물약 2개를 얻었다. 학교의 악몽은 사라졌다! [E]를 누르면 마을로 돌아갑니다.");
         return;
     }
+    for (const auto& staff : TownPopulation::StaffMembers())
+    {
+        if (staff.kind == 1 && staff.room == SceneRoom() &&
+            Distance(player, {staff.x, staff.y}) < 1.6f)
+        {
+            Talk(staff.name, story.step == Step::Complete
+                                 ? "이상한 소리가 멈췄구나. 다친 친구는 없니?"
+                                 : "학생들은 안전한 곳으로 이동시켰어. 체육관 쪽 소리를 조심하렴.");
+            return;
+        }
+    }
     // Repeatable, capped supplies prevent an empty inventory from blocking the story.
-    if (Distance(player, {2, 9}) < 1.5f)
+    if (Distance(player, SupplyPosition()) < 1.5f)
     {
         story.progress.potions = (std::max)(3, story.progress.potions);
         story.progress.manaPotions = (std::max)(3, story.progress.manaPotions);
@@ -438,6 +697,11 @@ void DrawHud()
     Performance::Scope scope("cpu.quest_two.hud_ms");
     Panel(22, 20, 1000, 150);
     Text(42, 52, "메인 퀘스트 2 · 학교에 숨어든 것", 25, pink);
+    if (available && loaded && !loadError)
+    {
+        Panel(1040, 30, 215, 40, {.25f, .14f, .3f});
+        Text(1054, 57, "처음부터 [B]", 17, gold);
+    }
     if (!available)
     {
         Text(42, 90, "F3에서 퀘스트 1과 다음 날 교실의 마지막 대화를 완료하세요.", 20, gold);
@@ -449,10 +713,13 @@ void DrawHud()
              gold);
         return;
     }
-    Text(42, 88, story.Current().text, 19, gold);
+    Text(42, 88,
+         awaitingHall              ? "조사 완료 · 출입문 [E]로 중앙 복도에 돌아가세요."
+         : transformation.Active() ? "별빛 변신 중 · 연출 후 Q로 전투가 시작됩니다."
+                                   : story.Current().text,
+         19, gold);
     std::string detail = "조사 " + std::to_string(story.ClueCount()) + "/3 · 검은 조각 " +
-                         std::to_string(story.fragments) + " · 마력석 " +
-                         std::to_string(story.progress.crystals);
+                         std::to_string(story.fragments);
     if (story.Fighting())
     {
         int alive = 0;
@@ -462,10 +729,14 @@ void DrawHud()
         }
         detail += " · 남은 적 " + std::to_string(alive);
     }
-    Text(42, 120, detail, 17);
+    Text(42, 120, detail + " · " + SchoolLayout::Get(SceneRoom()).name, 17);
     Text(42, 150,
-         story.step == Step::Complete ? "다음 퀘스트: 미아를 찾아서 (#20은 아직 미구현)"
-                                      : "[E] 조사/대화 · 물약이 부족하면 입구의 루미 보급함 이용",
+         story.step == Step::Complete && story.treasureTaken
+             ? "[E]로 마을 귀환 · 편의점 직원에게 물약 구매 가능"
+         : story.step == Step::Complete && story.sealOpened
+             ? "봉인 해제 완료 · 보급품에 가까이 가서 [E]"
+         : story.step == Step::Complete ? "창고의 보라색 봉인에 가까이 가서 [2] 정화"
+                                        : "[E] 조사/대화 · 물약이 부족하면 입구의 루미 보급함 이용",
          16, blue);
     Panel(22, 212, 152, 354);
     Meter(48, "체력", combat.health, float(story.progress.stats.maxHealth), pink, 'Z',
@@ -476,39 +747,71 @@ void DrawHud()
     Text(42, 740,
          "WASD 이동 · Shift 달리기 · Space 점프 · Q 공격 · 1 별빛 폭발 · Z/X 물약 · E 조사", 17);
     Text(42, 770,
-         "ESC 메뉴 · N 전투 재시도 · F1 튜토리얼 · F2 사냥터 · F3 이전 이야기 · F4 퀘스트2", 16,
+         "ESC 메뉴 · N 재시도 · F1 마을 · F2 사냥터 · F3 이전 이야기 · F4 퀘스트2 · F6 마을", 16,
          pink);
-    if (!paused && !combat.Dead() && dialogue.empty() && !story.Fighting() &&
-        !(story.step == Step::Complete && story.treasureTaken))
+    if (!paused && !combat.Dead() && dialogue.empty() && (!story.Fighting() || awaitingHall) &&
+        !transformation.Active() && story.step != Step::Reaction && available)
     {
         const auto& objective = story.Current();
         Point target{objective.x, objective.y};
+        std::string targetHint = "목표 · [E] 조사";
         if (story.step == Step::Investigate)
         {
             float nearest = 1000;
             for (unsigned i = 0; i < 3; ++i)
             {
-                const auto& site = Investigations()[i];
-                const float distance = Distance(player, {site.x, site.y});
+                if (schoolRoom != 0 && schoolRoom != Investigations()[i].room)
+                {
+                    continue;
+                }
+                const Point site = CluePosition(i);
+                const float distance = Distance(player, site);
                 if (!(story.clues & (1u << i)) && distance < nearest)
                 {
                     nearest = distance;
-                    target = {site.x, site.y};
+                    target = site;
+                    targetHint = std::string("목표 · [E] ") + Investigations()[i].name;
                 }
+            }
+            if (nearest == 1000)
+            {
+                target = RoomExit();
+                targetHint = "목표 · [E] 복도로";
             }
         }
         if (story.step == Step::Complete)
         {
-            target = story.sealOpened ? Point{21, 4} : Point{19, 5};
+            targetHint = story.treasureTaken ? "목표 · [E] 마을로"
+                         : story.sealOpened  ? "목표 · [E] 보급품"
+                                             : "목표 · [2] 정화";
+            target = story.treasureTaken ? player
+                     : story.sealOpened  ? Places::Treasure
+                                         : Places::Seal;
+        }
+        if (!story.Gym() && schoolRoom != 0 && story.step != Step::Investigate &&
+            story.step != Step::Reaction && story.step != Step::Gym)
+        {
+            target = RoomExit();
+            targetHint = "목표 · [E] 복도로";
+        }
+        if (awaitingHall)
+        {
+            target = RoomExit();
+            targetHint = "목표 · [E] 복도로 돌아가 변신";
+        }
+        if (story.step == Step::Gym && schoolRoom == 0)
+        {
+            target = {33, 3};
+            targetHint = "목표 · [E] 체육관으로";
         }
         Point p = Project({target.x, target.y, 85});
         const Point low = Screen(240, 205), high = Screen(1200, 660);
         p.x = (std::max)(low.x, (std::min)(high.x, p.x));
         p.y = (std::max)(low.y, (std::min)(high.y, p.y));
-        graphics->Nameplate(p.x, p.y,
-                            story.step == Step::Complete && !story.sealOpened ? "목표 · [2] 정화"
-                                                                              : "목표 · [E] 조사",
-                            18 * Scale(), gold.r, gold.g, gold.b);
+        const std::string text = Distance(player, target) <= 2.3f
+                                     ? targetHint.substr(std::string("목표 · ").size())
+                                     : "목표";
+        graphics->Nameplate(p.x, p.y, text, 16 * Scale(), gold.r, gold.g, gold.b);
     }
     if (!saveOk)
     {
@@ -539,6 +842,20 @@ void DrawHud()
         }
         Text(225, 505 + row * 28.f, line, 19);
         Text(1000, 609, "[E] 계속", 18, gold);
+    }
+    if (transformation.Active())
+    {
+        Panel(390, 580, 610, 64);
+        Text(420, 622, "별빛이여, 깨어나라!", 27, pink);
+    }
+    if (story.step == Step::Reaction)
+    {
+        Panel(260, 460, 790, 120);
+        Text(285, 501, "루미: 창밖에… 어제 골목에서 본 그림자야!", 22, pink);
+        Text(285, 548,
+             introTime < 4.f ? "연출 중 · 잠시 기다려주세요"
+                             : "[E] 확인 · 학교의 이상 현상 조사 시작",
+             18, gold);
     }
     if (combat.Dead() || paused)
     {
@@ -593,6 +910,168 @@ void Pause()
     keys.fill(false);
 }
 
+bool ConsumeWorldRequest()
+{
+    const bool requested = worldRequested;
+    worldRequested = false;
+    return requested;
+}
+
+void Mouse(int x, int y)
+{
+    const float scale = Scale();
+    const float localX = (x - (width - 1280 * scale) * .5f) / scale;
+    const float localY = (y - (height - 800 * scale) * .5f) / scale;
+    if (localX >= 1040 && localX <= 1255 && localY >= 30 && localY <= 70)
+    {
+        RestartStory();
+    }
+}
+
+bool Finished()
+{
+    return available && loaded && !loadError && story.step == Step::Complete && story.treasureTaken;
+}
+
+bool NeedsPotionShop()
+{
+    return Finished() && !story.shopVisited;
+}
+
+bool ShopProgress(Rpg::Progress& progress)
+{
+    if (!Finished())
+    {
+        return false;
+    }
+    progress = story.progress;
+    return true;
+}
+
+bool BuyPotion(bool magic, std::string& message)
+{
+    if (!Finished())
+    {
+        message = "학교 사건을 해결하면 물약 판매가 시작됩니다.";
+        return false;
+    }
+    Performance::Scope scope("cpu.shop.purchase_ms");
+    const auto previous = story.progress;
+    const bool visited = story.shopVisited;
+    if (!story.progress.BuyPotion(magic))
+    {
+        message = (magic ? story.progress.manaPotions : story.progress.potions) >= 99
+                      ? "물약은 99개까지 보유할 수 있습니다."
+                      : "골드가 부족합니다. 체력 물약 20골드 / 마나 물약 25골드";
+        return false;
+    }
+    story.shopVisited = true;
+    saveOk = Save();
+    if (!saveOk)
+    {
+        story.progress = previous;
+        story.shopVisited = visited;
+        message = "구매 저장 실패로 골드와 물약을 원래대로 복구했습니다.";
+        return false;
+    }
+    message = std::string(magic ? "마나 물약 +1" : "체력 물약 +1") + " · 남은 골드 " +
+              std::to_string(story.progress.coins);
+    Performance::Profiler::Get().Count("shop.potions_purchased_count");
+    return true;
+}
+
+void StoreWorldPotions(int healthPotions, int magicPotions)
+{
+    if (!Finished())
+    {
+        return;
+    }
+    story.progress.potions = (std::max)(0, (std::min)(99, healthPotions));
+    story.progress.manaPotions = (std::max)(0, (std::min)(99, magicPotions));
+    saveOk = Save();
+}
+
+bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, float& x, float& y,
+                     std::string& label)
+{
+    if (!available || !loaded || loadError || (story.step == Step::Complete && story.treasureTaken))
+    {
+        return false;
+    }
+    room = story.step == Step::Reaction ? 4 : story.step >= Step::Gym ? 2 : 0;
+    Point target{story.Current().x, story.Current().y};
+    label = story.Current().text;
+    if (story.step == Step::Investigate)
+    {
+        float best = 10000;
+        for (unsigned i = 0; i < Investigations().size(); ++i)
+        {
+            if (story.clues & (1u << i))
+            {
+                continue;
+            }
+            const auto& site = Investigations()[i];
+            Point route{site.x, site.y};
+            if (currentRoom == 0 && site.room != 0)
+            {
+                for (const auto& door : SchoolLayout::Doors())
+                {
+                    if (door.room == site.room)
+                    {
+                        route = {door.x, door.y};
+                    }
+                }
+            }
+            const float distance =
+                site.room == currentRoom ? -1.f : Distance({playerX, playerY}, route);
+            if (distance < best)
+            {
+                best = distance;
+                room = site.room;
+                target = {site.x, site.y};
+                label = std::string(site.name) + "[E]";
+            }
+        }
+    }
+    if (story.step == Step::Complete)
+    {
+        target = story.sealOpened ? Places::Treasure : Places::Seal;
+        label = story.sealOpened ? "체육관 창고 보급품[E]" : "체육관 창고 봉인[2]";
+    }
+    x = target.x;
+    y = target.y;
+    return true;
+}
+
+void EnterFromSchool(int room, float x, float y)
+{
+    if (!available || !loaded || loadError)
+    {
+        return;
+    }
+    if ((story.Gym() || story.step == Step::Gym) && room != 2)
+    {
+        return;
+    }
+    schoolRoom = room;
+    player = {x, y};
+    if (!Walkable(player))
+    {
+        player = story.Gym() || room == 2
+                     ? Places::GymEntry
+                     : Point{SchoolLayout::IntroPlayerX, SchoolLayout::IntroPlayerY};
+    }
+    if (awaitingHall && room == 0)
+    {
+        awaitingHall = false;
+        transformation.remaining = 0;
+    }
+    camera = player;
+    keys.fill(false);
+    paused = false;
+    BuildScene();
+}
+
 void Key(unsigned char key, bool down)
 {
     if (key >= 'A' && key <= 'Z')
@@ -603,6 +1082,11 @@ void Key(unsigned char key, bool down)
     keys[key] = down;
     if (!fresh || !available || !loaded || loadError)
     {
+        return;
+    }
+    if (key == 'b')
+    {
+        RestartStory();
         return;
     }
     if (key == 27)
@@ -633,6 +1117,14 @@ void Key(unsigned char key, bool down)
     {
         return;
     }
+    if (story.step == Step::Reaction)
+    {
+        return;
+    }
+    if (transformation.Active() || awaitingHall)
+    {
+        return;
+    }
     if (key == ' ')
     {
         combat.actions.Jump();
@@ -640,12 +1132,6 @@ void Key(unsigned char key, bool down)
     if (key == '1' && story.Fighting())
     {
         combat.Burst(player, encounter);
-    }
-    if (key == '2' && Distance(player, {19, 5}) < 3 && story.OpenSeal())
-    {
-        saveOk = Save();
-        Performance::Profiler::Get().Count("quest_two.seals_opened");
-        Talk("별빛 정화", "봉인이 사라졌다! 창고 안의 빛나는 마력석을 E로 조사하자.");
     }
     if (key == 'z' && combat.UsePotion(encounter))
     {
@@ -663,11 +1149,33 @@ void Key(unsigned char key, bool down)
 void Update(float dt)
 {
     Performance::Scope scope("cpu.quest_two.update_ms");
-    if (!available || !loaded || loadError || paused || !dialogue.empty() || combat.Dead())
+    if (!available || !loaded || loadError || paused || combat.Dead())
+    {
+        return;
+    }
+    if (story.step == Step::Reaction)
+    {
+        introTime += dt;
+        camera = {SchoolLayout::IntroPlayerX, 7.f};
+        moving = false;
+        return;
+    }
+    if (!dialogue.empty())
     {
         return;
     }
     clockTime += dt;
+    if (transformation.Active())
+    {
+        if (transformation.Update(dt))
+        {
+            magicalForm = true;
+            keys.fill(false);
+            Performance::Profiler::Get().Count("quest_two.transformations_finished_count");
+        }
+        moving = false;
+        return;
+    }
     float horizontal = float(keys['d']) - float(keys['a']);
     float vertical = float(keys['s']) - float(keys['w']);
     float length = std::hypot(horizontal, vertical);
@@ -679,6 +1187,7 @@ void Update(float dt)
         Point direction{(horizontal + vertical) / (length * 1.41421356f),
                         (vertical - horizontal) / (length * 1.41421356f)};
         Point before = player;
+        facingDirection = direction;
         MainQuest::Combat::Move(player, direction, (running ? 5.f : 2.8f) * dt, Walkable);
         moving = Distance(before, player) > .0001f;
         if (horizontal != 0)
@@ -687,8 +1196,11 @@ void Update(float dt)
         }
         walkFrame += dt * (running ? 13 : 9);
     }
-    combat.Update(dt, player, encounter, Walkable);
-    if (story.Fighting() && !combat.Dead())
+    if (!awaitingHall)
+    {
+        combat.Update(dt, player, encounter, Walkable);
+    }
+    if (BattleReady() && !combat.Dead())
     {
         bool alive = false;
         for (const auto& enemy : combat.enemies)
@@ -697,17 +1209,24 @@ void Update(float dt)
         }
         if (!alive)
         {
+            const bool alreadyRewarded = story.rewardClaimed;
             story.Advance(MainQuest::Event::Defeat);
             EnterStep();
+            Talk(
+                "학교 사건 해결",
+                alreadyRewarded
+                    ? "체육관의 악몽을 다시 물리쳤다! 기존 성장과 보상은 유지된다. E로 마을로 돌아가자."
+                    : "체육관의 악몽이 사라졌다! 경험치 180, 골드 150, 물약을 받았다. E로 마을에 돌아가 편의점에서 물약을 구입하자.");
         }
         else if (keys['q'])
         {
-            combat.Attack(player, mirror, encounter, combat.actions.height);
+            combat.Attack(player, facingDirection, encounter, combat.actions.height, Walkable);
         }
     }
     float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x - camera.x) * follow;
-    camera.y += (player.y - camera.y) * follow;
+    const float focusY = story.step == Step::Reaction && introTime < 4.f ? 7.f : player.y;
+    camera.y += (focusY - camera.y) * follow;
     Performance::Profiler::Get().Gauge("quest_two.step_index", int(story.step));
 }
 
@@ -717,77 +1236,94 @@ void Draw()
     graph.BeginSync();
     if (available && loaded && !loadError)
     {
+        if (!story.Fighting() && story.step != Step::Complete && (story.Gym() || schoolRoom == 0) &&
+            Distance(player, RoomExit()) <= 2.1f)
+        {
+            const Point exit = RoomExit();
+            Label("world/exit", {exit.x, exit.y, 75}, "[E] 마을로 나가기", gold);
+        }
         auto& hero = graph.Place("hero", {player.x, player.y}, RenderLayer::World);
         Model("hero/shadow", {}, ModelId::Shadow, &hero, false, RenderLayer::Shadow);
-        bool magical = story.step >= Step::Shadows;
+        bool magical = magicalForm;
         ModelId model =
             magical
                 ? static_cast<ModelId>(CharacterVisual::FrameIndex(combat.cast, moving, walkFrame))
                 : static_cast<ModelId>(int(ModelId::StudentIdle) +
                                        (moving ? 1 + int(walkFrame) % 4 : 0));
-        bool castMirror = combat.cast > 0 ? combat.castMirror : mirror;
-        Model("hero/body", {0, 0, combat.actions.height}, model, &hero, castMirror);
-        if (magical && combat.cast > 0)
+        const auto morph =
+            Transformation::Sample(Transformation::Duration - transformation.remaining,
+                                   facingDirection.x, facingDirection.y);
+        if (transformation.Active())
         {
-            Transform socket = CharacterVisual::WandSocket(true, castMirror, 40);
+            model = morph.model;
+            Glow("hero/transformation", {0, 0, 40}, morph.glow, &hero, RenderLayer::Shadow);
+        }
+        bool castMirror = combat.cast > 0 ? combat.castMirror : mirror;
+        const Point look = transformation.Active() ? Point{morph.x, morph.y}
+                           : combat.cast > 0       ? combat.castDirection
+                                                   : facingDirection;
+        graph.Place(
+            "hero/body", {0, 0, combat.actions.height + (transformation.Active() ? morph.lift : 0)},
+            RenderLayer::World,
+            [model, look, castMirror](const Actor&, const Transform& world)
+            {
+                const Point p = Project(world);
+                graphics->DrawModel(models.GetFacing(model, look.x, look.y), p.x, p.y,
+                                    Scale() * (models.loadedFromResource ? 1.f
+                                               : castMirror              ? -1.f
+                                                                         : 1.f),
+                                    Scale());
+            },
+            &hero);
+        if (combat.cast > 0)
+        {
+            Transform socket = CharacterVisual::FacingSocket(true, look.x, look.y, 40);
             socket.z += combat.actions.height;
             Glow("hero/wand", socket, 24, &hero);
         }
-        auto& lumi = Model("lumi", {3, 8, 28 + 4 * std::sin(clockTime * 3)}, ModelId::Lumi);
+        const Point lumiPosition = LumiPosition();
+        auto& lumi =
+            Model("lumi", {lumiPosition.x, lumiPosition.y, 28 + 4 * std::sin(clockTime * 3)},
+                  ModelId::Lumi);
         Label("lumi/name", {0, 0, 60}, "루미", paper, &lumi);
-        Model("supplies", {2, 9}, ModelId::Potion);
-        Label("supplies/name", {2, 9, 50}, "루미 보급함 [E]", blue);
-        if (story.step == Step::Investigate)
+        if (story.step == Step::Reaction && introTime < 4.f)
         {
-            for (unsigned i = 0; i < 3; ++i)
-            {
-                if (story.clues & (1u << i))
-                {
-                    continue;
-                }
-                const auto& site = Investigations()[i];
-                Glow("clue/" + std::to_string(i), {site.x, site.y, 22}, 45);
-                Label("clue/name/" + std::to_string(i), {site.x, site.y, 60},
-                      std::string(site.name) + " [E]", gold);
-            }
+            Model("intro/window_shadow",
+                  {SchoolLayout::IntroWindowX - .45f + introTime / 4.f * .9f,
+                   SchoolLayout::IntroWindowY, 75, .45f},
+                  MonsterAnimation::Model(1, introTime, 0), nullptr, false, RenderLayer::Overlay);
         }
-        if (story.step == Step::Fragment)
+        if (story.Gym() || schoolRoom == 0)
         {
-            Model("fragment", {15, 8, 15}, ModelId::BlackFragment);
-            Glow("fragment/glow", {15, 8, 30}, 50);
-        }
-        if (story.Gym() && !story.sealOpened)
-        {
-            graph.Place("storage/seal", {19, 3}, RenderLayer::World,
-                        [](const Actor&, const Transform& p)
-                        {
-                            Box(p, .1f, 3, 70, {.55f, .35f, .90f, .65f});
-                            Box({19, 6}, 4, .1f, 70, {.55f, .35f, .90f, .65f});
-                        });
-            Label("storage/hint", {19, 5, 85},
-                  story.step == Step::Complete ? "[2] 별빛 정화" : "강한 봉인 · 아직 해제 불가",
-                  gold);
-        }
-        if (story.Gym() && !story.treasureTaken)
-        {
-            Model("treasure", {21, 4, 15}, ModelId::Crystal);
-            Label("treasure/name", {21, 4, 55}, "숨겨진 보상 [E]", gold);
+            const Point supplies = SupplyPosition();
+            Model("supplies", {supplies.x, supplies.y, 0, .75f}, ModelId::HealthPotion);
+            Model("supplies/mana", {supplies.x + .5f, supplies.y, 0, .75f}, ModelId::ManaPotion);
+            Label("supplies/name", {supplies.x, supplies.y, 50}, "루미 보급함[E]", blue);
         }
         for (size_t i = 0; i < combat.enemies.size(); ++i)
         {
             const auto enemy = combat.enemies[i];
-            if (enemy.health <= 0)
+            if (enemy.health <= 0 || !BattleReady())
             {
                 continue;
             }
             std::string id = "enemy/" + std::to_string(i);
             auto& actor =
                 Model(id, {enemy.position.x, enemy.position.y, 0, enemy.boss ? 1.3f : 1.f},
-                      enemy.boss ? ModelId::ShadowEater : ModelId::Shade0);
+                      MonsterAnimation::FacingModel(
+                          enemy.boss ? 11 : enemy.kind, clockTime,
+                          enemy.boss ? MonsterAnimation::BossMotion(enemy.phase, enemy.timer)
+                                     : enemy.attackMotion,
+                          enemy.facing.x, enemy.facing.y));
             Model(id + "/shadow", {}, ModelId::Shadow, &actor, false, RenderLayer::Shadow);
+            if (!enemy.boss && enemy.attackMotion > MonsterAnimation::ImpactRemaining)
+            {
+                Label(id + "/skill", {0, 0, 112}, MonsterSkills::Get(enemy.kind).warning, gold,
+                      &actor);
+            }
             Label(id + "/hp", {0, 0, enemy.boss ? 140.f : 75.f},
-                  std::string(enemy.boss ? "강화 그림자 " : "그림자 ") +
-                      std::to_string(int(enemy.health)),
+                  std::string(enemy.boss ? "체육관의 악몽 " : MonsterAnimation::Name(enemy.kind)) +
+                      " " + std::to_string(int(enemy.health)),
                   pink, &actor);
             if (enemy.boss && enemy.phase == 1)
             {
@@ -813,10 +1349,50 @@ void Draw()
         }
         for (const auto& shot : combat.shots)
         {
-            auto pose = CharacterVisual::SpellPose(shot.position.x, shot.position.y, shot.age,
-                                                   shot.mirror, 40);
+            auto pose = CharacterVisual::FacingSpellPose(shot.position.x, shot.position.y, shot.age,
+                                                         shot.direction.x, shot.direction.y, 40);
             pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
             Glow("shot/" + std::to_string(shot.id), pose, CharacterVisual::SpellSize);
+        }
+        {
+            Performance::Scope skillScope("cpu.quest_two.enemy_skills_sync_ms");
+            auto& effects = graph.Place("hostile/skills", {}, RenderLayer::World);
+            for (const auto& shot : combat.hostileShots)
+            {
+                graph.Place(
+                    "hostile/shot/" + std::to_string(shot.id),
+                    {shot.position.x, shot.position.y, 27}, RenderLayer::World,
+                    [](const Actor&, const Transform& p)
+                    {
+                        Box(p, .2f, .2f, 16, {.92f, .25f, .56f});
+                    },
+                    &effects);
+            }
+            for (const auto& poison : combat.poisonZones)
+            {
+                graph.Place(
+                    "hostile/poison/" + std::to_string(poison.id),
+                    {poison.position.x, poison.position.y, 1}, RenderLayer::Ground,
+                    [poison](const Actor&, const Transform& p)
+                    {
+                        const Color color = poison.age < MonsterSkills::Poison::Warning
+                                                ? Color{1, .3f, .4f, .65f}
+                                                : Color{.3f, .8f, .25f, .6f};
+                        for (int i = 0; i < 24; ++i)
+                        {
+                            const float a = i * 6.2831853f / 24;
+                            const float b = (i + 1) * 6.2831853f / 24;
+                            const float radius = MonsterSkills::Poison::Radius;
+                            Triangle(Project(p),
+                                     Project({p.x + std::cos(a) * radius,
+                                              p.y + std::sin(a) * radius, p.z}),
+                                     Project({p.x + std::cos(b) * radius,
+                                              p.y + std::sin(b) * radius, p.z}),
+                                     color);
+                        }
+                    },
+                    &effects);
+            }
         }
         if (combat.burst > 0)
         {
@@ -859,24 +1435,34 @@ WorldMonitor::Scene MonitorSnapshot()
     {
         return snapshot;
     }
+    const Point lumi = LumiPosition();
     snapshot.npcs.push_back({"NPC_LUMI", "루미",
-                             !dialogue.empty() && speaker == "루미" ? "대화 중" : "안내 대기", 3, 8,
-                             28, true});
+                             !dialogue.empty() && speaker == "루미" ? "대화 중" : "안내 대기",
+                             lumi.x, lumi.y, 28, true});
     snapshot.npcs.push_back({"NPC_YUNA", "유나",
                              !dialogue.empty() && speaker == "유나" ? "대화 중" : "수업 대기", 3,
-                             11, 0, !story.Gym()});
+                             11, 0, !story.Gym() && schoolRoom == 0});
     snapshot.npcs.push_back({"NPC_JISOO", "지수",
                              !dialogue.empty() && speaker == "지수" ? "대화 중" : "수업 대기", 7,
-                             11, 0, !story.Gym()});
+                             11, 0, !story.Gym() && schoolRoom == 0});
     for (const auto& enemy : combat.enemies)
     {
         enemy.health > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
     }
     snapshot.towns.push_back(
         {"school",
-         story.Gym() ? "학교 체육관" : "학교 복도",
+         SchoolLayout::Get(SceneRoom()).name,
          story.step == Step::Complete ? "사건 해결 · 일상 회복" : "학교 안에서 이상 현상 발생",
          {"사물함, 도서관, 방송실의 흔적이 체육관으로 이어진다."}});
+    for (const auto& staff : TownPopulation::StaffMembers())
+    {
+        if (staff.kind == 1 && staff.room == SceneRoom())
+        {
+            snapshot.npcs.push_back({"MQ2_STAFF_" + std::to_string(staff.room), staff.name,
+                                     story.step == Step::Complete ? "수업 재개" : "학생 대피 안내",
+                                     staff.x, staff.y, 0, true});
+        }
+    }
     return snapshot;
 }
 } // namespace QuestTwo

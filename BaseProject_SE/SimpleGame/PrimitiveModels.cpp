@@ -3,9 +3,11 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include "PrimitiveModels.h"
 #include "RuntimeFiles.h"
 #include "CharacterVisual.h"
+#include "BuildingVisuals.h"
 
 namespace Hunting
 {
@@ -78,6 +80,15 @@ void PrimitiveModels::Initialize()
         return;
     }
     Performance::Scope scope("cpu.assets.models_initialize_ms");
+    loadedFromResource = LoadResource();
+    if (loadedFromResource)
+    {
+        loadedFromFile = true;
+        m_Initialized = true;
+        return;
+    }
+    std::cerr << "Resource mesh pack missing or invalid: resource/runtime/school_models.bin\n";
+    Performance::Profiler::Get().Count("assets.resource_fallback_count");
     loadedFromFile = Load();
     if (!loadedFromFile)
     {
@@ -87,10 +98,165 @@ void PrimitiveModels::Initialize()
     m_Initialized = true;
 }
 
+const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetFacing(ModelId id, float x,
+                                                                     float y) const
+{
+    const int value = static_cast<int>(id);
+    if (loadedFromResource && (id == ModelId::SchoolGuard || id == ModelId::StoreClerk))
+    {
+        const ModelId base = id == ModelId::SchoolGuard ? ModelId::Security_GuardView0
+                                                        : ModelId::Convenience_ClerkView0;
+        return Get(static_cast<ModelId>(int(base) + CharacterVisual::FacingSector(x, y)));
+    }
+    if (loadedFromResource && value >= int(ModelId::Villager_01View0) &&
+        value <= int(ModelId::Convenience_ClerkView7))
+    {
+        const int base = value - (value - int(ModelId::Villager_01View0)) % 8;
+        return Get(static_cast<ModelId>(base + CharacterVisual::FacingSector(x, y)));
+    }
+    const ModelId characters[] = {ModelId::Yuna, ModelId::Jisoo, ModelId::SchoolGuard,
+                                  ModelId::StoreClerk};
+    for (int i = 0; i < 4; ++i)
+    {
+        if (loadedFromResource && id == characters[i])
+        {
+            return Get(static_cast<ModelId>(int(ModelId::YunaFacing0) + i * 8 +
+                                            CharacterVisual::FacingSector(x, y)));
+        }
+    }
+    const int student = static_cast<int>(ModelId::StudentIdle);
+    const int pose = value < 6                                 ? value
+                     : value >= student && value < student + 5 ? 6 + value - student
+                                                               : -1;
+    if (loadedFromResource && pose >= 0)
+    {
+        return m_FacingModels[pose][CharacterVisual::FacingSector(x, y)];
+    }
+    return Get(id);
+}
+
+bool PrimitiveModels::LoadResource()
+{
+    Performance::Scope scope("cpu.assets.resource_mesh_load_ms");
+    const auto path = RuntimeFiles::ResourcePath(L"runtime\\school_models.bin");
+    if (path.empty())
+    {
+        return false;
+    }
+    std::ifstream file(path.c_str(), std::ios::binary | std::ios::ate);
+    const auto length = file.tellg();
+    if (!file || length < 368 || length > 128 * 1024 * 1024)
+    {
+        return false;
+    }
+    std::vector<unsigned char> bytes(static_cast<size_t>(length));
+    file.seekg(0);
+    file.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+    std::uint32_t expected = 0;
+    std::memcpy(&expected, bytes.data() + bytes.size() - 4, 4);
+    if (!file || std::memcmp(bytes.data(), "MGSRES03", 8) != 0 ||
+        Hash(2166136261u, bytes.data(), bytes.size() - 4) != expected)
+    {
+        return false;
+    }
+    std::array<std::uint32_t, 3> counts{};
+    std::memcpy(counts.data(), bytes.data() + 8, sizeof(counts));
+    if (counts[0] != m_Models.size() || counts[1] != 11 || counts[2] != 8)
+    {
+        return false;
+    }
+    std::array<float, 32> sockets{};
+    std::memcpy(sockets.data(), bytes.data() + 20, sizeof(sockets));
+    for (float value : sockets)
+    {
+        if (!std::isfinite(value) || std::abs(value) > 300)
+        {
+            return false;
+        }
+    }
+    static_assert(sizeof(BuildingVisuals::Style) == 6 * sizeof(float), "Resource layout mismatch");
+    std::array<BuildingVisuals::Style, 9> buildingStyles{};
+    std::memcpy(buildingStyles.data(), bytes.data() + 148, sizeof(buildingStyles));
+    for (const auto& style : buildingStyles)
+    {
+        if (!std::isfinite(style.halfWidth) || style.halfWidth < .1f || style.halfWidth > 32 ||
+            !std::isfinite(style.halfDepth) || style.halfDepth < .1f || style.halfDepth > 32 ||
+            !std::isfinite(style.entranceX) || std::abs(style.entranceX) > 32 ||
+            !std::isfinite(style.entranceY) || style.entranceY <= style.halfDepth ||
+            style.entranceY > 32 || !std::isfinite(style.labelHeight) || style.labelHeight < 1 ||
+            style.labelHeight > 1024 || !std::isfinite(style.shadowRadius) ||
+            style.shadowRadius < 1 || style.shadowRadius > 1024)
+        {
+            return false;
+        }
+    }
+    decltype(m_Models) candidate;
+    decltype(m_FacingModels) facingCandidate;
+    size_t offset = 364;
+    auto readMesh = [&](Mesh& mesh)
+    {
+        if (offset + 4 > bytes.size() - 4)
+        {
+            return false;
+        }
+        std::uint32_t count = 0;
+        std::memcpy(&count, bytes.data() + offset, 4);
+        offset += 4;
+        if (count == 0 || count > 60000 || count % 3 != 0 ||
+            offset + count * sizeof(Renderer::ModelVertex) > bytes.size() - 4)
+        {
+            return false;
+        }
+        mesh.resize(count);
+        std::memcpy(mesh.data(), bytes.data() + offset, count * sizeof(Renderer::ModelVertex));
+        offset += count * sizeof(Renderer::ModelVertex);
+        for (const auto& vertex : mesh)
+        {
+            if (!std::isfinite(vertex.x) || !std::isfinite(vertex.y) || std::abs(vertex.x) > 2048 ||
+                std::abs(vertex.y) > 2048 || !std::isfinite(vertex.r) || !std::isfinite(vertex.g) ||
+                !std::isfinite(vertex.b) || !std::isfinite(vertex.a) || vertex.r < 0 ||
+                vertex.r > 1 || vertex.g < 0 || vertex.g > 1 || vertex.b < 0 || vertex.b > 1 ||
+                vertex.a < 0 || vertex.a > 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    };
+    for (auto& mesh : candidate)
+    {
+        if (!readMesh(mesh))
+        {
+            return false;
+        }
+    }
+    for (auto& pose : facingCandidate)
+    {
+        for (auto& mesh : pose)
+        {
+            if (!readMesh(mesh))
+            {
+                return false;
+            }
+        }
+    }
+    if (offset != bytes.size() - 4)
+    {
+        return false;
+    }
+    m_Models = std::move(candidate);
+    m_FacingModels = std::move(facingCandidate);
+    CharacterVisual::SetDirectionSockets(sockets);
+    BuildingVisuals::Set(buildingStyles);
+    Performance::Profiler::Get().Gauge("assets.resource_mesh_count", double(m_Models.size() + 88));
+    Performance::Profiler::Get().Gauge("assets.resource_pack_bytes", double(bytes.size()));
+    return true;
+}
+
 bool PrimitiveModels::Load()
 {
     Performance::Scope scope("cpu.assets.model_disk_load_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v7.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v8.bin");
     if (path.empty())
     {
         return false;
@@ -98,7 +264,7 @@ bool PrimitiveModels::Load()
     std::ifstream file(path.c_str(), std::ios::binary);
     char magic[8] = {};
     file.read(magic, sizeof(magic));
-    if (!file || std::memcmp(magic, "EWMDL007", 8) != 0)
+    if (!file || std::memcmp(magic, "EWMDL008", 8) != 0)
     {
         return false;
     }
@@ -145,7 +311,7 @@ bool PrimitiveModels::Load()
 bool PrimitiveModels::Save() const
 {
     Performance::Scope scope("cpu.assets.model_disk_save_ms");
-    const auto path = RuntimeFiles::Path(L"primitive_models_v7.bin");
+    const auto path = RuntimeFiles::Path(L"primitive_models_v8.bin");
     if (path.empty())
     {
         return false;
@@ -153,7 +319,7 @@ bool PrimitiveModels::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::binary | std::ios::trunc);
-        file.write("EWMDL007", 8);
+        file.write("EWMDL008", 8);
         std::uint32_t hash = 2166136261u;
         for (const auto& mesh : m_Models)
         {
@@ -477,6 +643,63 @@ void PrimitiveModels::Generate()
     Rect(shelter, -1, -117, 2, 8, dark);
     Rect(shelter, 0, -110, 6, 2, dark);
 
+    const Color facades[] = {{.72f, .60f, .86f, 1}, {.92f, .64f, .70f, 1}, {.51f, .72f, .86f, 1},
+                             {.93f, .81f, .52f, 1}, {.91f, .86f, .77f, 1}, {.60f, .82f, .68f, 1},
+                             {.83f, .65f, .48f, 1}, {.86f, .94f, .93f, 1}, {.63f, .60f, .87f, 1}};
+    for (int variant = 0; variant < 9; ++variant)
+    {
+        auto& building = m_Models[int(ModelId::VillageHouseLilac) + variant];
+        const Color wall = facades[variant];
+        const Color roof{wall.r * .6f, wall.g * .6f, wall.b * .6f, 1};
+        const float height = variant == 4 ? 112.f : variant >= 6 ? 94.f : 65.f;
+        Rect(building, -42, -height, 72, height, wall);
+        Triangle(building, 30, -height, 48, -height - 10, 48, -10, roof);
+        Triangle(building, 30, -height, 48, -10, 30, 0, roof);
+        if (variant < 4)
+        {
+            Triangle(building, -49, -height, -7, -height - 37, 37, -height, roof);
+            Triangle(building, -7, -height - 37, 48, -height - 20, 37, -height, wall);
+            Rect(building, 15, -height - 35, 9, 20, roof);
+        }
+        else
+        {
+            Rect(building, -47, -height - 8, 82, 10, roof);
+        }
+        for (float y = -height + 14; y < -30; y += 28)
+        {
+            for (int x = -32; x < 22; x += 24)
+            {
+                Rect(building, float(x), y, 16, 19, {.29f, .49f, .67f, 1});
+                Rect(building, float(x + 7), y, 2, 19, white);
+                Rect(building, float(x), y + 18, 18, 2, white);
+            }
+        }
+        Rect(building, -13, -29, 21, 29, {.22f, .27f, .36f, 1});
+        Rect(building, -10, -25, 15, 19, {.55f, .77f, .85f, 1});
+        Rect(building, 2, -13, 2, 3, gold);
+        Rect(building, -19, 0, 34, 4, {.66f, .65f, .68f, 1});
+        if (variant >= 4)
+        {
+            Rect(building, -39, -41, 65, 10, roof);
+            if (variant == 7)
+            {
+                Rect(building, -8, -height - 1, 6, 20, {.9f, .3f, .4f, 1});
+                Rect(building, -15, -height + 6, 20, 6, {.9f, .3f, .4f, 1});
+            }
+            if (variant == 4)
+            {
+                Ellipse(building, -7, -height + 9, 9, 9, white);
+                Rect(building, -8, -height + 2, 2, 8, dark);
+                Rect(building, -7, -height + 9, 5, 2, dark);
+            }
+        }
+        else
+        {
+            Ellipse(building, -33, -3, 8, 5, {.33f, .59f, .39f, 1});
+            Ellipse(building, -31, -7, 3, 3, robe);
+        }
+    }
+
     auto& fire = m_Models[static_cast<int>(ModelId::Campfire)];
     Ellipse(fire, 0, -1, 17, 8, {.35f, .35f, .35f, 1});
     Ellipse(fire, 0, -4, 13, 6, {.92f, .63f, .89f, 1});
@@ -498,6 +721,14 @@ void PrimitiveModels::Generate()
     for (int layer = 5; layer >= 1; --layer)
     {
         Ellipse(shadow, -6, 3, 12.f + layer * 2, 3.f + layer, {.01f, .02f, .04f, .04f});
+    }
+    // Emergency fallback only; production reads every model from the supplied resource pack.
+    for (auto& mesh : m_Models)
+    {
+        if (mesh.empty())
+        {
+            mesh = m_Models[static_cast<int>(ModelId::Rock)];
+        }
     }
 }
 } // namespace Hunting
