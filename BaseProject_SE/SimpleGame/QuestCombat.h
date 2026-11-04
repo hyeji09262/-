@@ -144,13 +144,17 @@ class Combat
         {
             return false;
         }
-        AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 9.f);
+        AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 9.f,
+                                  AutoTarget::Mode::Nearest);
         {
             Performance::Scope scope("cpu.combat.auto_target_ms");
             for (const auto& enemy : enemies)
             {
-                aim.Consider(enemy.position.x, enemy.position.y, enemy.health > 0,
-                             !walkable || ClearPath(player, enemy.position, walkable));
+                if (enemy.health > 0 && Distance(player, enemy.position) < aim.distance)
+                {
+                    aim.Consider(enemy.position.x, enemy.position.y, true,
+                                 !walkable || ClearPath(player, enemy.position, walkable));
+                }
             }
         }
         castDirection = {aim.directionX, aim.directionY};

@@ -3,6 +3,12 @@
 
 namespace AutoTarget
 {
+enum class Mode
+{
+    Forward,
+    Nearest
+};
+
 // Measure the 60-degree cone with the quarter-view axis ratio, retaining world-unit range.
 // The cone stays anchored to the initial facing; no target keeps that direction.
 struct Selection
@@ -12,10 +18,11 @@ struct Selection
     float directionX, directionY;
     float facingX, facingY;
     float distance;
+    Mode mode;
     bool found = false;
 
-    Selection(float px, float py, float dx, float dy, float range)
-        : originX(px), originY(py), x(px), y(py), distance(range)
+    Selection(float px, float py, float dx, float dy, float range, Mode targetMode = Mode::Forward)
+        : originX(px), originY(py), x(px), y(py), distance(range), mode(targetMode)
     {
         float length = std::hypot(dx, dy);
         if (length < .001f)
@@ -32,21 +39,28 @@ struct Selection
 
     bool Consider(float px, float py, bool alive, bool visible = true)
     {
-        const float length = std::hypot(px - originX, py - originY);
-        if (!alive || !visible || length < .001f || length >= distance)
+        if (!alive || !visible)
         {
             return false;
         }
-        constexpr float cosHalfAngle = .86602540f; // cos(30 degrees).
-        const float aimX = facingX - facingY;
-        const float aimY = (facingX + facingY) * .5f;
-        const float targetX = (px - originX) - (py - originY);
-        const float targetY = ((px - originX) + (py - originY)) * .5f;
-        const float alignment = (targetX * aimX + targetY * aimY) /
-                                (std::hypot(aimX, aimY) * std::hypot(targetX, targetY));
-        if (alignment < cosHalfAngle)
+        const float length = std::hypot(px - originX, py - originY);
+        if (length < .001f || length >= distance)
         {
             return false;
+        }
+        if (mode == Mode::Forward)
+        {
+            constexpr float cosHalfAngle = .86602540f;
+            const float aimX = facingX - facingY;
+            const float aimY = (facingX + facingY) * .5f;
+            const float targetX = (px - originX) - (py - originY);
+            const float targetY = ((px - originX) + (py - originY)) * .5f;
+            const float alignment = (targetX * aimX + targetY * aimY) /
+                                    (std::hypot(aimX, aimY) * std::hypot(targetX, targetY));
+            if (alignment < cosHalfAngle)
+            {
+                return false;
+            }
         }
         x = px;
         y = py;

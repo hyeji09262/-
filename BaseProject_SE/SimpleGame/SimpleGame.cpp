@@ -10,6 +10,7 @@ but WITHOUT ANY WARRANTY.
 #include <windows.h>
 #include <iostream>
 #include "Renderer.h"
+#include "GameInput.h"
 #include "Tutorial.h"
 #include "LevelOne.h"
 #include "Profiler.h"
@@ -18,7 +19,8 @@ but WITHOUT ANY WARRANTY.
 #include "QuestTwo.h"
 
 static Renderer* g_Renderer = nullptr;
-static int previousTime = 0;
+static GLFWwindow* window = nullptr;
+static double previousTime = 0;
 enum class GameScene
 {
     Prologue,
@@ -51,7 +53,7 @@ void OpenWorld()
         Tutorial::manaPotions = inventory.manaPotions;
     }
     activeScene = GameScene::World;
-    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 세 마을 탐험");
+    glfwSetWindowTitle(window, "마법소녀 - 세 마을 탐험");
 }
 
 void OpenQuestTwo()
@@ -62,7 +64,7 @@ void OpenQuestTwo()
     Prologue::Pause();
     QuestTwo::Open(unlocked, inherited, fragments);
     activeScene = GameScene::QuestTwo;
-    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
+    glfwSetWindowTitle(window, "마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
 }
 
 void RenderScene()
@@ -91,7 +93,7 @@ void RenderScene()
     g_Renderer->EndFrame();
     {
         Performance::Scope scope("cpu.present.swap_wait_ms");
-        glutSwapBuffers();
+        glfwSwapBuffers(window);
     }
     auto& profiler = Performance::Profiler::Get();
     profiler.Sample("cpu.frame_callback_ms", Performance::Milliseconds(start));
@@ -106,16 +108,16 @@ void RenderScene()
     profiler.Frame(interval, sceneName, g_Renderer->LastFrameStats().frame);
 }
 
-void Tick(int)
+void Tick(double now)
 {
     Performance::Scope scope("cpu.gameplay.tick_callback_ms");
-    int now = glutGet(GLUT_ELAPSED_TIME);
-    Performance::Profiler::Get().Sample("simulation.tick_interval_ms", now - previousTime);
-    if (now - previousTime > 50)
+    const double elapsed = now - previousTime;
+    Performance::Profiler::Get().Sample("simulation.tick_interval_ms", elapsed * 1000);
+    if (elapsed > .05)
     {
         Performance::Profiler::Get().Count("simulation.delta_time_clamped");
     }
-    float dt = (std::min)((now - previousTime) / 1000.f, .05f);
+    const float dt = static_cast<float>((std::min)(elapsed, .05));
     previousTime = now;
 
     if (activeScene == GameScene::Prologue)
@@ -165,7 +167,7 @@ void Tick(int)
                 {
                     Prologue::ResumeFromWorld();
                     activeScene = GameScene::Prologue;
-                    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 메인 스토리");
+                    glfwSetWindowTitle(window, "마법소녀 - 메인 스토리");
                 }
             }
             else if (request == 3)
@@ -219,12 +221,14 @@ void Tick(int)
                                Prologue::MonitorSnapshot(), QuestTwo::MonitorSnapshot()},
                               g_Renderer->LastFrameStats().Total());
     }
-    glutPostRedisplay();
-    glutTimerFunc(16, Tick, 0);
 }
 
-void Resize(int w, int h)
+void Resize(GLFWwindow*, int w, int h)
 {
+    if (w <= 0 || h <= 0)
+    {
+        return;
+    }
     Tutorial::width = (std::max)(w, 1);
     Tutorial::height = (std::max)(h, 1);
     LevelOne::Resize(w, h);
@@ -234,62 +238,34 @@ void Resize(int w, int h)
         g_Renderer->Resize(w, h);
 }
 
-void KeyDown(unsigned char k, int, int)
+void GameKey(unsigned char k, bool pressed)
 {
     if (activeScene == GameScene::Prologue)
     {
-        Prologue::Key(k, true);
+        Prologue::Key(k, pressed);
     }
     else if (activeScene == GameScene::World)
     {
-        Tutorial::Key(k, true);
+        Tutorial::Key(k, pressed);
     }
     else if (activeScene == GameScene::Hunting)
     {
-        LevelOne::Key(k, true);
+        LevelOne::Key(k, pressed);
     }
     else
     {
-        QuestTwo::Key(k, true);
+        QuestTwo::Key(k, pressed);
     }
 }
 
-void Mouse(int button, int state, int x, int y)
+void SpecialKey(int key)
 {
-    if (activeScene == GameScene::QuestTwo && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
-    {
-        QuestTwo::Mouse(x, y);
-    }
-}
-
-void KeyUp(unsigned char k, int, int)
-{
-    if (activeScene == GameScene::Prologue)
-    {
-        Prologue::Key(k, false);
-    }
-    else if (activeScene == GameScene::World)
-    {
-        Tutorial::Key(k, false);
-    }
-    else if (activeScene == GameScene::Hunting)
-    {
-        LevelOne::Key(k, false);
-    }
-    else
-    {
-        QuestTwo::Key(k, false);
-    }
-}
-
-void SpecialKey(int key, int, int)
-{
-    if (key == GLUT_KEY_F6 || key == GLUT_KEY_F1)
+    if (key == GLFW_KEY_F6 || key == GLFW_KEY_F1)
     {
         OpenWorld();
         return;
     }
-    if (key == GLUT_KEY_F3)
+    if (key == GLFW_KEY_F3)
     {
         float x, y;
         int person;
@@ -301,12 +277,12 @@ void SpecialKey(int key, int, int)
             return;
         }
     }
-    if (key == GLUT_KEY_F5)
+    if (key == GLFW_KEY_F5)
     {
         Performance::Profiler::Get().Toggle();
         return;
     }
-    if (key != GLUT_KEY_F1 && key != GLUT_KEY_F2 && key != GLUT_KEY_F3 && key != GLUT_KEY_F4)
+    if (key != GLFW_KEY_F1 && key != GLFW_KEY_F2 && key != GLFW_KEY_F3 && key != GLFW_KEY_F4)
     {
         if (activeScene == GameScene::Prologue)
         {
@@ -319,28 +295,45 @@ void SpecialKey(int key, int, int)
     Tutorial::paused = true;
     Prologue::Pause();
     QuestTwo::Pause();
-    activeScene = key == GLUT_KEY_F2   ? GameScene::Hunting
-                  : key == GLUT_KEY_F3 ? GameScene::Prologue
+    activeScene = key == GLFW_KEY_F2   ? GameScene::Hunting
+                  : key == GLFW_KEY_F3 ? GameScene::Prologue
                                        : GameScene::QuestTwo;
     if (activeScene == GameScene::QuestTwo)
     {
         OpenQuestTwo();
     }
-    SetWindowTextW(GetActiveWindow(), activeScene == GameScene::Prologue
-                                          ? L"마법소녀 - 프롤로그: 평범한 아침"
-                                      : activeScene == GameScene::Hunting
-                                          ? L"마법소녀 - 방과 후 첫 임무"
-                                          : L"마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
+    glfwSetWindowTitle(window, activeScene == GameScene::Prologue
+                                  ? "마법소녀 - 프롤로그: 평범한 아침"
+                              : activeScene == GameScene::Hunting
+                                  ? "마법소녀 - 방과 후 첫 임무"
+                                  : "마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
 }
 
-void SpecialKeyUp(int key, int, int)
+void KeyChanged(GLFWwindow*, int key, int, int action, int)
 {
-    Prologue::CameraKey(key, false);
+    if (action != GLFW_PRESS && action != GLFW_RELEASE)
+    {
+        return;
+    }
+    const bool pressed = action == GLFW_PRESS;
+    const unsigned char character = GameInput::Character(key);
+    if (character != 0)
+    {
+        GameKey(character, pressed);
+    }
+    else if (pressed)
+    {
+        SpecialKey(key);
+    }
+    else
+    {
+        Prologue::CameraKey(key, false);
+    }
 }
 
-void Visibility(int state)
+void Iconified(GLFWwindow*, int iconified)
 {
-    if (state != GLUT_VISIBLE)
+    if (iconified)
     {
         std::fill(Tutorial::keys, Tutorial::keys + 256, false);
         Tutorial::paused = true;
@@ -352,29 +345,43 @@ void Visibility(int state)
 
 void Close()
 {
-    LevelOne::Save();
     Performance::Profiler::Get().FlushWindow();
     delete g_Renderer;
     g_Renderer = nullptr;
 }
 
-int main(int argc, char** argv)
+int main()
 {
     SetConsoleOutputCP(CP_UTF8);
 
-    glutInit(&argc, argv);
-    glutInitContextVersion(3, 3);
-    // Keep the existing compatibility context; text now uses a Unicode texture atlas.
-    glutInitContextProfile(GLUT_COMPATIBILITY_PROFILE);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowSize(1280, 800);
-    glutCreateWindow("Emberwick");
-    SetWindowTextW(GetActiveWindow(), L"마법소녀 - 프롤로그: 평범한 아침");
-    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+    glfwSetErrorCallback(
+        [](int code, const char* description)
+        {
+            std::cerr << "GLFW (" << code << "): " << description << '\n';
+        });
+    if (!glfwInit())
+    {
+        return 1;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+    glfwWindowHint(GLFW_DEPTH_BITS, 0);
+    glfwWindowHint(GLFW_STENCIL_BITS, 0);
+    window = glfwCreateWindow(1280, 800, "마법소녀 - 프롤로그: 평범한 아침", nullptr, nullptr);
+    if (!window)
+    {
+        glfwTerminate();
+        return 1;
+    }
+    glfwMakeContextCurrent(window);
 
     if (glewInit() != GLEW_OK || !GLEW_VERSION_3_3)
     {
         std::cerr << "OpenGL 3.3 초기화에 실패했습니다.\n";
+        glfwDestroyWindow(window);
+        glfwTerminate();
         return 1;
     }
 
@@ -389,10 +396,14 @@ int main(int argc, char** argv)
             reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
             reinterpret_cast<const char*>(glGetString(GL_VERSION)));
     }
-    g_Renderer = new Renderer(1280, 800);
+    int framebufferWidth, framebufferHeight;
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+    g_Renderer = new Renderer(framebufferWidth, framebufferHeight);
     if (!g_Renderer->IsInitialized())
     {
         Close();
+        glfwDestroyWindow(window);
+        glfwTerminate();
         return 1;
     }
     Tutorial::renderer = g_Renderer;
@@ -401,28 +412,50 @@ int main(int argc, char** argv)
     LevelOne::Initialize(g_Renderer);
     Prologue::Initialize(g_Renderer);
     QuestTwo::Initialize(g_Renderer);
-    float objectiveX, objectiveY;
-    int objectivePerson;
-    std::string objectiveText;
-    if (Prologue::WorldObjective(objectiveX, objectiveY, objectivePerson, objectiveText))
-    {
-        OpenWorld();
-    }
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glutIgnoreKeyRepeat(1);
-    glutDisplayFunc(RenderScene);
-    glutReshapeFunc(Resize);
-    glutKeyboardFunc(KeyDown);
-    glutMouseFunc(Mouse);
-    glutKeyboardUpFunc(KeyUp);
-    glutSpecialFunc(SpecialKey);
-    glutSpecialUpFunc(SpecialKeyUp);
-    glutVisibilityFunc(Visibility);
-    glutCloseFunc(Close);
-    previousTime = glutGet(GLUT_ELAPSED_TIME);
-    glutTimerFunc(16, Tick, 0);
-    glutMainLoop();
+    Resize(window, framebufferWidth, framebufferHeight);
+    glfwSetFramebufferSizeCallback(window, Resize);
+    glfwSetKeyCallback(window, KeyChanged);
+    glfwSetWindowIconifyCallback(window, Iconified);
+
+    constexpr double tickInterval = .016;
+    previousTime = glfwGetTime();
+    double nextTick = previousTime + tickInterval;
+    RenderScene();
+    while (!glfwWindowShouldClose(window))
+    {
+        const double remaining = nextTick - glfwGetTime();
+        if (remaining > 0)
+        {
+            Performance::Scope scope("cpu.window.event_wait_ms");
+            glfwWaitEventsTimeout(remaining);
+        }
+        else
+        {
+            Performance::Scope scope("cpu.window.event_poll_ms");
+            glfwPollEvents();
+        }
+        if (glfwWindowShouldClose(window))
+        {
+            break;
+        }
+        const double now = glfwGetTime();
+        if (now < nextTick)
+        {
+            continue;
+        }
+
+        Tick(now);
+        nextTick = glfwGetTime() + tickInterval;
+        if (!glfwGetWindowAttrib(window, GLFW_ICONIFIED))
+        {
+            RenderScene();
+        }
+    }
+    Close();
+    glfwDestroyWindow(window);
+    glfwTerminate();
     return 0;
 }

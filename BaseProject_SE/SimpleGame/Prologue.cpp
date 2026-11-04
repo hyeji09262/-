@@ -11,7 +11,6 @@
 #include "VillageWorld.h"
 #include "PrologueStory.h"
 #include "QuestCombat.h"
-#include "RuntimeFiles.h"
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
 #include "SchoolScene.h"
@@ -19,7 +18,8 @@
 #include "Transformation.h"
 #include "NatureVisuals.h"
 #include "BuildingVisuals.h"
-#include "Dependencies/freeglut.h"
+#include "GameInput.h"
+#include "CompanionFollow.h"
 
 namespace Prologue
 {
@@ -62,10 +62,9 @@ Game::SceneGraph scene;
 Story story;
 MainQuest::State quest;
 MainQuest::Combat combat;
+CompanionFollow<Point> lumiFollower;
 QuestStep enteredStep = QuestStep::Complete;
-bool questDialogue = false, saveSucceeded = true, builtAlley = false;
-bool confirmRestart = false;
-bool restartFailed = false;
+bool questDialogue = false, builtAlley = false;
 bool questTwoRequested = false;
 bool endingContinueRequested = false;
 bool worldRequested = false;
@@ -82,6 +81,11 @@ bool InAlleyScene()
     return quest.InAlley() && !EndingSchool();
 }
 
+bool LumiPresent()
+{
+    return EndingSchool() || (InAlleyScene() && quest.step >= QuestStep::Lumi);
+}
+
 std::array<bool, 256> keys = {};
 std::array<bool, 4> cameraKeys = {};
 Point player = {4, 4.5f};
@@ -95,9 +99,20 @@ bool paused = false, moving = false;
 bool moved = false, ran = false, jumped = false, looked = false;
 bool builtHome = true;
 
+Point LumiPosition()
+{
+    return quest.step == QuestStep::Lumi ? Point{3, 7}
+                                        : lumiFollower.Position(player, facingDirection);
+}
+
+float LumiHeight()
+{
+    return 25 + std::sin(time * 3) * 5;
+}
+
 bool RunHeld()
 {
-    return GetActiveWindow() == GetForegroundWindow() && (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+    return GameInput::SprintHeld();
 }
 
 float Scale()
@@ -259,6 +274,7 @@ bool Walkable(Point p)
 
 void BuildScene()
 {
+    lumiFollower.Reset();
     Performance::Scope scope("cpu.prologue.static_scene_build_ms");
     scene.Clear();
     builtHome = story.IsHome();
@@ -295,7 +311,8 @@ void BuildScene()
                                graphics->DrawModel(models.Get(model), p.x, p.y,
                                                    world.scale * 1.25f * Scale(),
                                                    world.scale * 1.25f * Scale());
-                           });
+                           },
+                           *graphics, Project);
         Label("classroom/name", {12, 1, 125}, "다음 날 · 1학년 1반", &root);
     }
     else if (builtHome)
@@ -421,7 +438,6 @@ void Reset()
 {
     questTwoRequested = false;
     worldRequested = false;
-    confirmRestart = restartFailed = false;
     endingTime = farewellTime = 0;
     story = Story{};
     quest = MainQuest::State{};
@@ -461,6 +477,7 @@ void EnterQuestStep(bool restorePosition = false)
     }
     if (restorePosition)
     {
+        lumiFollower.Reset();
         const auto& target = quest.Current();
         player = {target.x - 1.5f, target.y + .5f};
         if (quest.step == QuestStep::Escape)
@@ -487,7 +504,6 @@ void EnterQuestStep(bool restorePosition = false)
     jumpHeight = jumpVelocity = 0;
     cameraOffset = {0, 0};
     camera = player;
-    saveSucceeded = quest.Save();
     Performance::Profiler::Get().Count("quest.step_entered");
 }
 
@@ -527,10 +543,9 @@ void UpdateQuest(float dt)
             jumpHeight = jumpVelocity = 0;
             BuildScene();
         }
-        if (endingTime >= 7 && endingContinueRequested && quest.FinishEpilogue())
+        if (EndingSchool() && endingContinueRequested && quest.FinishEpilogue())
         {
             endingContinueRequested = false;
-            saveSucceeded = quest.Save();
             questTwoRequested = true;
             keys.fill(false);
         }
@@ -562,15 +577,14 @@ void Interact()
 {
     if (quest.active && quest.step == QuestStep::Complete)
     {
-        if (endingTime < 7)
+        if (!EndingSchool())
         {
             endingContinueRequested = true;
             return;
         }
-        if (endingTime >= 7 && quest.FinishEpilogue())
+        if (quest.FinishEpilogue())
         {
             keys.fill(false);
-            saveSucceeded = quest.Save();
         }
         if (quest.epilogueComplete)
         {
@@ -596,8 +610,10 @@ void Interact()
         {
             return;
         }
+        const Point position =
+            quest.step == QuestStep::Report ? LumiPosition() : Point{target.x, target.y};
         if (quest.step != QuestStep::Complete && target.event == MainQuest::Event::Interact &&
-            Distance(player, {target.x, target.y}) < 2.3f && jumpHeight <= 0)
+            Distance(player, position) < 2.3f && jumpHeight <= 0)
         {
             questDialogue = true;
             moving = false;
@@ -689,11 +705,6 @@ void DrawHud()
             Text(290, 165, "그림자 처치 " + std::to_string(quest.defeated) + " / 3", 17,
                  objectiveColor);
         }
-        if (!saveSucceeded)
-        {
-            Text(42, 209, "저장 실패: 현재 진행은 유지되지만 재실행 시 복원되지 않을 수 있습니다.",
-                 16);
-        }
     }
     else
     {
@@ -732,7 +743,13 @@ void DrawHud()
     if (!story.dialogueOpen && !questDialogue &&
         ((quest.active && quest.step != QuestStep::Complete) || story.step < Step::AfterSchool))
     {
-        Point p = Project({target.x, target.y, 105});
+        const bool lumiTarget = quest.active &&
+                                (quest.step == QuestStep::Lumi || quest.step == QuestStep::Report);
+        if (lumiTarget)
+        {
+            target = LumiPosition();
+        }
+        Point p = Project({target.x, target.y, lumiTarget ? LumiHeight() + 88.f : 112.f});
         // Keep distant objectives inside the readable HUD area.
         p.x = (std::max)(120 * Scale(), (std::min)(width - 120 * Scale(), p.x));
         p.y = (std::max)(210 * Scale(), (std::min)(height - 220 * Scale(), p.y));
@@ -742,7 +759,7 @@ void DrawHud()
                     (!quest.active || quest.Current().event == MainQuest::Event::Interact)
                 ? "[E] 상호작용"
                 : "목표",
-            16 * Scale(), objectiveColor.r, objectiveColor.g, objectiveColor.b);
+            16 * Scale(), 0, 0, 0, true);
     }
     if (story.dialogueOpen)
     {
@@ -771,13 +788,9 @@ void DrawHud()
         else if (!quest.epilogueComplete)
         {
             Panel(150, 440, 980, 160, {.08f, .07f, .16f, .96f});
-            Text(180, 480, endingTime < 7 ? "나" : "루미", 25, pink);
-            Text(180, 525,
-                 endingTime < 7 ? "검은 조각이… 반응하고 있어. 창밖에 저건?!" : "또 나타났어.", 24);
-            Text(180, 568,
-                 endingTime < 7 ? "연출 중 · 잠시 기다려주세요"
-                                : "[E] 확인 · 다음 퀘스트 시작 / 이동 재개",
-                 18);
+            Text(180, 480, "나", 25, pink);
+            Text(180, 525, "어제 주운 검은 조각이 아직 따뜻해. 루미에게 물어봐야겠다.", 24);
+            Text(180, 568, "[E] 계속 · 다음 퀘스트 시작", 18);
         }
         else
         {
@@ -802,20 +815,8 @@ void DrawHud()
     {
         Panel(260, 245, 760, 320, {.06f, .07f, .13f, .98f});
         Text(310, 305, "프롤로그 일시정지", 30, pink);
-        Text(310, 365,
-             quest.active ? "ESC 계속하기 / N 현재 단계 재시작"
-                          : "ESC 계속하기 / N 프롤로그 처음부터",
+        Text(310, 365, quest.active ? "ESC 계속하기 / N 현재 단계 재시도" : "ESC 계속하기",
              23);
-        Text(310, 415, "기존 사냥 레벨의 성장 데이터는 변경하지 않습니다.", 18);
-        Text(310, 459, "[B] 프롤로그부터 새로 시작 (기존 저장 백업)", 20, pink);
-        if (confirmRestart)
-        {
-            Text(310, 505, "Enter: 처음부터 시작 / ESC: 취소", 22);
-        }
-        if (restartFailed)
-        {
-            Text(310, 541, "백업 실패: 진행을 초기화하지 않았습니다.", 18);
-        }
     }
 }
 
@@ -849,21 +850,15 @@ void DrawQuestActors()
     Performance::Scope scope("cpu.quest.actor_sync_ms");
     if (EndingSchool())
     {
-        auto& lumi = PlaceModel("ending/lumi", {player.x + 1, player.y, 30}, ModelId::Lumi);
+        const Point position = LumiPosition();
+        auto& lumi =
+            PlaceModel("ending/lumi", {position.x, position.y, LumiHeight()}, ModelId::Lumi);
         Label("ending/lumi/name", {0, 0, 60}, "루미", &lumi);
         if (!quest.epilogueComplete)
         {
             auto& shard = PlaceModel("ending/fragment", {player.x - .5f, player.y, 35},
                                      ModelId::BlackFragment);
             PlaceGlow("ending/fragment/glow", {}, 45 + 12 * std::sin(time * 9), &shard);
-            if (endingTime < 7)
-            {
-                const float phase = (endingTime - 4) / 3.f;
-                PlaceModel("ending/window_shadow",
-                           {SchoolLayout::IntroWindowX - .45f + phase * .9f,
-                            SchoolLayout::IntroWindowY, 75, .45f},
-                           MonsterAnimation::Model(1, time, 0), RenderLayer::Overlay);
-            }
         }
         return;
     }
@@ -894,8 +889,8 @@ void DrawQuestActors()
     }
     if (quest.step >= QuestStep::Lumi)
     {
-        const Point p = quest.step >= QuestStep::Report ? Point{5, 8} : Point{3, 7};
-        auto& lumi = PlaceModel("lumi", {p.x, p.y, 25 + std::sin(time * 3) * 5}, ModelId::Lumi);
+        const Point p = LumiPosition();
+        auto& lumi = PlaceModel("lumi", {p.x, p.y, LumiHeight()}, ModelId::Lumi);
         Label("lumi/name", {0, 0, 60}, "루미", &lumi);
     }
     if (quest.step >= QuestStep::Escape && quest.step <= QuestStep::Boss)
@@ -975,12 +970,6 @@ void Initialize(Renderer* renderer)
     graphics = renderer;
     models.Initialize();
     Reset();
-    if (quest.Load())
-    {
-        story.step = Step::Complete;
-        BuildScene();
-        EnterQuestStep(true);
-    }
 }
 
 void Resize(int w, int h)
@@ -1112,7 +1101,7 @@ WorldMonitor::Scene MonitorSnapshot()
                          : quest.active         ? quest.Current().text
                                                 : story.Objective();
     std::string location = story.IsHome()   ? "주인공의 방"
-                           : EndingSchool() ? "다음 날 교실"
+                           : EndingSchool() ? "다음 날 · 1학년 1반"
                            : InAlleyScene() ? "학교 뒤 골목"
                                             : "학교/마을 거리";
     std::string mood = quest.CanFight() && quest.step <= QuestStep::Boss ? "전투 중"
@@ -1157,19 +1146,16 @@ WorldMonitor::Scene MonitorSnapshot()
             : quest.step == QuestStep::CheckYuna ? "구조됨"
                                                  : "귀가",
             leaving ? Point{17 - farewellTime * 5, 8} : Point{17, 8}, yunaPresent);
-        const bool lumiPresent =
-            EndingSchool() || (InAlleyScene() && quest.step >= QuestStep::Lumi);
-        Point lumiPosition = EndingSchool()                    ? Point{player.x + 1, player.y}
-                             : quest.step >= QuestStep::Report ? Point{5, 8}
-                                                               : Point{3, 7};
+        const bool lumiPresent = LumiPresent();
         const bool lumiSpeaking =
             questDialogue && lumiPresent && std::string(quest.Current().speaker) == "루미";
         add("NPC_LUMI", "루미",
             !lumiPresent   ? "현재 지역 밖"
             : lumiSpeaking ? "대화 중"
-                           : "안내 대기",
-            lumiPosition, lumiPresent);
-        snapshot.npcs.back().z = EndingSchool() ? 30.f : 25 + std::sin(time * 3) * 5;
+            : quest.step == QuestStep::Lumi ? "안내 대기"
+                                           : "동행 중",
+            LumiPosition(), lumiPresent);
+        snapshot.npcs.back().z = LumiHeight();
     }
     for (const auto& enemy : combat.enemies)
     {
@@ -1180,7 +1166,6 @@ WorldMonitor::Scene MonitorSnapshot()
 
 void Pause()
 {
-    confirmRestart = false;
     keys.fill(false);
     cameraKeys.fill(false);
     moving = false;
@@ -1199,46 +1184,6 @@ void Key(unsigned char key, bool down)
     {
         return;
     }
-    if (paused && confirmRestart)
-    {
-        if (key == 27)
-        {
-            confirmRestart = false;
-        }
-        else if (key == 13)
-        {
-            Performance::Scope scope("cpu.storage.new_story_backup_ms");
-            const auto path = RuntimeFiles::Path(L"main_quest_001.txt");
-            const auto backup = path + L".backup_" + std::to_wstring(GetCurrentProcessId()) + L"_" +
-                                std::to_wstring(GetTickCount64());
-            bool success = false;
-            if (!path.empty())
-            {
-                // No replacement flag: never overwrite a previous backup.
-                success =
-                    MoveFileExW(path.c_str(), backup.c_str(), MOVEFILE_WRITE_THROUGH) != FALSE;
-                if (!success)
-                {
-                    success = GetLastError() == ERROR_FILE_NOT_FOUND;
-                }
-            }
-            if (success)
-            {
-                Reset();
-            }
-            else
-            {
-                restartFailed = true;
-            }
-        }
-        return;
-    }
-    if (paused && key == 'b')
-    {
-        confirmRestart = true;
-        restartFailed = false;
-        return;
-    }
     if (key == 27)
     {
         paused = !paused;
@@ -1246,19 +1191,12 @@ void Key(unsigned char key, bool down)
         cameraKeys.fill(false);
         return;
     }
-    if (key == 'n' && (paused || (quest.active && combat.Dead())))
+    if (key == 'n' && quest.active && (paused || combat.Dead()))
     {
-        if (quest.active)
-        {
-            EnterQuestStep(true);
-            keys.fill(false);
-            cameraKeys.fill(false);
-            paused = false;
-        }
-        else
-        {
-            Reset();
-        }
+        EnterQuestStep(true);
+        keys.fill(false);
+        cameraKeys.fill(false);
+        paused = false;
         return;
     }
     if (paused || (quest.active && (combat.Dead() || quest.step == QuestStep::Transform)) ||
@@ -1280,19 +1218,13 @@ void Key(unsigned char key, bool down)
     }
     else if (!story.dialogueOpen && !questDialogue && quest.active && key == 'z')
     {
-        if (combat.UsePotion(quest))
-        {
-            saveSucceeded = quest.Save();
-        }
+        combat.UsePotion(quest);
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
              key == 'x' && !combat.Dead())
     {
-        if (combat.actions.UseManaPotion(combat.mana, float(quest.progress.stats.maxMana),
-                                         quest.progress.manaPotions))
-        {
-            saveSucceeded = quest.Save();
-        }
+        combat.actions.UseManaPotion(combat.mana, float(quest.progress.stats.maxMana),
+                                     quest.progress.manaPotions);
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
              key == '1')
@@ -1308,7 +1240,7 @@ void Key(unsigned char key, bool down)
 
 void CameraKey(int key, bool down)
 {
-    const int codes[] = {GLUT_KEY_LEFT, GLUT_KEY_RIGHT, GLUT_KEY_UP, GLUT_KEY_DOWN};
+    const int codes[] = {GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN};
     for (int i = 0; i < 4; ++i)
     {
         if (key == codes[i])
@@ -1385,6 +1317,11 @@ void Update(float dt)
         {
             jumpVelocity = 0;
         }
+    }
+    if (LumiPresent() && quest.step != QuestStep::Lumi)
+    {
+        const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+        lumiFollower.Update(player, look, dt, Walkable);
     }
     const float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x + cameraOffset.x - camera.x) * follow;

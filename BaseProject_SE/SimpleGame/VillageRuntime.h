@@ -37,6 +37,7 @@ inline void LeaveBuilding()
     particles.clear();
     std::fill(keys, keys + 256, false);
     scene.Clear();
+    lumiFollower.Reset();
 }
 
 inline void SetExploration(bool enabled, bool unlocked)
@@ -72,6 +73,7 @@ inline void SetExploration(bool enabled, bool unlocked)
         actions = PlayerActions{};
         castPose = attackCD = hurtCD = 0;
         scene.Clear();
+        lumiFollower.Reset();
     }
     sceneRequest = 0;
     exploration = enabled;
@@ -106,6 +108,7 @@ inline bool SchoolInteraction()
             }
             interiorRoom = 0;
             scene.Clear();
+            lumiFollower.Reset();
             Say("중앙 복도로 돌아왔습니다.");
         }
         return true;
@@ -131,6 +134,7 @@ inline bool SchoolInteraction()
                     return true;
                 }
                 scene.Clear();
+                lumiFollower.Reset();
                 Say(std::string(next.name) + " · 출입문에서 E를 누르면 복도로 돌아갑니다.");
                 Performance::Profiler::Get().Count("school.room_entries_count");
                 return true;
@@ -178,6 +182,7 @@ inline bool BuildingInteraction()
                 spells.clear();
                 particles.clear();
                 scene.Clear();
+                lumiFollower.Reset();
                 Say(std::string(building.name) + "에 들어왔습니다. 출입구 [E]로 나갈 수 있습니다.");
                 int targetRoom;
                 float targetX, targetY;
@@ -217,6 +222,7 @@ inline bool BuildingInteraction()
             interiorRoom = 0;
             player = {5, 6};
             scene.Clear();
+            lumiFollower.Reset();
             Say("학교 로비로 돌아왔습니다.");
         }
         else

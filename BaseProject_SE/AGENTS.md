@@ -34,7 +34,7 @@
 
 ## Technical direction
 
-- The current stack is C++ with OpenGL, FreeGLUT, and GLEW in a Visual Studio solution.
+- The current stack is C++ with OpenGL, GLFW, and GLEW in a Visual Studio solution.
 - Extend the existing renderer incrementally; do not replace the engine, graphics library, or project structure without explicit approval.
 - Keep rendering, input, game state, world/chunk data, and entity behavior separated as the codebase grows.
 - Route placed world objects and HUD composites through Actor and SceneGraph; keep child effects and shadows attached to their owner, and let the graph handle render layers and ground-depth sorting. Do not add a second ad-hoc object sorting list.

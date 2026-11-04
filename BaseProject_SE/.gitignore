@@ -10,6 +10,12 @@
 /x64/Release/resource/
 /Debug/Shaders/
 /Release/Shaders/
+/Debug/resource/
+/Release/resource/
+/Debug/licenses/
+/Release/licenses/
+/x64/Debug/licenses/
+/x64/Release/licenses/
 *.exe
 *.ilk
 *.pdb

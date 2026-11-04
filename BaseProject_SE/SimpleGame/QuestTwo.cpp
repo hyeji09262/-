@@ -2,17 +2,16 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
+#include "GameInput.h"
+#include "CompanionFollow.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <fstream>
 #include "QuestTwo.h"
 #include "QuestTwoStory.h"
 #include "QuestCombat.h"
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
-#include "RuntimeFiles.h"
 #include "SchoolScene.h"
 #include "TownPopulation.h"
 #include "Transformation.h"
@@ -45,7 +44,7 @@ MainQuest::Combat combat;
 Point player{3, 9}, camera{3, 9};
 std::array<bool, 256> keys{};
 int width = 1280, height = 800;
-bool available = false, loaded = false, paused = true, saveOk = true, loadError = false;
+bool available = false, loaded = false, paused = true;
 bool moving = false, mirror = false;
 Point facingDirection{.70710678f, -.70710678f};
 float clockTime = 0, walkFrame = 0;
@@ -58,6 +57,7 @@ bool worldRequested = false;
 bool awaitingHall = false, magicalForm = false;
 Transformation::Sequence transformation;
 float introTime = 0;
+CompanionFollow<Point> lumiFollower;
 
 bool BattleReady()
 {
@@ -71,14 +71,7 @@ Point LumiPosition()
     {
         return {SchoolLayout::IntroLumiX, SchoolLayout::IntroLumiY};
     }
-    return story.Gym()       ? Places::Lumi
-           : schoolRoom != 0 ? Point{player.x + 1, player.y}
-                             : Point{3, 8};
-}
-
-Point SupplyPosition()
-{
-    return story.Gym() ? Point{5, 23} : Point{2, 9};
+    return lumiFollower.Position(player, facingDirection);
 }
 
 int SceneRoom()
@@ -214,132 +207,11 @@ bool Walkable(Point p)
     return true;
 }
 
-bool Save()
-{
-    Performance::Scope scope("cpu.storage.quest_two_save_ms");
-    const auto path = RuntimeFiles::Path(L"main_quest_002.txt");
-    if (path.empty())
-    {
-        return false;
-    }
-    const auto temporary = path + L".tmp";
-    {
-        std::ofstream file(temporary.c_str(), std::ios::trunc);
-        file << "MAGICAL_QUEST_002_V2\n"
-             << int(story.step) << ' ' << story.clues << ' ' << story.fragments << ' '
-             << story.sealOpened << ' ' << story.treasureTaken << '\n'
-             << story.progress.totalExperience << ' ' << story.progress.coins << ' '
-             << story.progress.crystals << ' ' << story.progress.potions << ' '
-             << story.progress.manaPotions << '\n'
-             << story.rewardClaimed << '\n'
-             << story.shopVisited << '\n';
-        file.flush();
-        if (!file)
-        {
-            return false;
-        }
-    }
-    return RuntimeFiles::Commit(temporary, path);
-}
-
-bool Load()
-{
-    Performance::Scope scope("cpu.storage.quest_two_load_ms");
-    const auto path = RuntimeFiles::Path(L"main_quest_002.txt");
-    if (path.empty())
-    {
-        loadError = true;
-        return false;
-    }
-    std::ifstream file(path.c_str());
-    if (!file)
-    {
-        loadError = GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
-        return false;
-    }
-    StoryState candidate;
-    std::string magic;
-    int step = 0, seal = 0, treasure = 0;
-    auto& p = candidate.progress;
-    if (!(file >> magic >> step >> candidate.clues >> candidate.fragments >> seal >> treasure >>
-          p.totalExperience >> p.coins >> p.crystals >> p.potions >> p.manaPotions) ||
-        (magic != "MAGICAL_QUEST_002_V1" && magic != "MAGICAL_QUEST_002_V2") || step < 0 ||
-        step > int(Step::Complete) || candidate.clues > 7 ||
-        (step >= int(Step::Shadows) && candidate.clues != 7) ||
-        (step == int(Step::Reaction) && candidate.clues != 0) ||
-        (step == int(Step::Investigate) && candidate.clues == 7) || candidate.fragments < 0 ||
-        candidate.fragments > 1000000 || seal < 0 || seal > 1 || treasure < 0 || treasure > 1 ||
-        (treasure && !seal) || (seal && step != int(Step::Complete)) || p.totalExperience < 0 ||
-        p.totalExperience > Rpg::ExperienceLimit || p.coins < 0 || p.coins > 1000000 ||
-        p.crystals < 0 || p.crystals > 1000000 || p.potions < 0 || p.potions > 99 ||
-        p.manaPotions < 0 || p.manaPotions > 99)
-    {
-        loadError = true;
-        return false;
-    }
-    candidate.step = static_cast<Step>(step);
-    candidate.sealOpened = seal != 0;
-    candidate.treasureTaken = treasure != 0;
-    if (magic == "MAGICAL_QUEST_002_V2")
-    {
-        int claimed = 0;
-        if (!(file >> claimed) || claimed < 0 || claimed > 1 || step == int(Step::Shadows) ||
-            step == int(Step::Fragment) || step == int(Step::Report) ||
-            (step == int(Step::Complete) && (!claimed || !seal || !treasure)))
-        {
-            loadError = true;
-            return false;
-        }
-        candidate.rewardClaimed = claimed != 0;
-        int visited = 0;
-        if (file >> visited)
-        {
-            if (visited < 0 || visited > 1)
-            {
-                loadError = true;
-                return false;
-            }
-            candidate.shopVisited = visited != 0;
-        }
-        else if (!file.eof())
-        {
-            loadError = true;
-            return false;
-        }
-    }
-    else
-    {
-        file.close();
-        const auto backup = path + L".before_v2.bak";
-        if (GetFileAttributesW(backup.c_str()) == INVALID_FILE_ATTRIBUTES &&
-            !CopyFileW(path.c_str(), backup.c_str(), TRUE))
-        {
-            loadError = true;
-            return false;
-        }
-        candidate.rewardClaimed = candidate.step == Step::Complete;
-        if (candidate.step == Step::Shadows)
-        {
-            candidate.step = Step::Gym;
-        }
-        if (candidate.step == Step::Fragment || candidate.step == Step::Report)
-        {
-            candidate.step = Step::Elite;
-        }
-        if (candidate.step == Step::Complete)
-        {
-            candidate.sealOpened = candidate.treasureTaken = true;
-        }
-    }
-    p.Recalculate();
-    story = candidate;
-    return true;
-}
-
 void BuildScene()
 {
     Performance::Scope scope("cpu.quest_two.static_scene_build_ms");
     graph.Clear();
+    lumiFollower.Reset();
     builtGym = story.Gym();
     auto& root = graph.Place("school", {}, RenderLayer::Ground);
     SchoolScene::Build(graph, SceneRoom(),
@@ -349,7 +221,8 @@ void BuildScene()
                            graphics->DrawModel(models.Get(model), p.x, p.y,
                                                Scale() * world.scale * 1.25f,
                                                Scale() * world.scale * 1.25f);
-                       });
+                       },
+                       *graphics, Project);
     Label("school/name", {12, 1, 120}, SchoolLayout::Get(SceneRoom()).name, gold, &root);
     if (!builtGym && schoolRoom == 0)
     {
@@ -388,6 +261,11 @@ void BuildScene()
 void EnterStep(bool retry = false)
 {
     Performance::Scope scope("cpu.quest_two.step_enter_ms");
+    if (retry && story.step == Step::Elite)
+    {
+        story.progress.potions = (std::max)(3, story.progress.potions);
+        story.progress.manaPotions = (std::max)(3, story.progress.manaPotions);
+    }
     encounter = MainQuest::State{};
     encounter.active = true;
     encounter.progress = story.progress;
@@ -439,7 +317,6 @@ void EnterStep(bool retry = false)
     BuildScene();
     keys.fill(false);
     moving = false;
-    saveOk = Save();
     Performance::Profiler::Get().Count("quest_two.step_entries");
 }
 
@@ -449,37 +326,6 @@ void Talk(const std::string& name, const std::string& text)
     dialogue = text;
     keys.fill(false);
     moving = false;
-}
-
-void RestartStory()
-{
-    if (!available || !loaded || loadError)
-    {
-        return;
-    }
-    Performance::Scope scope("cpu.quest_two.restart_ms");
-    const auto path = RuntimeFiles::Path(L"main_quest_002.txt");
-    SYSTEMTIME now{};
-    GetLocalTime(&now);
-    wchar_t suffix[96];
-    swprintf_s(suffix, L".restart-%04d%02d%02d-%02d%02d%02d-%03d.bak", now.wYear, now.wMonth,
-               now.wDay, now.wHour, now.wMinute, now.wSecond, now.wMilliseconds);
-    const auto backup = path + suffix;
-    if (path.empty() || (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES &&
-                         !CopyFileW(path.c_str(), backup.c_str(), TRUE)))
-    {
-        Talk("다시 시작 실패", "기존 저장을 백업하지 못했어. 현재 진행은 그대로 유지했어.");
-        return;
-    }
-    story.Restart();
-    dialogue.clear();
-    pendingAdvance = false;
-    pendingClue = -1;
-    worldRequested = false;
-    introTime = 0;
-    paused = false;
-    EnterStep(true);
-    Performance::Profiler::Get().Count("quest_two.story_restarts_count");
 }
 
 void Interact()
@@ -504,7 +350,6 @@ void Interact()
         }
         else
         {
-            saveOk = Save();
         }
         if (story.step == Step::Complete && story.treasureTaken)
         {
@@ -532,7 +377,6 @@ void Interact()
     }
     if (story.step == Step::Complete && story.treasureTaken)
     {
-        saveOk = Save();
         worldRequested = true;
         keys.fill(false);
         return;
@@ -540,7 +384,6 @@ void Interact()
     if (!story.Fighting() && Distance(player, RoomExit()) < 2.1f &&
         (story.Gym() || schoolRoom == 0))
     {
-        saveOk = Save();
         worldRequested = true;
         keys.fill(false);
         return;
@@ -627,8 +470,9 @@ void Interact()
     {
         return;
     }
+    const Point position = story.step == Step::Report ? LumiPosition() : Point{goal.x, goal.y};
     if (story.step != Step::Complete && story.step != Step::Investigate &&
-        goal.event == MainQuest::Event::Interact && Distance(player, {goal.x, goal.y}) < 2.3f)
+        goal.event == MainQuest::Event::Interact && Distance(player, position) < 2.3f)
     {
         pendingAdvance = true;
         Talk(goal.speaker, goal.dialogue);
@@ -637,7 +481,6 @@ void Interact()
     if (story.step == Step::Complete && Distance(player, Places::Treasure) < 1.8f &&
         story.TakeTreasure())
     {
-        saveOk = Save();
         Talk(
             "창고의 작은 보상",
             "체력 물약 2개와 마나 물약 2개를 얻었다. 학교의 악몽은 사라졌다! [E]를 누르면 마을로 돌아갑니다.");
@@ -653,18 +496,6 @@ void Interact()
                                  : "학생들은 안전한 곳으로 이동시켰어. 체육관 쪽 소리를 조심하렴.");
             return;
         }
-    }
-    // Repeatable, capped supplies prevent an empty inventory from blocking the story.
-    if (Distance(player, SupplyPosition()) < 1.5f)
-    {
-        story.progress.potions = (std::max)(3, story.progress.potions);
-        story.progress.manaPotions = (std::max)(3, story.progress.manaPotions);
-        encounter.progress = story.progress;
-        saveOk = Save();
-        Talk(
-            "루미의 보급함",
-            "체력 물약과 마나 물약을 각각 최소 3개까지 보충했어. Z는 체력, X는 마나! 보급함은 다시 이용할 수 있어.");
-        return;
     }
     if (!story.Gym() && !story.Fighting())
     {
@@ -697,20 +528,9 @@ void DrawHud()
     Performance::Scope scope("cpu.quest_two.hud_ms");
     Panel(22, 20, 1000, 150);
     Text(42, 52, "메인 퀘스트 2 · 학교에 숨어든 것", 25, pink);
-    if (available && loaded && !loadError)
-    {
-        Panel(1040, 30, 215, 40, {.25f, .14f, .3f});
-        Text(1054, 57, "처음부터 [B]", 17, gold);
-    }
     if (!available)
     {
-        Text(42, 90, "F3에서 퀘스트 1과 다음 날 교실의 마지막 대화를 완료하세요.", 20, gold);
-        return;
-    }
-    if (loadError)
-    {
-        Text(42, 90, "퀘스트 2 저장 파일을 읽지 못했습니다. 기존 파일을 덮어쓰지 않았습니다.", 18,
-             gold);
+        Text(42, 90, "F3에서 퀘스트 1과 다음 날 1학년 1반의 마지막 대화를 완료하세요.", 20, gold);
         return;
     }
     Text(42, 88,
@@ -736,7 +556,7 @@ void DrawHud()
          : story.step == Step::Complete && story.sealOpened
              ? "봉인 해제 완료 · 보급품에 가까이 가서 [E]"
          : story.step == Step::Complete ? "창고의 보라색 봉인에 가까이 가서 [2] 정화"
-                                        : "[E] 조사/대화 · 물약이 부족하면 입구의 루미 보급함 이용",
+                                        : "[E] 조사/대화",
          16, blue);
     Panel(22, 212, 152, 354);
     Meter(48, "체력", combat.health, float(story.progress.stats.maxHealth), pink, 'Z',
@@ -754,7 +574,8 @@ void DrawHud()
     {
         const auto& objective = story.Current();
         Point target{objective.x, objective.y};
-        std::string targetHint = "목표 · [E] 조사";
+        std::string targetHint = "[E] 조사";
+        std::string distantHint = "목표";
         if (story.step == Step::Investigate)
         {
             float nearest = 1000;
@@ -770,20 +591,30 @@ void DrawHud()
                 {
                     nearest = distance;
                     target = site;
-                    targetHint = std::string("목표 · [E] ") + Investigations()[i].name;
+                    const auto& investigation = Investigations()[i];
+                    if (schoolRoom == 0 && investigation.room != 0)
+                    {
+                        const auto& room = SchoolLayout::Get(investigation.room);
+                        distantHint = std::string("목표 · ") + room.name;
+                        targetHint = std::string(room.name) + " [E]";
+                    }
+                    else
+                    {
+                        targetHint = std::string(investigation.name) + " [E]";
+                    }
                 }
             }
             if (nearest == 1000)
             {
                 target = RoomExit();
-                targetHint = "목표 · [E] 복도로";
+                targetHint = "[E] 복도로";
             }
         }
         if (story.step == Step::Complete)
         {
-            targetHint = story.treasureTaken ? "목표 · [E] 마을로"
-                         : story.sealOpened  ? "목표 · [E] 보급품"
-                                             : "목표 · [2] 정화";
+            targetHint = story.treasureTaken ? "[E] 마을로"
+                         : story.sealOpened  ? "[E] 보급품"
+                                             : "[2] 정화";
             target = story.treasureTaken ? player
                      : story.sealOpened  ? Places::Treasure
                                          : Places::Seal;
@@ -792,31 +623,32 @@ void DrawHud()
             story.step != Step::Reaction && story.step != Step::Gym)
         {
             target = RoomExit();
-            targetHint = "목표 · [E] 복도로";
+            targetHint = "[E] 복도로";
         }
         if (awaitingHall)
         {
             target = RoomExit();
-            targetHint = "목표 · [E] 복도로 돌아가 변신";
+            targetHint = "[E] 복도로 돌아가 변신";
         }
         if (story.step == Step::Gym && schoolRoom == 0)
         {
             target = {33, 3};
-            targetHint = "목표 · [E] 체육관으로";
+            distantHint = "목표 · 체육관";
+            targetHint = "체육관 [E]";
         }
-        Point p = Project({target.x, target.y, 85});
+        float labelHeight = 114.f;
+        if (story.step == Step::Report)
+        {
+            target = LumiPosition();
+            targetHint = "루미 [E]";
+            labelHeight = 116.f + 4 * std::sin(clockTime * 3);
+        }
+        Point p = Project({target.x, target.y, labelHeight});
         const Point low = Screen(240, 205), high = Screen(1200, 660);
         p.x = (std::max)(low.x, (std::min)(high.x, p.x));
         p.y = (std::max)(low.y, (std::min)(high.y, p.y));
-        const std::string text = Distance(player, target) <= 2.3f
-                                     ? targetHint.substr(std::string("목표 · ").size())
-                                     : "목표";
-        graphics->Nameplate(p.x, p.y, text, 16 * Scale(), gold.r, gold.g, gold.b);
-    }
-    if (!saveOk)
-    {
-        Text(250, 688, "저장 실패: 현재 진행은 유지되지만 재실행 시 복원되지 않을 수 있습니다.", 17,
-             gold);
+        const std::string& text = Distance(player, target) <= 2.3f ? targetHint : distantHint;
+        graphics->Nameplate(p.x, p.y, text, 16 * Scale(), 0, 0, 0, true);
     }
     if (!dialogue.empty())
     {
@@ -862,7 +694,7 @@ void DrawHud()
         Panel(300, 270, 700, 160);
         Text(330, 318, combat.Dead() ? "쓰러졌습니다" : "메인 퀘스트 2 · 일시정지", 27, pink);
         Text(330, 363, "[N] 현재 단계 재시도 · 전투 처치 수 초기화", 21);
-        Text(330, 401, "[ESC] 계속하기 · 보급함에서 물약을 다시 받을 수 있습니다", 17);
+        Text(330, 401, "[ESC] 계속하기", 17);
     }
 }
 } // namespace
@@ -888,17 +720,9 @@ void Open(bool unlocked, const Rpg::Progress& inherited, int fragments)
     {
         return;
     }
-    loadError = false;
-    if (!Load())
-    {
-        if (loadError)
-        {
-            return;
-        }
-        story = StoryState{};
-        story.progress = inherited;
-        story.fragments = fragments;
-    }
+    story = StoryState{};
+    story.progress = inherited;
+    story.fragments = fragments;
     loaded = true;
     EnterStep(true);
 }
@@ -917,20 +741,9 @@ bool ConsumeWorldRequest()
     return requested;
 }
 
-void Mouse(int x, int y)
-{
-    const float scale = Scale();
-    const float localX = (x - (width - 1280 * scale) * .5f) / scale;
-    const float localY = (y - (height - 800 * scale) * .5f) / scale;
-    if (localX >= 1040 && localX <= 1255 && localY >= 30 && localY <= 70)
-    {
-        RestartStory();
-    }
-}
-
 bool Finished()
 {
-    return available && loaded && !loadError && story.step == Step::Complete && story.treasureTaken;
+    return available && loaded && story.step == Step::Complete && story.treasureTaken;
 }
 
 bool NeedsPotionShop()
@@ -956,8 +769,6 @@ bool BuyPotion(bool magic, std::string& message)
         return false;
     }
     Performance::Scope scope("cpu.shop.purchase_ms");
-    const auto previous = story.progress;
-    const bool visited = story.shopVisited;
     if (!story.progress.BuyPotion(magic))
     {
         message = (magic ? story.progress.manaPotions : story.progress.potions) >= 99
@@ -966,14 +777,6 @@ bool BuyPotion(bool magic, std::string& message)
         return false;
     }
     story.shopVisited = true;
-    saveOk = Save();
-    if (!saveOk)
-    {
-        story.progress = previous;
-        story.shopVisited = visited;
-        message = "구매 저장 실패로 골드와 물약을 원래대로 복구했습니다.";
-        return false;
-    }
     message = std::string(magic ? "마나 물약 +1" : "체력 물약 +1") + " · 남은 골드 " +
               std::to_string(story.progress.coins);
     Performance::Profiler::Get().Count("shop.potions_purchased_count");
@@ -988,13 +791,12 @@ void StoreWorldPotions(int healthPotions, int magicPotions)
     }
     story.progress.potions = (std::max)(0, (std::min)(99, healthPotions));
     story.progress.manaPotions = (std::max)(0, (std::min)(99, magicPotions));
-    saveOk = Save();
 }
 
 bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, float& x, float& y,
                      std::string& label)
 {
-    if (!available || !loaded || loadError || (story.step == Step::Complete && story.treasureTaken))
+    if (!available || !loaded || (story.step == Step::Complete && story.treasureTaken))
     {
         return false;
     }
@@ -1045,7 +847,7 @@ bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, f
 
 void EnterFromSchool(int room, float x, float y)
 {
-    if (!available || !loaded || loadError)
+    if (!available || !loaded)
     {
         return;
     }
@@ -1080,13 +882,8 @@ void Key(unsigned char key, bool down)
     }
     bool fresh = down && !keys[key];
     keys[key] = down;
-    if (!fresh || !available || !loaded || loadError)
+    if (!fresh || !available || !loaded)
     {
-        return;
-    }
-    if (key == 'b')
-    {
-        RestartStory();
         return;
     }
     if (key == 27)
@@ -1136,20 +933,18 @@ void Key(unsigned char key, bool down)
     if (key == 'z' && combat.UsePotion(encounter))
     {
         story.progress = encounter.progress;
-        saveOk = Save();
     }
     if (key == 'x' && combat.actions.UseManaPotion(combat.mana, float(story.progress.stats.maxMana),
                                                    story.progress.manaPotions))
     {
         encounter.progress = story.progress;
-        saveOk = Save();
     }
 }
 
 void Update(float dt)
 {
     Performance::Scope scope("cpu.quest_two.update_ms");
-    if (!available || !loaded || loadError || paused || combat.Dead())
+    if (!available || !loaded || paused || combat.Dead())
     {
         return;
     }
@@ -1182,8 +977,7 @@ void Update(float dt)
     moving = false;
     if (length > 0)
     {
-        bool running =
-            GetActiveWindow() == GetForegroundWindow() && (GetAsyncKeyState(VK_SHIFT) & 0x8000);
+        bool running = GameInput::SprintHeld();
         Point direction{(horizontal + vertical) / (length * 1.41421356f),
                         (vertical - horizontal) / (length * 1.41421356f)};
         Point before = player;
@@ -1223,6 +1017,8 @@ void Update(float dt)
             combat.Attack(player, facingDirection, encounter, combat.actions.height, Walkable);
         }
     }
+    const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+    lumiFollower.Update(player, look, dt, Walkable);
     float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x - camera.x) * follow;
     const float focusY = story.step == Step::Reaction && introTime < 4.f ? 7.f : player.y;
@@ -1234,7 +1030,7 @@ void Draw()
 {
     Performance::Scope scope("cpu.quest_two.draw_ms");
     graph.BeginSync();
-    if (available && loaded && !loadError)
+    if (available && loaded)
     {
         if (!story.Fighting() && story.step != Step::Complete && (story.Gym() || schoolRoom == 0) &&
             Distance(player, RoomExit()) <= 2.1f)
@@ -1290,15 +1086,8 @@ void Draw()
         {
             Model("intro/window_shadow",
                   {SchoolLayout::IntroWindowX - .45f + introTime / 4.f * .9f,
-                   SchoolLayout::IntroWindowY, 75, .45f},
+                   SchoolLayout::IntroWindowY, 61, .30f},
                   MonsterAnimation::Model(1, introTime, 0), nullptr, false, RenderLayer::Overlay);
-        }
-        if (story.Gym() || schoolRoom == 0)
-        {
-            const Point supplies = SupplyPosition();
-            Model("supplies", {supplies.x, supplies.y, 0, .75f}, ModelId::HealthPotion);
-            Model("supplies/mana", {supplies.x + .5f, supplies.y, 0, .75f}, ModelId::ManaPotion);
-            Label("supplies/name", {supplies.x, supplies.y, 50}, "루미 보급함[E]", blue);
         }
         for (size_t i = 0; i < combat.enemies.size(); ++i)
         {
@@ -1406,7 +1195,7 @@ void Draw()
                 });
     graph.EndSync();
     graphics->BeginWorld();
-    if (available && loaded && !loadError)
+    if (available && loaded)
     {
         graph.Render(RenderLayer::Background, RenderLayer::Overlay,
                      [](const Transform& p)
@@ -1427,18 +1216,16 @@ WorldMonitor::Scene MonitorSnapshot()
     WorldMonitor::Scene snapshot;
     snapshot.id = "quest_two";
     snapshot.name = "메인 퀘스트 2 · 학교에 숨어든 것";
-    snapshot.paused = paused || !available || loadError || !dialogue.empty();
-    snapshot.objective = !available  ? "퀘스트 1 완료 대기"
-                         : loadError ? "저장 파일 오류"
-                                     : story.Current().text;
-    if (!loaded || !available || loadError)
+    snapshot.paused = paused || !available || !dialogue.empty();
+    snapshot.objective = available ? story.Current().text : "퀘스트 1 완료 대기";
+    if (!loaded || !available)
     {
         return snapshot;
     }
     const Point lumi = LumiPosition();
     snapshot.npcs.push_back({"NPC_LUMI", "루미",
                              !dialogue.empty() && speaker == "루미" ? "대화 중" : "안내 대기",
-                             lumi.x, lumi.y, 28, true});
+                             lumi.x, lumi.y, 28 + 4 * std::sin(clockTime * 3), true});
     snapshot.npcs.push_back({"NPC_YUNA", "유나",
                              !dialogue.empty() && speaker == "유나" ? "대화 중" : "수업 대기", 3,
                              11, 0, !story.Gym() && schoolRoom == 0});

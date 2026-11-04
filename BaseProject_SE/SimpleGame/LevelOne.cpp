@@ -2,7 +2,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
+#include "GameInput.h"
+#include "CompanionFollow.h"
+#include "Prologue.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -72,7 +74,6 @@ struct Projectile
     Position direction;
     int damage;
     float lifetime;
-    Position muzzleOffset;
     float age = 0;
     unsigned int visualId = nextVisualId++;
     float launchHeight = 0;
@@ -101,6 +102,7 @@ std::vector<FloatingText> floating;
 std::array<int, Hunting::Map::Count> navigation;
 std::mt19937 random;
 Position player;
+CompanionFollow<Position> lumiFollower;
 Position facing = {0.707f, -0.707f};
 Position castDirection = {.707f, -.707f};
 std::array<bool, 256> keys = {};
@@ -119,7 +121,6 @@ float noticeTimer = 0;
 bool paused = false;
 bool moving = false;
 bool initialized = false;
-bool saveSucceeded = true;
 bool worldRequested = false;
 std::string notice;
 const Color panel = {.045f, .055f, .085f, .95f};
@@ -217,6 +218,7 @@ void NewMap()
 {
     Performance::Scope profileScope("cpu.map.generate_level_ms");
     scene.Clear();
+    lumiFollower.Reset();
     map.Generate(random());
     player = map.camp;
     enemies.clear();
@@ -284,7 +286,8 @@ void Attack()
         return;
     }
 
-    AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 7.f);
+    AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 7.f,
+                              AutoTarget::Mode::Nearest);
     {
         Performance::Scope scope("cpu.combat.auto_target_ms");
         for (const auto& enemy : enemies)
@@ -304,9 +307,7 @@ void Attack()
     attackTimer = .5f;
     castTimer = CharacterVisual::CastDuration;
     castMirror = direction.x - direction.y < 0;
-    auto socket = CharacterVisual::FacingSocket(true, direction.x, direction.y);
-    // Keep the original collision path/range; only the initial visual segment uses the socket.
-    projectiles.push_back({player, direction, progress.stats.attack, .85f, {socket.x, socket.y}});
+    projectiles.push_back({player, direction, progress.stats.attack, .85f});
     projectiles.back().launchHeight = actions.height;
 }
 
@@ -338,7 +339,6 @@ void Kill(Enemy& enemy)
         Notify("레벨 " + std::to_string(progress.stats.level) +
                " 달성! 최대 체력·마나·공격력·방어력이 상승했습니다.");
     }
-    Save();
 }
 
 void UpdateProjectiles(float dt)
@@ -653,8 +653,7 @@ void PickUp()
     }
     if (collected > 0)
     {
-        Notify("전리품 획득! 골드·체력/마력 물약을 저장했습니다.");
-        Save();
+        Notify("전리품 획득! 골드·체력/마력 물약을 획득했습니다.");
     }
     else
     {
@@ -832,6 +831,12 @@ void DrawHostileSkills()
 void DrawActors()
 {
     auto& dynamic = scene.Place("characters", {}, Game::RenderLayer::World);
+    if (Prologue::TransformationUnlocked())
+    {
+        const Position position = lumiFollower.Position(player, facing);
+        PlaceModel("lumi", ModelId::Lumi, {position.x, position.y, 26 + 4 * std::sin(time * 3)},
+                   &dynamic);
+    }
     ModelId playerModel =
         static_cast<ModelId>(CharacterVisual::FrameIndex(castTimer, moving, walkFrame));
     bool mirror = castTimer > 0 ? castMirror : facing.x - facing.y < 0;
@@ -1056,8 +1061,7 @@ void DrawHud()
     std::string cache = models.loadedFromFile ? "모델: 파일 캐시 로딩"
                         : models.storedToFile ? "모델: 최초 생성·캐시 저장 완료"
                                               : "모델: 캐시 쓰기 실패";
-    Text(35, 769, cache + (saveSucceeded ? "   |   성장 자동 저장" : "   |   성장 저장 실패"),
-         white, 15);
+    Text(35, 769, cache, white, 15);
     if (noticeTimer > 0)
     {
         Box(250, 655, 1012, 45, panel);
@@ -1084,15 +1088,10 @@ void Initialize(Renderer* renderer)
     }
     graphics = renderer;
     models.Initialize();
-    bool loaded = progress.Load();
     progress.Recalculate();
     random.seed(std::random_device{}());
     initialized = true;
     NewMap();
-    if (loaded)
-    {
-        Notify("저장된 경험치와 소지품을 불러왔습니다. 새로운 사냥을 시작하세요.");
-    }
 }
 
 WorldMonitor::Scene MonitorSnapshot()
@@ -1117,20 +1116,10 @@ void Resize(int width, int height)
     screenHeight = (std::max)(1, height);
 }
 
-void Save()
-{
-    Performance::Scope profileScope("cpu.storage.save_progress_ms");
-    if (initialized)
-    {
-        saveSucceeded = progress.Save();
-    }
-}
-
 void Pause()
 {
     paused = true;
     keys.fill(false);
-    Save();
 }
 
 bool ConsumeWorldRequest()
@@ -1156,7 +1145,6 @@ void Key(unsigned char key, bool down)
     {
         paused = !paused;
         keys.fill(false);
-        Save();
         return;
     }
     if (paused)
@@ -1186,7 +1174,6 @@ void Key(unsigned char key, bool down)
         if (actions.UseManaPotion(mana, float(progress.stats.maxMana), progress.manaPotions))
         {
             FloatText(player, "마나 회복", teal);
-            Save();
         }
     }
     if (key == 'z' && progress.potions > 0 && health < progress.stats.maxHealth)
@@ -1195,7 +1182,6 @@ void Key(unsigned char key, bool down)
         health =
             (std::min)(float(progress.stats.maxHealth), health + progress.stats.maxHealth * .45f);
         FloatText(player, "체력 회복", teal);
-        Save();
     }
 }
 
@@ -1225,8 +1211,7 @@ void Update(float dt)
     if (length > 0)
     {
         facing = {dx / length, dy / length};
-        const bool running =
-            GetActiveWindow() == GetForegroundWindow() && (GetAsyncKeyState(VK_SHIFT) & 0x8000);
+        const bool running = GameInput::SprintHeld();
         const float speed = running ? 6.f : 3.5f;
         map.Move(player, {facing.x * speed * dt, facing.y * speed * dt});
     }
@@ -1240,6 +1225,15 @@ void Update(float dt)
         Attack();
     }
 
+    if (Prologue::TransformationUnlocked())
+    {
+        const Position look = castTimer > 0 ? castDirection : facing;
+        lumiFollower.Update(player, look, dt,
+                            [](Position position)
+                            {
+                                return map.Walkable(position);
+                            });
+    }
     UpdateProjectiles(dt);
     UpdateEnemies(dt);
     UpdateHostileSkills(dt);

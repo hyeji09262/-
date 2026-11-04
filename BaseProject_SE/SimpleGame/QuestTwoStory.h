@@ -61,7 +61,7 @@ inline const std::array<Objective, 8>& Objectives()
         {"MQ002_FRAGMENT", "체육관 중앙의 검은 조각을 획득하세요. [E]", MainQuest::Event::Interact,
          Places::Fragment.x, Places::Fragment.y, "나",
          "검은 조각 안에 작은 빛이 남아 있어. 학교를 뒤덮던 기운도 사라졌어."},
-        {"MQ002_REPORT", "체육관 출구 옆 루미에게 조사 결과를 보고하세요. [E]",
+        {"MQ002_REPORT", "곁에 있는 루미에게 조사 결과를 보고하세요. [E]",
          MainQuest::Event::Interact, Places::Lumi.x, Places::Lumi.y, "루미",
          "이 조각에서 정화의 빛이 태어났어! 이제 2번 마법으로 봉인을 열 수 있어. 창고를 확인하고 마을 쇼핑몰의 미아를 찾아보자. 수업 지각 사유에 괴물 퇴치라고 써도 되려나?"},
         {"MQ002_COMPLETE", "완료 · [2] 별빛 정화로 창고 봉인을 해제하고 보상을 찾으세요.",

@@ -19,7 +19,6 @@ bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, f
                      std::string& label);
 void EnterFromSchool(int room, float x, float y);
 void Key(unsigned char key, bool down);
-void Mouse(int x, int y);
 void Update(float dt);
 void Draw();
 WorldMonitor::Scene MonitorSnapshot();

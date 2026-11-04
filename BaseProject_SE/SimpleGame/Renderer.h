@@ -5,7 +5,7 @@
 #include <array>
 #include <unordered_map>
 #include "Profiler.h"
-#include "Dependencies/glew.h"
+#include "Dependencies/glew-2.2.0/include/GL/glew.h"
 
 // Batched 2D geometry, cached Unicode glyph atlas, and a world-only post pass.
 class Renderer
@@ -46,7 +46,7 @@ class Renderer
     void EndFrame();
     void DrawFrameStats();
     void Nameplate(float centerX, float baseline, const std::string& label, float size, float r = 1,
-                   float g = .95f, float b = .86f);
+                   float g = .95f, float b = .86f, bool objective = false);
 
     const FrameStats& LastFrameStats() const
     {

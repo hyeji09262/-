@@ -89,7 +89,8 @@ inline Game::Transform FacingSpellPose(float x, float y, float age, float dx, fl
                                        float halfTileWidth = 32.f)
 {
     const auto socket = FacingSocket(true, dx, dy, halfTileWidth);
-    // A fixed socket offset makes the visual follow the same straight direction as the shot.
-    return {x + socket.x, y + socket.y, socket.z, 1};
+    // Start at the wand, then converge on the gameplay projectile's path.
+    const float blend = 1.f - (std::min)(1.f, age / .12f);
+    return {x + socket.x * blend, y + socket.y * blend, 27.f + (socket.z - 27.f) * blend, 1};
 }
 } // namespace CharacterVisual

@@ -5,7 +5,8 @@
 namespace SchoolScene
 {
 // Shared static school kit. Each retained fixture is an Actor; the caller owns projection.
-template <typename DrawModel> void Build(Game::SceneGraph& graph, int room, DrawModel draw)
+template <typename DrawModel, typename Graphics, typename Project>
+void Build(Game::SceneGraph& graph, int room, DrawModel draw, Graphics& renderer, Project project)
 {
     using Game::RenderLayer;
     using Hunting::ModelId;
@@ -37,7 +38,28 @@ template <typename DrawModel> void Build(Game::SceneGraph& graph, int room, Draw
         // Classroom entrances occupy the corridor wall. Windows belong inside rooms.
         if (room != 0 && x % 4 == 1)
         {
-            place("school/window/" + std::to_string(x), {float(x), 1.05f, 40}, ModelId::Window);
+            graph.Place(
+                "school/window/" + std::to_string(x),
+                {float(x), SchoolLayout::IntroWindowY, 42}, RenderLayer::World,
+                [&renderer, project](const Game::Actor&, const Game::Transform& world)
+                {
+                    const auto panel = [&](float left, float right, float bottom, float top,
+                                           float r, float g, float b)
+                    {
+                        const auto a = project({world.x + left, world.y, world.z + bottom});
+                        const auto c = project({world.x + right, world.y, world.z + bottom});
+                        const auto d = project({world.x + right, world.y, world.z + top});
+                        const auto e = project({world.x + left, world.y, world.z + top});
+                        renderer.Triangle(a.x, a.y, c.x, c.y, d.x, d.y, r, g, b, 1);
+                        renderer.Triangle(a.x, a.y, d.x, d.y, e.x, e.y, r, g, b, 1);
+                    };
+                    panel(-.91f, .91f, 0, 54, .55f, .58f, .67f);
+                    panel(-.82f, .82f, 5, 49, .65f, .79f, .86f);
+                    panel(-.82f, .82f, 5, 15, .51f, .68f, .75f);
+                    panel(-.82f, .82f, 15, 18, .73f, .75f, .81f);
+                    panel(-.98f, .98f, -3, 3, .77f, .79f, .84f);
+                },
+                &root);
         }
     }
     if (room == 0)

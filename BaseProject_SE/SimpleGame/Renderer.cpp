@@ -7,6 +7,7 @@
 #include <iterator>
 #include <unordered_map>
 #include "Renderer.h"
+#include "RuntimeFiles.h"
 
 struct Renderer::Font
 {
@@ -20,10 +21,54 @@ struct Renderer::Font
     HBITMAP bitmap = nullptr;
     HFONT font = nullptr;
     HGDIOBJ oldBitmap = nullptr, oldFont = nullptr;
+    std::wstring privateFontPath;
     void* pixels = nullptr;
     GLuint texture = 0;
     std::unordered_map<wchar_t, Glyph> glyphs;
     static const int Cell = 40, Atlas = 2048, Columns = Atlas / Cell;
+
+    bool SelectKoreanFont(const wchar_t* face)
+    {
+        HFONT candidate = CreateFontW(-28, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE,
+                                     HANGUL_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                                     ANTIALIASED_QUALITY, DEFAULT_PITCH, face);
+        if (!candidate)
+        {
+            return false;
+        }
+
+        HGDIOBJ previous = SelectObject(dc, candidate);
+        WORD indices[2] = {};
+        if (previous && GetGlyphIndicesW(dc, L"한글", 2, indices, GGI_MARK_NONEXISTING_GLYPHS) !=
+                            GDI_ERROR &&
+            indices[0] != 0xffff && indices[1] != 0xffff)
+        {
+            font = candidate;
+            oldFont = previous;
+            return true;
+        }
+        if (previous)
+        {
+            SelectObject(dc, previous);
+        }
+        DeleteObject(candidate);
+        return false;
+    }
+
+    bool InitializeKoreanFont()
+    {
+        if (SelectKoreanFont(L"맑은 고딕"))
+        {
+            return true;
+        }
+        const auto path = RuntimeFiles::ResourcePath(L"fonts\\NanumGothic-Regular.ttf");
+        if (path.empty() || !AddFontResourceExW(path.c_str(), FR_PRIVATE, nullptr))
+        {
+            return false;
+        }
+        privateFontPath = path;
+        return SelectKoreanFont(L"나눔고딕") || SelectKoreanFont(L"NanumGothic");
+    }
 
     bool Initialize()
     {
@@ -39,14 +84,10 @@ struct Renderer::Font
         info.bmiHeader.biBitCount = 32;
         info.bmiHeader.biCompression = BI_RGB;
         bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &pixels, nullptr, 0);
-        font = CreateFontW(-28, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, HANGUL_CHARSET,
-                           OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-                           DEFAULT_PITCH, L"맑은 고딕");
-        if (!bitmap || !font)
+        if (!bitmap || !InitializeKoreanFont())
             return false;
 
         oldBitmap = SelectObject(dc, bitmap);
-        oldFont = SelectObject(dc, font);
         SetTextColor(dc, RGB(255, 255, 255));
         SetBkColor(dc, RGB(0, 0, 0));
 
@@ -107,6 +148,10 @@ struct Renderer::Font
             DeleteObject(bitmap);
         if (font)
             DeleteObject(font);
+        if (!privateFontPath.empty())
+        {
+            RemoveFontResourceExW(privateFontPath.c_str(), FR_PRIVATE, nullptr);
+        }
         if (dc)
             DeleteDC(dc);
         if (texture)
@@ -431,7 +476,7 @@ void Renderer::DrawFrameStats()
 }
 
 void Renderer::Nameplate(float centerX, float baseline, const std::string& label, float size,
-                         float r, float g, float b)
+                         float r, float g, float b, bool objective)
 {
     if (!m_Font || label.empty())
     {
@@ -453,9 +498,16 @@ void Renderer::Nameplate(float centerX, float baseline, const std::string& label
     float left = centerX - advance * .5f - size * .5f;
     float right = centerX + advance * .5f + size * .5f;
     float top = baseline - size * 1.3f, bottom = baseline + size * .4f;
-    Triangle(left, top, right, top, right, bottom, .04f, .04f, .09f, .94f);
-    Triangle(left, top, right, bottom, left, bottom, .04f, .04f, .09f, .94f);
-    Text(centerX - advance * .5f, baseline, label, size, r, g, b);
+    const float backgroundR = objective ? .91f : .04f;
+    const float backgroundG = objective ? .83f : .04f;
+    const float backgroundB = objective ? .58f : .09f;
+    const float backgroundAlpha = objective ? 1.f : .94f;
+    Triangle(left, top, right, top, right, bottom, backgroundR, backgroundG, backgroundB,
+             backgroundAlpha);
+    Triangle(left, top, right, bottom, left, bottom, backgroundR, backgroundG, backgroundB,
+             backgroundAlpha);
+    Text(centerX - advance * .5f, baseline, label, size, objective ? 0.f : r,
+         objective ? 0.f : g, objective ? 0.f : b);
 }
 
 void Renderer::BeginWorld()

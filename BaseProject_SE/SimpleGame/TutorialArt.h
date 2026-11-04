@@ -254,20 +254,53 @@ inline Game::Actor& PlaceArt(const std::string& name, Game::Transform source,
         parent);
 }
 
-inline void InteriorLabel(const std::string& id, Vec position, const std::string& text)
+inline void InteriorLabel(const std::string& id, Vec position, const std::string& text,
+                          bool objective = false, float heightOffset = 112)
 {
-    scene.Place(id, {position.x, position.y, 112}, Game::RenderLayer::Overlay,
-                [text](const Game::Actor&, const Game::Transform& world)
+    const auto layer = objective ? Game::RenderLayer::Objective : Game::RenderLayer::Overlay;
+    scene.Place(id, {position.x, position.y, heightOffset}, layer,
+                [text, objective](const Game::Actor&, const Game::Transform& world)
                 {
                     Vec p = Project({world.x, world.y}, world.z);
+                    if (objective)
+                    {
+                        p.x = (std::max)(125.f, (std::min)(1155.f, p.x));
+                        p.y = (std::max)(175.f, (std::min)(670.f, p.y));
+                    }
                     renderer->Nameplate(p.x * width / 1280, p.y * height / 800, text,
-                                        16.f * height / 800, 1, .8f, .35f);
+                                        16.f * height / 800, 1, .8f, .35f, objective);
                 });
 }
 
-inline void ObjectiveLabel(const std::string& id, Vec position, const std::string& nearText)
+inline void ObjectiveLabel(const std::string& id, Vec position, const std::string& nearText,
+                           const std::string& distantText = "목표", float heightOffset = 140)
 {
-    InteriorLabel(id, position, Dist(player, position) <= 2.3f ? nearText : "목표");
+    InteriorLabel(id, position, Dist(player, position) <= 2.3f ? nearText : distantText, true,
+                  heightOffset);
+}
+
+inline void BuildingObjectiveLabel(const std::string& id, const CoastalWorld::Building& building,
+                                   Vec target, const std::string& nearText)
+{
+    const float labelHeight = BuildingVisuals::Get(building.style).labelHeight + 28.f;
+    InteriorLabel(id, {building.x, building.y}, Dist(player, target) <= 2.3f ? nearText : "목표",
+                  true, labelHeight);
+}
+
+inline void DrawLumi()
+{
+    if (!exploration || !storyMagicUnlocked)
+    {
+        return;
+    }
+    const Vec position = lumiFollower.Position(player, facingDirection);
+    scene.Place("lumi", {position.x, position.y, 26 + 4 * std::sin(clockTime * 3)},
+                Game::RenderLayer::World,
+                [](const Game::Actor&, const Game::Transform& world)
+                {
+                    CachedArt(Hunting::ModelId::Lumi, Project({world.x, world.y}, world.z));
+                });
+    InteriorLabel("lumi/name", position, "루미", false, 86.f);
 }
 
 inline void DrawStaff()
@@ -306,22 +339,39 @@ inline void DrawInterior()
                                {
                                    CachedArt(model, Project({world.x, world.y}, world.z),
                                              world.scale);
+                               },
+                               *renderer,
+                               [](const Game::Transform& world)
+                               {
+                                   const Vec p = Project({world.x, world.y}, world.z);
+                                   return Vec{p.x * width / 1280, p.y * height / 800};
                                });
         }
-        InteriorLabel("inside/exit", {room.width * .5f, room.height - 1.5f},
-                      interiorRoom ? "[E] 중앙 복도로" : "[E] 학교 밖으로");
+        int targetRoom;
+        float targetX, targetY;
+        std::string targetLabel;
+        const bool hasSchoolTarget =
+            exploration && building.town == 0 &&
+            QuestTwo::SchoolObjective(interiorRoom, player.x, player.y, targetRoom, targetX,
+                                      targetY, targetLabel);
+        if (!hasSchoolTarget || interiorRoom == 0 || targetRoom == interiorRoom)
+        {
+            InteriorLabel("inside/exit", {room.width * .5f, room.height - 1.5f},
+                          interiorRoom ? "[E] 중앙 복도로" : "[E] 학교 밖으로");
+        }
         if (interiorRoom == 0)
         {
             for (const auto& door : SchoolLayout::Doors())
             {
-                if (Dist(player, {door.x, door.y}) < 6.f)
+                if ((!hasSchoolTarget || door.room != targetRoom) &&
+                    Dist(player, {door.x, door.y}) < 2.f)
                 {
                     InteriorLabel("inside/room/" + std::to_string(door.room), {door.x, door.y},
                                   std::string("[E] ") + SchoolLayout::Get(door.room).name);
                 }
             }
         }
-        else
+        else if (!hasSchoolTarget || targetRoom != interiorRoom)
         {
             InteriorLabel("inside/examine", {room.width * .5f, 4},
                           std::string("[E] ") + room.name + " 조사");
@@ -338,12 +388,7 @@ inline void DrawInterior()
                          Line(Project({7, 13}), Project({25, 13}), 2, {1, .94f, .85f, 1});
                      });
         }
-        int targetRoom;
-        float targetX, targetY;
-        std::string targetLabel;
-        if (exploration && building.town == 0 &&
-            QuestTwo::SchoolObjective(interiorRoom, player.x, player.y, targetRoom, targetX,
-                                      targetY, targetLabel))
+        if (hasSchoolTarget)
         {
             Vec target{targetX, targetY};
             if (targetRoom != interiorRoom)
@@ -360,10 +405,16 @@ inline void DrawInterior()
                     }
                 }
             }
-            ObjectiveLabel("inside/quest-target", target,
-                           targetRoom != interiorRoom
-                               ? std::string(SchoolLayout::Get(targetRoom).name) + "[E]"
-                               : "[E] 조사");
+            if (targetRoom == interiorRoom)
+            {
+                ObjectiveLabel("inside/quest-target", target, "[E] 조사");
+            }
+            else
+            {
+                const std::string roomName = SchoolLayout::Get(targetRoom).name;
+                const std::string action = interiorRoom == 0 ? roomName + " [E]" : "복도로 [E]";
+                ObjectiveLabel("inside/quest-target", target, action, "목표 · " + roomName);
+            }
         }
     }
     else
@@ -378,7 +429,14 @@ inline void DrawInterior()
                                    });
         }
         InteriorLabel("inside/exit", {10, 16.5f}, "[E] 마을로 나가기");
-        if (building.interior != 2 || !QuestTwo::NeedsPotionShop())
+        float storyX, storyY;
+        int storyPerson;
+        std::string storyText;
+        const bool clerkGoal = exploration && building.interior == 2 && building.town == 0 &&
+                               Prologue::WorldObjective(storyX, storyY, storyPerson, storyText) &&
+                               storyPerson == 3;
+        const bool potionGoal = building.interior == 2 && QuestTwo::NeedsPotionShop();
+        if (!clerkGoal && !potionGoal)
         {
             InteriorLabel("inside/examine", {14, VillageInterior::ServiceY(building.interior)},
                           building.interior == 2   ? "[E] 직원 대화 / 물약 구매"
@@ -387,10 +445,13 @@ inline void DrawInterior()
         }
         if (building.interior == 2)
         {
-            if (QuestTwo::NeedsPotionShop())
+            if (clerkGoal || potionGoal)
             {
-                ObjectiveLabel("inside/potion-shop-goal", {14, VillageInterior::ServiceY(2)},
-                               "물약 구매[E]");
+                const bool nearCounter = Dist(player, {14, VillageInterior::ServiceY(2)}) < 2.3f;
+                const char* goal = clerkGoal ? "목표 · 편의점 직원" : "목표 · 물약 구매";
+                const char* action = clerkGoal ? "나루에게 묻기 [E]" : "물약 구매 [E]";
+                InteriorLabel("inside/store-goal", {14, 2}, nearCounter ? action : goal, true,
+                              140.f);
             }
             InteriorLabel("inside/store-drinks", {6, 2.4f}, "냉장 음료");
             InteriorLabel("inside/store-snacks", {6, 7}, "간식 · 식품");
@@ -434,6 +495,7 @@ inline void DrawInterior()
 inline void DrawWorld()
 {
     using Game::RenderLayer;
+    DrawLumi();
     if (interior >= 0)
     {
         DrawInterior();
@@ -656,10 +718,17 @@ inline void DrawWorld()
                          FacingNpc(models[objectivePerson], {objectiveX, objectiveY});
                      });
         }
-        ObjectiveLabel("world/story-objective", {objectiveX, objectiveY},
-                       objectivePerson == 4   ? "[E] 학교 뒤 골목"
-                       : objectivePerson == 3 ? "편의점 안 직원에게"
-                                              : "[E] 이야기");
+        const Vec target{objectiveX, objectiveY};
+        if (objectivePerson == 3)
+        {
+            BuildingObjectiveLabel("world/story-objective", CoastalWorld::Buildings()[2], target,
+                                   "편의점 안 직원에게");
+        }
+        else
+        {
+            ObjectiveLabel("world/story-objective", target,
+                           objectivePerson == 4 ? "[E] 학교 뒤 골목" : "[E] 이야기");
+        }
     }
     if (exploration)
     {
@@ -669,16 +738,15 @@ inline void DrawWorld()
         if (QuestTwo::SchoolObjective(0, player.x, player.y, room, x, y, label))
         {
             const auto& school = CoastalWorld::Buildings()[1];
-            ObjectiveLabel("world/quest-two-school",
-                           {CoastalWorld::DoorX(school), CoastalWorld::DoorY(school)},
-                           "별빛 학교[E]");
+            const Vec target{CoastalWorld::DoorX(school), CoastalWorld::DoorY(school)};
+            BuildingObjectiveLabel("world/quest-two-school", school, target, "별빛 학교 [E]");
         }
     }
     if (exploration && QuestTwo::NeedsPotionShop())
     {
         const auto& shop = CoastalWorld::Buildings()[2];
-        ObjectiveLabel("world/potion-shop-goal",
-                       {CoastalWorld::DoorX(shop), CoastalWorld::DoorY(shop)}, "편의점[E]");
+        const Vec target{CoastalWorld::DoorX(shop), CoastalWorld::DoorY(shop)};
+        BuildingObjectiveLabel("world/potion-shop-goal", shop, target, "편의점 [E]");
     }
     if (!regionsUnlocked && exploration)
     {

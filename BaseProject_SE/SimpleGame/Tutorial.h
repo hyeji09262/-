@@ -20,7 +20,8 @@
 #include "VillageInterior.h"
 #include "TownPopulation.h"
 #include "MonsterAnimation.h"
-#include "Dependencies/freeglut.h"
+#include "GameInput.h"
+#include "CompanionFollow.h"
 
 namespace Tutorial
 {
@@ -104,6 +105,7 @@ static bool castMirror = false;
 static int width = 1280, height = 800, stage = 0, hp = 5, bossHP = 10, upgrade = 0, kills = 0;
 static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26}, beamTarget = {31, 26};
 static Vec facingDirection = {.70710678f, -.70710678f};
+static CompanionFollow<Vec> lumiFollower;
 static Vec castDirection = {.70710678f, -.70710678f};
 static bool keys[256] = {}, paused = false, moving = false;
 static PlayerActions actions;
@@ -352,6 +354,7 @@ inline void Reset()
     potions = 5;
     manaPotions = 5;
     scene.Clear();
+    lumiFollower.Reset();
     player = {31, 26};
     facingDirection = {.70710678f, -.70710678f};
     castDirection = facingDirection;
@@ -654,8 +657,7 @@ inline void Update(float dt)
     if (len > 0)
     {
         float speed = exploration ? CoastalWorld::WalkSpeed : upgrade == 2 ? 4.5f : 3.5f;
-        if (exploration && GetActiveWindow() == GetForegroundWindow() &&
-            (GetAsyncKeyState(VK_SHIFT) & 0x8000))
+        if (exploration && GameInput::SprintHeld())
         {
             speed = 5.f;
         }
@@ -747,7 +749,8 @@ inline void Update(float dt)
     {
         attackCD = .5f;
         castPose = CharacterVisual::CastDuration;
-        AutoTarget::Selection aim(player.x, player.y, facingDirection.x, facingDirection.y, 6.5f);
+        AutoTarget::Selection aim(player.x, player.y, facingDirection.x, facingDirection.y, 6.5f,
+                                  AutoTarget::Mode::Nearest);
         int target = -1;
         bool hitBoss = false;
         {
@@ -814,6 +817,11 @@ inline void Update(float dt)
                                        return p.life <= 0;
                                    }),
                     particles.end());
+    if (exploration && storyMagicUnlocked)
+    {
+        const Vec look = castPose > 0 ? castDirection : facingDirection;
+        lumiFollower.Update(player, look, dt, Walkable);
+    }
     Performance::Profiler::Get().Gauge("world.collision_tests_per_tick_count", collisionTests);
     Performance::Profiler::Get().Gauge("world.wildlife_slots_count", double(monsters.size()));
 }
@@ -1014,7 +1022,7 @@ inline void Draw()
                      return Visible(Project({world.x, world.y}, world.z), 240 * world.scale);
                  });
     renderer->EndWorld(clockTime);
-    scene.Render(Game::RenderLayer::UserInterface, Game::RenderLayer::UserInterface);
+    scene.Render(Game::RenderLayer::Objective, Game::RenderLayer::UserInterface);
     renderer->Flush();
 }
 } // namespace Tutorial

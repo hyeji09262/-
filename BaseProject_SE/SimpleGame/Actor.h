@@ -21,6 +21,7 @@ enum class RenderLayer
     Shadow,
     World,
     Overlay,
+    Objective,
     UserInterface
 };
 

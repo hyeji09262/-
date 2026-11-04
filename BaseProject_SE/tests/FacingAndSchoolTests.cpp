@@ -1,8 +1,16 @@
 // CPU-only regression checks; no game window, OpenGL context or save file writes.
 #include <cassert>
 #include <queue>
+#include "../SimpleGame/CompanionFollow.h"
 #include "../SimpleGame/QuestCombat.h"
 #include "../SimpleGame/SchoolScene.h"
+
+struct TestGraphics
+{
+    void Triangle(float, float, float, float, float, float, float, float, float, float)
+    {
+    }
+};
 
 int main()
 {
@@ -17,7 +25,7 @@ int main()
         state.step = MainQuest::Step::Shadows;
         MainQuest::Combat combat;
         combat.Enter(state);
-        // An enemy behind the player must not turn the cast pose or projectile around.
+        // A target behind the player turns both the cast pose and projectile.
         for (auto& enemy : combat.enemies)
         {
             enemy.health = 0;
@@ -27,8 +35,8 @@ int main()
         combat.Attack({10, 10}, facing, state);
         assert(combat.shots.size() == 1);
         const auto& shot = combat.shots.front();
-        assert(std::abs(shot.direction.x - facing.x) < .0001f);
-        assert(std::abs(shot.direction.y - facing.y) < .0001f);
+        assert(std::abs(shot.direction.x + facing.x) < .0001f);
+        assert(std::abs(shot.direction.y + facing.y) < .0001f);
         assert(std::abs(combat.castDirection.x - shot.direction.x) < .0001f);
         assert(std::abs(combat.castDirection.y - shot.direction.y) < .0001f);
         assert(std::abs(combat.mana - 26) < .0001f);
@@ -108,12 +116,24 @@ int main()
             {
                 const auto flying = CharacterVisual::FacingSpellPose(
                     4 + x * age * 9, 7 + y * age * 9, age, x, y, tileWidth);
-                assert(std::abs(flying.x - spell.x - x * age * 9) < .001f);
-                assert(std::abs(flying.y - spell.y - y * age * 9) < .001f);
-                assert(std::abs(flying.z - spell.z) < .001f);
+                const float blend = (std::max)(0.f, 1.f - age / .12f);
+                assert(std::abs(flying.x - 4 - x * age * 9 - socket.x * blend) < .001f);
+                assert(std::abs(flying.y - 7 - y * age * 9 - socket.y * blend) < .001f);
+                assert(std::abs(flying.z - 27.f - (socket.z - 27.f) * blend) < .001f);
             }
         }
     }
+
+    CompanionFollow<Point> companion;
+    const Point hero{4, 5};
+    auto open = [](Point) { return true; };
+    companion.Update(hero, {1, 0}, .016f, open);
+    assert(companion.Position(hero, {1, 0}).x < hero.x);
+    companion.Update(hero, {-1, 0}, .5f, open);
+    assert(companion.Position(hero, {-1, 0}).x > hero.x);
+    companion.Reset();
+    companion.Update(hero, {1, 0}, .016f, [hero](Point p) { return p.y <= hero.y; });
+    assert(companion.Position(hero, {1, 0}).y < hero.y);
 
     // Flood the actual collision layout at half-tile resolution. Every room's entrance,
     // exit and central interaction spot must remain connected around desks and shelves.
@@ -156,10 +176,16 @@ int main()
             }
         }
         Game::SceneGraph graph;
+        TestGraphics graphics;
         graph.BeginSync();
         SchoolScene::Build(graph, room,
                            [](Hunting::ModelId, const Game::Transform&)
                            {
+                           },
+                           graphics,
+                           [](const Game::Transform& point)
+                           {
+                               return Point{point.x, point.y};
                            });
         graph.EndSync();
         graph.BeginSync();
