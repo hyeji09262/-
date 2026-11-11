@@ -494,11 +494,14 @@ class PrimitiveModels
     void Initialize();
     const std::vector<Renderer::ModelVertex>& Get(ModelId id) const;
     const std::vector<Renderer::ModelVertex>& GetFacing(ModelId id, float x, float y) const;
+    const std::vector<Renderer::ModelVertex>& GetParkBoss(float x, float y, bool attacking) const;
 
   private:
     using Mesh = std::vector<Renderer::ModelVertex>;
     std::array<Mesh, static_cast<int>(ModelId::Count)> m_Models;
-    std::array<std::array<Mesh, 8>, 11> m_FacingModels;
+    static constexpr size_t LumiFacingPose = 11;
+    static constexpr size_t ParkBossFacingPose = LumiFacingPose + 1;
+    std::array<std::array<Mesh, 8>, ParkBossFacingPose + 2> m_FacingModels;
     bool m_Initialized = false;
     bool Load();
     bool LoadResource();

@@ -49,11 +49,19 @@ int main()
 
     combat.Enter(state);
     combat.enemies.resize(1);
-    combat.enemies.front().position = {2, .5f};
-    assert(combat.Attack(player, {1, 0}, state, 0,
-                         [](MainQuest::Point p)
-                         {
-                             return p.x < 1;
-                         }));
+    auto& blockedEnemy = combat.enemies.front();
+    blockedEnemy.position = {2, .5f};
+    blockedEnemy.attackMotion = 100;
+    const float blockedHealth = blockedEnemy.health;
+    assert(combat.Attack(player, {1, 0}, state));
     assert(combat.castDirection.x == 1 && combat.castDirection.y == 0);
+    for (int i = 0; i < 10; ++i)
+    {
+        combat.Update(.05f, player, state,
+                      [](MainQuest::Point p)
+                      {
+                          return p.x < 1;
+                      });
+    }
+    assert(combat.shots.empty() && blockedEnemy.health == blockedHealth);
 }

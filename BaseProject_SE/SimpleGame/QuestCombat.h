@@ -7,7 +7,6 @@
 #include "CharacterVisual.h"
 #include "Profiler.h"
 #include "PlayerActions.h"
-#include "AutoTarget.h"
 #include "MonsterSkills.h"
 #include "MonsterAnimation.h"
 
@@ -38,10 +37,45 @@ struct Enemy
     int phase = 0;
     int pattern = 0;
     bool boss = false;
+    float enhancedBossMaxHealth = 0;
+    bool bossAttackEnraged = false;
     float attackMotion = 0;
     int kind = 1;
     Point facing{.70710678f, -.70710678f};
+
+    bool EnhancedBoss() const
+    {
+        return enhancedBossMaxHealth > 0;
+    }
+
+    bool Enraged() const
+    {
+        return EnhancedBoss() && health <= enhancedBossMaxHealth * .5f;
+    }
+
+    float BossRadius() const
+    {
+        const float radius = pattern == 2 ? 2.f : 2.4f;
+        return radius + (bossAttackEnraged ? .55f : EnhancedBoss() ? .3f : 0.f);
+    }
+
+    float ChargeSpeed() const
+    {
+        return bossAttackEnraged ? 12.f : EnhancedBoss() ? 10.f : 9.f;
+    }
+
+    float BossRecovery() const
+    {
+        return bossAttackEnraged ? .7f : EnhancedBoss() ? .95f : 1.3f;
+    }
 };
+
+inline Point BossFanDirection(Point facing, int ray)
+{
+    const float angle = ray * .22f;
+    const float c = std::cos(angle), s = std::sin(angle);
+    return {facing.x * c - facing.y * s, facing.x * s + facing.y * c};
+}
 
 struct Shot
 {
@@ -62,11 +96,14 @@ class Combat
     float hurt = 0, cast = 0, attackCooldown = 0;
     float burst = 0, burstCooldown = 0, comboTime = 0;
     Point burstOrigin;
+    float starfall = 0, starfallCooldown = 0;
+    Point starfallOrigin;
     int combo = 0;
     unsigned nextShot = 1;
     bool castMirror = false;
     Point castDirection{.70710678f, -.70710678f};
     bool variedSkills = false;
+    bool advanceQuestOnDefeat = true;
     std::vector<MonsterSkills::Projectile> hostileShots;
     std::vector<MonsterSkills::Poison> poisonZones;
     PlayerActions actions;
@@ -84,6 +121,7 @@ class Combat
         actions = PlayerActions{};
         shots.clear();
         hurt = cast = attackCooldown = burst = burstCooldown = 0;
+        starfall = starfallCooldown = 0;
         combo = 0;
         comboTime = 0;
         health = float(quest.progress.stats.maxHealth);
@@ -127,13 +165,15 @@ class Combat
         enemy.health -= damage;
         if (enemy.health <= 0)
         {
-            quest.Emit(Event::Defeat);
+            if (advanceQuestOnDefeat)
+            {
+                quest.Emit(Event::Defeat);
+            }
             Performance::Profiler::Get().Count("quest.enemy_deaths");
         }
     }
 
-    bool Attack(Point player, Point facing, State& quest, float height = 0,
-                const std::function<bool(Point)>& walkable = {})
+    bool Attack(Point player, Point facing, State& quest, float height = 0)
     {
         if (!quest.CanFight() || Dead() || attackCooldown > 0 ||
             (quest.step != Step::Shadows && quest.step != Step::Boss))
@@ -144,20 +184,7 @@ class Combat
         {
             return false;
         }
-        AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 9.f,
-                                  AutoTarget::Mode::Nearest);
-        {
-            Performance::Scope scope("cpu.combat.auto_target_ms");
-            for (const auto& enemy : enemies)
-            {
-                if (enemy.health > 0 && Distance(player, enemy.position) < aim.distance)
-                {
-                    aim.Consider(enemy.position.x, enemy.position.y, true,
-                                 !walkable || ClearPath(player, enemy.position, walkable));
-                }
-            }
-        }
-        castDirection = {aim.directionX, aim.directionY};
+        castDirection = facing;
         combo = comboTime > 0 ? (combo + 1) % 3 : 0;
         comboTime = .9f;
         cast = CharacterVisual::CastDuration;
@@ -180,6 +207,7 @@ class Combat
         --quest.progress.potions;
         health = (std::min)(float(quest.progress.stats.maxHealth),
                             health + quest.progress.stats.maxHealth * .45f);
+        actions.MarkRecovery(false);
         Performance::Profiler::Get().Count("quest.potions_used");
         return true;
     }
@@ -192,7 +220,7 @@ class Combat
             return;
         }
         mana -= 10;
-        burst = .5f;
+        burst = .65f;
         burstCooldown = 2;
         burstOrigin = player;
         for (auto& enemy : enemies)
@@ -202,6 +230,7 @@ class Combat
                 Damage(enemy, float(quest.progress.stats.attack * 3), quest);
             }
         }
+        Performance::Profiler::Get().Count("combat.star_burst_count");
     }
 
     using Collision = std::function<bool(Point)>;
@@ -218,6 +247,42 @@ class Combat
             }
         }
         return true;
+    }
+
+    void Starfall(Point player, Point facing, State& quest, const Collision& walkable)
+    {
+        if (!quest.CanFight() || Dead() || actions.reload > 0 || mana < 8 || starfallCooldown > 0 ||
+            (quest.step != Step::Shadows && quest.step != Step::Boss))
+        {
+            return;
+        }
+        Point target = player;
+        for (int tile = 1; tile <= 4; ++tile)
+        {
+            const Point next{player.x + facing.x * tile, player.y + facing.y * tile};
+            if (!ClearPath(target, next, walkable))
+            {
+                break;
+            }
+            target = next;
+        }
+        if (Distance(player, target) < .5f)
+        {
+            return;
+        }
+        mana -= 8;
+        starfall = .65f;
+        starfallCooldown = 3.f;
+        starfallOrigin = target;
+        for (auto& enemy : enemies)
+        {
+            if (enemy.health > 0 && Distance(enemy.position, target) <= 1.8f &&
+                ClearPath(target, enemy.position, walkable))
+            {
+                Damage(enemy, float(quest.progress.stats.attack * 2), quest);
+            }
+        }
+        Performance::Profiler::Get().Count("combat.starfall_count");
     }
 
     void EnemySpell(const Enemy& enemy, int level, int defense)
@@ -279,6 +344,8 @@ class Combat
         attackCooldown -= dt;
         burstCooldown -= dt;
         burst -= dt;
+        starfall -= dt;
+        starfallCooldown -= dt;
         comboTime -= dt;
         for (auto& shot : shots)
         {
@@ -375,17 +442,20 @@ class Combat
             }
             if (enemy.phase == 0)
             {
-                if (distance > 4)
+                const float attackRange = enemy.EnhancedBoss() && enemy.pattern >= 2 ? 7.f : 4.f;
+                if (distance > attackRange)
                 {
                     enemy.facing = Direction(enemy.position, player);
-                    Move(enemy.position, Direction(enemy.position, player), 1.7f * dt, walkable);
+                    const float speed = enemy.Enraged() ? 2.65f : enemy.EnhancedBoss() ? 2.2f : 1.7f;
+                    Move(enemy.position, enemy.facing, speed * dt, walkable);
                 }
                 else if (enemy.timer <= 0)
                 {
                     enemy.aim = player;
                     enemy.facing = Direction(enemy.position, player);
                     enemy.phase = 1;
-                    enemy.timer = 1.1f;
+                    enemy.bossAttackEnraged = enemy.Enraged();
+                    enemy.timer = enemy.Enraged() ? .65f : enemy.EnhancedBoss() ? .85f : 1.1f;
                 }
             }
             else if (enemy.phase == 1 && enemy.timer <= 0)
@@ -397,36 +467,51 @@ class Combat
                 }
                 else
                 {
-                    if (enemy.pattern == 2 && walkable(enemy.aim))
+                    if (enemy.pattern == 3)
                     {
-                        enemy.position = enemy.aim;
+                        const int spread = enemy.bossAttackEnraged ? 3 : 2;
+                        for (int ray = -spread; ray <= spread; ++ray)
+                        {
+                            const Point direction = BossFanDirection(enemy.facing, ray);
+                            hostileShots.push_back({{enemy.position.x, enemy.position.y},
+                                                    {direction.x, direction.y}, 14, nextShot++, 2.f});
+                        }
                     }
-                    if (Distance(player, enemy.pattern == 2 ? enemy.aim : enemy.position) <
-                        (enemy.pattern == 2 ? 2.f : 2.4f))
+                    else
                     {
-                        HitPlayer(15);
+                        if (enemy.pattern == 2 && walkable(enemy.aim))
+                        {
+                            enemy.position = enemy.aim;
+                        }
+                        if (Distance(player, enemy.pattern == 2 ? enemy.aim : enemy.position) <
+                            enemy.BossRadius())
+                        {
+                            HitPlayer(enemy.bossAttackEnraged ? 23.f
+                                      : enemy.EnhancedBoss()      ? 19.f
+                                                             : 15.f);
+                        }
                     }
                     enemy.phase = 3;
-                    enemy.timer = 1.3f;
+                    enemy.timer = enemy.BossRecovery();
                 }
             }
             else if (enemy.phase == 2)
             {
                 // Keep the windup direction after passing the target; never reverse mid-charge.
-                Move(enemy.position, enemy.facing, 9 * dt, walkable);
+                Move(enemy.position, enemy.facing, enemy.ChargeSpeed() * dt, walkable);
                 if (Distance(player, enemy.position) < 1.2f)
                 {
-                    HitPlayer(12);
+                    HitPlayer(enemy.bossAttackEnraged ? 19.f : enemy.EnhancedBoss() ? 16.f : 12.f);
                 }
                 if (enemy.timer <= 0)
                 {
                     enemy.phase = 3;
-                    enemy.timer = 1.3f;
+                    enemy.timer = enemy.BossRecovery();
                 }
             }
             else if (enemy.phase == 3 && enemy.timer <= 0)
             {
-                enemy.pattern = (enemy.pattern + 1) % 3;
+                enemy.pattern = (enemy.pattern + 1) % (enemy.EnhancedBoss() ? 4 : 3);
                 enemy.phase = 0;
             }
         }

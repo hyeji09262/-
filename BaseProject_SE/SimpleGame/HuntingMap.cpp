@@ -52,6 +52,17 @@ bool Map::Safe(Position p) const
     return Distance(p, camp) < 4.f;
 }
 
+Position Map::VillageExit() const
+{
+    return {camp.x, camp.y + 3.f};
+}
+
+bool Map::VillageTrail(int x, int y) const
+{
+    return std::abs(x - static_cast<int>(camp.x)) <= 1 &&
+           y >= static_cast<int>(VillageExit().y) && y <= 41;
+}
+
 void Map::Move(Position& p, Position delta) const
 {
     Performance::Scope scope("cpu.collision.move_ms");
@@ -137,10 +148,17 @@ void Map::Generate(std::uint32_t newSeed)
         }
     }
 
-    // Authored safe clearing is the only fixed part of this hunting map.
+    // Leave a clear approach from the village trail into the safe camp.
     for (int y = 19; y <= 29; ++y)
     {
         for (int x = 25; x <= 35; ++x)
+        {
+            tiles[Index(x, y)] = Tile::Ground;
+        }
+    }
+    for (int y = static_cast<int>(VillageExit().y); y <= 41; ++y)
+    {
+        for (int x = static_cast<int>(camp.x) - 1; x <= static_cast<int>(camp.x) + 1; ++x)
         {
             tiles[Index(x, y)] = Tile::Ground;
         }

@@ -38,6 +38,13 @@ int main()
         map.Generate(seed);
         Require(map.AllFloorConnected(), "all floor cells connected");
         Require(map.Walkable(map.camp), "camp clearance");
+        Require(map.Safe(map.VillageExit()) && map.Walkable(map.VillageExit()),
+                "village exit is in the safe clearing");
+        for (int y = static_cast<int>(map.VillageExit().y); y <= 41; ++y)
+        {
+            const int x = static_cast<int>(map.camp.x);
+            Require(map.VillageTrail(x, y) && map.Floor(x, y), "village trail is clear");
+        }
         Require(!map.Walkable({0, 0}), "outer boundary blocked");
         Require(map.SpawnLocations().size() >= 24, "enough spawn candidates");
         for (auto position : map.SpawnLocations())

@@ -82,6 +82,13 @@ int main()
     {
         const float x = std::cos(direction * .7853981634f);
         const float y = std::sin(direction * .7853981634f);
+        const auto& lumi = models.GetFacing(Hunting::ModelId::Lumi, x, y);
+        assert(!lumi.empty() && &lumi != &models.Get(Hunting::ModelId::Lumi));
+        assert(&lumi != &models.GetFacing(Hunting::ModelId::Lumi, -x, -y));
+        const auto& flower = models.GetParkBoss(x, y, false);
+        const auto& attack = models.GetParkBoss(x, y, true);
+        assert(!flower.empty() && !attack.empty());
+        assert(&flower != &attack && &flower != &models.GetParkBoss(-x, -y, false));
         for (int frame = 0; frame < 6; ++frame)
         {
             const auto model = static_cast<Hunting::ModelId>(frame);

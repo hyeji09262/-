@@ -6,6 +6,30 @@ int main()
     {
         MainQuest::State state;
         state.active = true;
+        state.step = MainQuest::Step::Shadows;
+        MainQuest::Combat combat;
+        combat.Enter(state);
+        combat.enemies[0].position = {4, 0};
+        combat.enemies[1].position = {0, 4};
+        combat.Starfall({0, 0}, {1, 0}, state,
+                        [](MainQuest::Point p)
+                        {
+                            return p.x < .5f;
+                        });
+        assert(combat.mana == 30 && combat.starfall == 0);
+        const auto walkable = [](MainQuest::Point)
+        {
+            return true;
+        };
+        combat.Starfall({0, 0}, {1, 0}, state, walkable);
+        assert(combat.mana == 22 && combat.starfall > 0);
+        assert(combat.enemies[0].health < 24 && combat.enemies[1].health == 24);
+        combat.Starfall({0, 0}, {1, 0}, state, walkable);
+        assert(combat.mana == 22);
+    }
+    {
+        MainQuest::State state;
+        state.active = true;
         state.step = MainQuest::Step::Boss;
         MainQuest::Combat combat;
         combat.Enter(state);
@@ -84,5 +108,35 @@ int main()
                           });
         }
         assert(combat.health == initialHealth); // Leaving the warning avoids the locked area.
+    }
+
+    for (bool enraged : {false, true})
+    {
+        MainQuest::State state;
+        state.active = true;
+        state.step = MainQuest::Step::Boss;
+        MainQuest::Combat combat;
+        combat.Enter(state);
+        combat.variedSkills = true;
+        auto& boss = combat.enemies.front();
+        boss.position = {0, 0};
+        boss.pattern = 3;
+        boss.enhancedBossMaxHealth = 250.f;
+        boss.health = enraged ? 125.f : 250.f;
+        MainQuest::Point player{6, 0};
+        auto walkable = [](MainQuest::Point)
+        {
+            return true;
+        };
+        combat.Update(.05f, player, state, walkable);
+        assert(boss.phase == 1 && boss.bossAttackEnraged == enraged);
+        player = {0, 6};
+        while (boss.phase == 1)
+        {
+            combat.Update(.05f, player, state, walkable);
+        }
+        assert(combat.hostileShots.size() == (enraged ? 7u : 5u));
+        const auto& center = combat.hostileShots[combat.hostileShots.size() / 2];
+        assert(center.direction.x == 1.f && center.direction.y == 0.f);
     }
 }

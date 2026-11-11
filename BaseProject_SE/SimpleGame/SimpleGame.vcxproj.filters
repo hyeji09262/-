@@ -30,6 +30,18 @@
     <ClInclude Include="MainQuest.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="ParkQuest.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatVitals.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatEffects.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CombatKeys.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="QuestTwo.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -75,6 +87,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="MainQuest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ParkQuest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="QuestTwo.cpp">

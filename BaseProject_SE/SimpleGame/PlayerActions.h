@@ -5,9 +5,18 @@
 struct PlayerActions
 {
     static constexpr float AttackManaCost = 4.f;
+    static constexpr float RecoveryDuration = .65f;
     float reload = 0;
     float height = 0;
     float velocity = 0;
+    float recoveryFlash = 0;
+    bool manaRecovery = false;
+
+    void MarkRecovery(bool magic)
+    {
+        recoveryFlash = RecoveryDuration;
+        manaRecovery = magic;
+    }
 
     bool UseManaPotion(float& mana, float maximum, int& potions)
     {
@@ -18,6 +27,7 @@ struct PlayerActions
         --potions;
         mana = maximum;
         reload = 0;
+        MarkRecovery(true);
         return true;
     }
 
@@ -49,6 +59,7 @@ struct PlayerActions
 
     void Update(float dt, float& mana, float maximum)
     {
+        recoveryFlash = (std::max)(0.f, recoveryFlash - dt);
         if (reload > 0)
         {
             reload = (std::max)(0.f, reload - dt);

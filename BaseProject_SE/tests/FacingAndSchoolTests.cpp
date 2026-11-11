@@ -1,6 +1,7 @@
 // CPU-only regression checks; no game window, OpenGL context or save file writes.
 #include <cassert>
 #include <queue>
+#include "../SimpleGame/AutoTarget.h"
 #include "../SimpleGame/CompanionFollow.h"
 #include "../SimpleGame/QuestCombat.h"
 #include "../SimpleGame/SchoolScene.h"
@@ -25,7 +26,7 @@ int main()
         state.step = MainQuest::Step::Shadows;
         MainQuest::Combat combat;
         combat.Enter(state);
-        // A target behind the player turns both the cast pose and projectile.
+        // A target behind the player cannot redirect the cast pose or projectile.
         for (auto& enemy : combat.enemies)
         {
             enemy.health = 0;
@@ -35,8 +36,8 @@ int main()
         combat.Attack({10, 10}, facing, state);
         assert(combat.shots.size() == 1);
         const auto& shot = combat.shots.front();
-        assert(std::abs(shot.direction.x + facing.x) < .0001f);
-        assert(std::abs(shot.direction.y + facing.y) < .0001f);
+        assert(std::abs(shot.direction.x - facing.x) < .0001f);
+        assert(std::abs(shot.direction.y - facing.y) < .0001f);
         assert(std::abs(combat.castDirection.x - shot.direction.x) < .0001f);
         assert(std::abs(combat.castDirection.y - shot.direction.y) < .0001f);
         assert(std::abs(combat.mana - 26) < .0001f);
@@ -124,16 +125,12 @@ int main()
         }
     }
 
-    CompanionFollow<Point> companion;
     const Point hero{4, 5};
-    auto open = [](Point) { return true; };
-    companion.Update(hero, {1, 0}, .016f, open);
-    assert(companion.Position(hero, {1, 0}).x < hero.x);
-    companion.Update(hero, {-1, 0}, .5f, open);
-    assert(companion.Position(hero, {-1, 0}).x > hero.x);
-    companion.Reset();
-    companion.Update(hero, {1, 0}, .016f, [hero](Point p) { return p.y <= hero.y; });
-    assert(companion.Position(hero, {1, 0}).y < hero.y);
+    const Point right = CompanionFollow::RightOf(hero, Point{1, 0});
+    const Point turned = CompanionFollow::RightOf(hero, Point{-1, 0});
+    assert(right.x == hero.x && right.y > hero.y);
+    assert(turned.x == hero.x && turned.y < hero.y);
+    assert(std::abs((right.y - hero.y) - (hero.y - turned.y)) < .0001f);
 
     // Flood the actual collision layout at half-tile resolution. Every room's entrance,
     // exit and central interaction spot must remain connected around desks and shelves.

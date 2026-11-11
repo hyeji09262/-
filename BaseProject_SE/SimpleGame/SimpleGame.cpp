@@ -17,6 +17,7 @@ but WITHOUT ANY WARRANTY.
 #include "RuntimeFiles.h"
 #include "Prologue.h"
 #include "QuestTwo.h"
+#include "ParkQuest.h"
 
 static Renderer* g_Renderer = nullptr;
 static GLFWwindow* window = nullptr;
@@ -26,10 +27,26 @@ enum class GameScene
     Prologue,
     Hunting,
     QuestTwo,
+    Park,
     World
 };
 
 static GameScene activeScene = GameScene::Prologue;
+static GameScene recoveryScene = GameScene::World;
+static Rpg::Progress huntingRecoveryShop;
+static bool huntingFromVillage = false;
+
+void LeavePark()
+{
+    ParkQuest::Pause();
+    const bool rescued = ParkQuest::RescuedDog() &&
+                         Tutorial::miaQuest == Tutorial::MiaQuest::ParkIncident;
+    QuestTwo::StoreParkProgress(ParkQuest::Progress(), rescued);
+    if (rescued)
+    {
+        Tutorial::miaQuest = Tutorial::MiaQuest::ReportPark;
+    }
+}
 
 void OpenWorld()
 {
@@ -39,21 +56,76 @@ void OpenWorld()
     Tutorial::SetExploration(true, Prologue::TransformationUnlocked());
     Rpg::Progress progress;
     int fragments = 0;
-    Tutorial::regionsUnlocked = Prologue::QuestTwoStart(progress, fragments);
-    if (Tutorial::regionsUnlocked)
+    if (Prologue::QuestTwoStart(progress, fragments))
     {
         QuestTwo::Open(true, progress, fragments);
         QuestTwo::Pause();
     }
     Tutorial::shopOpen = false;
     Rpg::Progress inventory;
-    if (QuestTwo::ShopProgress(inventory))
+    if ((activeScene != GameScene::World || recoveryScene == GameScene::World) &&
+        QuestTwo::ShopProgress(inventory))
     {
         Tutorial::potions = inventory.potions;
         Tutorial::manaPotions = inventory.manaPotions;
     }
     activeScene = GameScene::World;
-    glfwSetWindowTitle(window, "마법소녀 - 세 마을 탐험");
+    glfwSetWindowTitle(window, "마법소녀 - 별빛 마을");
+}
+
+void OpenRecoveryWorld(GameScene source, const Rpg::Progress& progress)
+{
+    const int healthPotions = progress.potions, manaPotions = progress.manaPotions;
+    OpenWorld();
+    Tutorial::LeaveBuilding();
+    const auto& shop = CoastalWorld::Buildings()[2];
+    Tutorial::player = {CoastalWorld::DoorX(shop), CoastalWorld::DoorY(shop)};
+    Tutorial::hp = (std::max)(1, Tutorial::hp);
+    Tutorial::actions.height = Tutorial::actions.velocity = 0;
+    Tutorial::spells.clear();
+    Tutorial::particles.clear();
+    std::fill(Tutorial::keys, Tutorial::keys + 256, false);
+    Tutorial::potions = healthPotions;
+    Tutorial::manaPotions = manaPotions;
+    recoveryScene = source;
+    Tutorial::recoveryShop = nullptr;
+    if (source == GameScene::Hunting)
+    {
+        huntingRecoveryShop = progress;
+        Tutorial::recoveryShop = &huntingRecoveryShop;
+    }
+    const char* next = source == GameScene::Prologue ? "정비 후 [F3] 골목 전투"
+                       : source == GameScene::QuestTwo ? "정비 후 [F4] 학교 전투"
+                       : source == GameScene::Park ? "정비 후 중앙공원 입구 [E]"
+                                                  : "정비 후 [F2] 사냥터";
+    Tutorial::Say(std::string("별빛 편의점 입장 [E] · ") + next);
+}
+
+void ApplyRestock(GameScene target)
+{
+    if (recoveryScene != target)
+    {
+        return;
+    }
+    switch (target)
+    {
+    case GameScene::Prologue:
+        Prologue::Restock(Tutorial::potions, Tutorial::manaPotions);
+        break;
+    case GameScene::QuestTwo:
+        QuestTwo::Restock(Tutorial::potions, Tutorial::manaPotions);
+        break;
+    case GameScene::Park:
+        ParkQuest::Restock(Tutorial::potions, Tutorial::manaPotions);
+        break;
+    case GameScene::Hunting:
+        LevelOne::Restock(huntingRecoveryShop);
+        break;
+    case GameScene::World:
+        break;
+    }
+    recoveryScene = GameScene::World;
+    Tutorial::recoveryShop = nullptr;
 }
 
 void OpenQuestTwo()
@@ -63,6 +135,10 @@ void OpenQuestTwo()
     const bool unlocked = Prologue::QuestTwoStart(inherited, fragments);
     Prologue::Pause();
     QuestTwo::Open(unlocked, inherited, fragments);
+    if (unlocked)
+    {
+        ApplyRestock(GameScene::QuestTwo);
+    }
     activeScene = GameScene::QuestTwo;
     glfwSetWindowTitle(window, "마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
 }
@@ -86,6 +162,10 @@ void RenderScene()
     {
         LevelOne::Draw();
     }
+    else if (activeScene == GameScene::Park)
+    {
+        ParkQuest::Draw();
+    }
     else
     {
         QuestTwo::Draw();
@@ -100,10 +180,12 @@ void RenderScene()
     const char* sceneName = activeScene == GameScene::Prologue  ? "prologue"
                             : activeScene == GameScene::World   ? "world"
                             : activeScene == GameScene::Hunting ? "level_one"
+                            : activeScene == GameScene::Park    ? "park"
                                                                 : "quest_two";
     profiler.Count(activeScene == GameScene::Prologue  ? "frame.scene.prologue"
                    : activeScene == GameScene::World   ? "frame.scene.world"
                    : activeScene == GameScene::Hunting ? "frame.scene.level_one"
+                   : activeScene == GameScene::Park    ? "frame.scene.park"
                                                        : "frame.scene.quest_two");
     profiler.Frame(interval, sceneName, g_Renderer->LastFrameStats().frame);
 }
@@ -125,11 +207,18 @@ void Tick(double now)
         Prologue::Update(dt);
         if (Prologue::ConsumeWorldRequest())
         {
-            OpenWorld();
-            Tutorial::LeaveBuilding();
-            const auto& home = CoastalWorld::Buildings()[0];
-            Tutorial::player = {CoastalWorld::DoorX(home), CoastalWorld::DoorY(home)};
-            Tutorial::Say("학교에 가는 길입니다. 별빛 학교의 노란 출입구에서 E를 눌러 들어가세요.");
+            if (Prologue::Defeated())
+            {
+                OpenRecoveryWorld(GameScene::Prologue, Prologue::Progress());
+            }
+            else
+            {
+                OpenWorld();
+                Tutorial::LeaveBuilding();
+                const auto& home = CoastalWorld::Buildings()[0];
+                Tutorial::player = {CoastalWorld::DoorX(home), CoastalWorld::DoorY(home)};
+                Tutorial::Say("학교에 가는 길입니다. 별빛 학교의 노란 출입구에서 E를 눌러 들어가세요.");
+            }
         }
         if (Prologue::ConsumeQuestTwoRequest())
         {
@@ -165,6 +254,7 @@ void Tick(double now)
                 }
                 else
                 {
+                    ApplyRestock(GameScene::Prologue);
                     Prologue::ResumeFromWorld();
                     activeScene = GameScene::Prologue;
                     glfwSetWindowTitle(window, "마법소녀 - 메인 스토리");
@@ -177,6 +267,23 @@ void Tick(double now)
                 OpenQuestTwo();
                 QuestTwo::EnterFromSchool(room, position.x, position.y);
             }
+            else if (request == Tutorial::ParkSceneRequest)
+            {
+                Rpg::Progress progress = ParkQuest::Progress();
+                QuestTwo::ShopProgress(progress);
+                ParkQuest::Open(*g_Renderer, Tutorial::VisualModels(), progress);
+                ApplyRestock(GameScene::Park);
+                activeScene = GameScene::Park;
+                glfwSetWindowTitle(window, "마법소녀 - 별빛 중앙공원");
+            }
+            else if (request == Tutorial::HuntingSceneRequest)
+            {
+                huntingFromVillage = true;
+                LevelOne::Resume(true);
+                ApplyRestock(GameScene::Hunting);
+                activeScene = GameScene::Hunting;
+                glfwSetWindowTitle(window, "마법소녀 - 별빛 숲 사냥터");
+            }
             else
             {
                 OpenQuestTwo();
@@ -188,9 +295,39 @@ void Tick(double now)
         LevelOne::Update(dt);
         if (LevelOne::ConsumeWorldRequest())
         {
-            OpenWorld();
-            Tutorial::LeaveBuilding();
-            Tutorial::Say("마을로 돌아왔습니다.");
+            if (LevelOne::Defeated())
+            {
+                OpenRecoveryWorld(GameScene::Hunting, LevelOne::Progress());
+            }
+            else
+            {
+                OpenWorld();
+                Tutorial::LeaveBuilding();
+                if (huntingFromVillage)
+                {
+                    Tutorial::player = Tutorial::HuntingEntrance;
+                }
+                Tutorial::Say("마을로 돌아왔습니다.");
+            }
+        }
+    }
+    else if (activeScene == GameScene::Park)
+    {
+        ParkQuest::Update(dt);
+        if (ParkQuest::ConsumeExit())
+        {
+            LeavePark();
+            if (ParkQuest::Defeated())
+            {
+                OpenRecoveryWorld(GameScene::Park, ParkQuest::Progress());
+            }
+            else
+            {
+                OpenWorld();
+                const auto& park = CoastalWorld::Buildings()[Tutorial::StoryPark];
+                Tutorial::player = {CoastalWorld::DoorX(park), CoastalWorld::DoorY(park)};
+                Tutorial::Say(Tutorial::MiaQuestObjective());
+            }
         }
     }
     else if (activeScene == GameScene::QuestTwo)
@@ -198,14 +335,21 @@ void Tick(double now)
         QuestTwo::Update(dt);
         if (QuestTwo::ConsumeWorldRequest())
         {
-            OpenWorld();
-            Tutorial::LeaveBuilding();
-            const auto& school = CoastalWorld::Buildings()[1];
-            Tutorial::player = {CoastalWorld::DoorX(school), CoastalWorld::DoorY(school) + 1};
-            Tutorial::Say(
-                QuestTwo::Finished()
-                    ? "학교 사건 해결! 노란 목표를 따라 편의점에 가서 직원에게 E로 물약을 구입하세요."
-                    : "학교에서 나왔습니다. 노란 목표를 따라 조사를 이어갈 수 있습니다.");
+            if (QuestTwo::Defeated())
+            {
+                OpenRecoveryWorld(GameScene::QuestTwo, QuestTwo::Progress());
+            }
+            else
+            {
+                OpenWorld();
+                Tutorial::LeaveBuilding();
+                const auto& school = CoastalWorld::Buildings()[1];
+                Tutorial::player = {CoastalWorld::DoorX(school), CoastalWorld::DoorY(school) + 1};
+                Tutorial::Say(
+                    QuestTwo::Finished()
+                        ? "루미: 검은 조각을 아는 사람이 있어. 별빛 쇼핑몰 안내 데스크의 미아를 만나 보자!"
+                        : "학교에서 나왔습니다. 노란 목표를 따라 조사를 이어갈 수 있습니다.");
+            }
         }
     }
 
@@ -214,11 +358,13 @@ void Tick(double now)
         Performance::Scope monitorScope("cpu.monitor.collect_ms");
         const char* active = activeScene == GameScene::World      ? "world"
                              : activeScene == GameScene::Hunting  ? "hunting"
+                             : activeScene == GameScene::Park     ? "park"
                              : activeScene == GameScene::Prologue ? "story"
                                                                   : "quest_two";
         WorldMonitor::Publish(active,
                               {Tutorial::MonitorSnapshot(), LevelOne::MonitorSnapshot(),
-                               Prologue::MonitorSnapshot(), QuestTwo::MonitorSnapshot()},
+                               Prologue::MonitorSnapshot(), QuestTwo::MonitorSnapshot(),
+                               ParkQuest::MonitorSnapshot()},
                               g_Renderer->LastFrameStats().Total());
     }
 }
@@ -234,6 +380,7 @@ void Resize(GLFWwindow*, int w, int h)
     LevelOne::Resize(w, h);
     Prologue::Resize(w, h);
     QuestTwo::Resize(w, h);
+    ParkQuest::Resize(w, h);
     if (g_Renderer)
         g_Renderer->Resize(w, h);
 }
@@ -252,6 +399,10 @@ void GameKey(unsigned char k, bool pressed)
     {
         LevelOne::Key(k, pressed);
     }
+    else if (activeScene == GameScene::Park)
+    {
+        ParkQuest::Key(k, pressed);
+    }
     else
     {
         QuestTwo::Key(k, pressed);
@@ -260,6 +411,28 @@ void GameKey(unsigned char k, bool pressed)
 
 void SpecialKey(int key)
 {
+    if (activeScene == GameScene::Park &&
+        (key == GLFW_KEY_F1 || key == GLFW_KEY_F2 || key == GLFW_KEY_F3 || key == GLFW_KEY_F4 ||
+         key == GLFW_KEY_F6 || key == GLFW_KEY_F7))
+    {
+        LeavePark();
+    }
+    if (key == GLFW_KEY_F7)
+    {
+        OpenWorld();
+        Tutorial::LeaveBuilding();
+        std::fill(Tutorial::keys, Tutorial::keys + 256, false);
+        Tutorial::actions.height = Tutorial::actions.velocity = 0;
+        Tutorial::spells.clear();
+        Tutorial::particles.clear();
+        Tutorial::miaQuestShortcut = true;
+        const int destination = Tutorial::MiaQuestDestination();
+        const auto& building =
+            CoastalWorld::Buildings()[destination >= 0 ? destination : Tutorial::StoryPark];
+        Tutorial::player = {CoastalWorld::DoorX(building), CoastalWorld::DoorY(building)};
+        Tutorial::Say(Tutorial::MiaQuestObjective());
+        return;
+    }
     if (key == GLFW_KEY_F6 || key == GLFW_KEY_F1)
     {
         OpenWorld();
@@ -302,10 +475,21 @@ void SpecialKey(int key)
     {
         OpenQuestTwo();
     }
+    else if (activeScene == GameScene::Hunting)
+    {
+        huntingFromVillage = false;
+        LevelOne::Resume(false);
+        ApplyRestock(GameScene::Hunting);
+    }
+    else if (activeScene == GameScene::Prologue)
+    {
+        ApplyRestock(GameScene::Prologue);
+        Prologue::ResumeFromWorld();
+    }
     glfwSetWindowTitle(window, activeScene == GameScene::Prologue
                                   ? "마법소녀 - 프롤로그: 평범한 아침"
                               : activeScene == GameScene::Hunting
-                                  ? "마법소녀 - 방과 후 첫 임무"
+                                          ? "마법소녀 - 별빛 숲 사냥터"
                                   : "마법소녀 - 메인 퀘스트 2: 학교에 숨어든 것");
 }
 
@@ -340,6 +524,7 @@ void Iconified(GLFWwindow*, int iconified)
         LevelOne::Pause();
         Prologue::Pause();
         QuestTwo::Pause();
+        ParkQuest::Pause();
     }
 }
 

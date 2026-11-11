@@ -171,6 +171,10 @@
     <ClInclude Include="PrologueStory.h" />
     <ClInclude Include="MainQuest.h" />
     <ClInclude Include="QuestTwo.h" />
+    <ClInclude Include="ParkQuest.h" />
+    <ClInclude Include="CombatVitals.h" />
+    <ClInclude Include="CombatEffects.h" />
+    <ClInclude Include="CombatKeys.h" />
     <ClInclude Include="QuestTwoStory.h" />
     <ClInclude Include="QuestCombat.h" />
     <ClInclude Include="HuntingMap.h" />
@@ -192,6 +196,7 @@
     <ClCompile Include="Prologue.cpp" />
     <ClCompile Include="MainQuest.cpp" />
     <ClCompile Include="QuestTwo.cpp" />
+    <ClCompile Include="ParkQuest.cpp" />
     <ClCompile Include="HuntingMap.cpp" />
     <ClCompile Include="RpgProgress.cpp" />
     <ClCompile Include="PrimitiveModels.cpp" />

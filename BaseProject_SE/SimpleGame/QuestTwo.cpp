@@ -10,6 +10,9 @@
 #include "QuestTwo.h"
 #include "QuestTwoStory.h"
 #include "QuestCombat.h"
+#include "CombatVitals.h"
+#include "CombatEffects.h"
+#include "CombatKeys.h"
 #include "PrimitiveModels.h"
 #include "SceneGraph.h"
 #include "SchoolScene.h"
@@ -57,7 +60,6 @@ bool worldRequested = false;
 bool awaitingHall = false, magicalForm = false;
 Transformation::Sequence transformation;
 float introTime = 0;
-CompanionFollow<Point> lumiFollower;
 
 bool BattleReady()
 {
@@ -71,7 +73,8 @@ Point LumiPosition()
     {
         return {SchoolLayout::IntroLumiX, SchoolLayout::IntroLumiY};
     }
-    return lumiFollower.Position(player, facingDirection);
+    const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+    return CompanionFollow::RightOf(player, look);
 }
 
 int SceneRoom()
@@ -165,7 +168,11 @@ Actor& Model(const std::string& id, Transform pose, ModelId model, Actor* parent
         [model, mirrored](const Actor&, const Transform& world)
         {
             Point p = Project(world);
-            graphics->DrawModel(models.Get(model), p.x, p.y,
+            const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+            const auto& mesh = model == ModelId::Lumi && story.step != Step::Reaction
+                                   ? models.GetFacing(model, look.x, look.y)
+                                   : models.Get(model);
+            graphics->DrawModel(mesh, p.x, p.y,
                                 Scale() * world.scale * (mirrored ? -1 : 1), Scale() * world.scale);
         },
         parent);
@@ -211,7 +218,6 @@ void BuildScene()
 {
     Performance::Scope scope("cpu.quest_two.static_scene_build_ms");
     graph.Clear();
-    lumiFollower.Reset();
     builtGym = story.Gym();
     auto& root = graph.Place("school", {}, RenderLayer::Ground);
     SchoolScene::Build(graph, SceneRoom(),
@@ -288,7 +294,9 @@ void EnterStep(bool retry = false)
     }
     if (story.step == Step::Elite && !combat.enemies.empty())
     {
-        combat.enemies.front().health = 220.f + (story.progress.stats.level - 1) * 24;
+        auto& boss = combat.enemies.front();
+        boss.enhancedBossMaxHealth = 250.f + (story.progress.stats.level - 1) * 24;
+        boss.health = boss.enhancedBossMaxHealth;
     }
     if (retry || builtGym != story.Gym())
     {
@@ -513,16 +521,6 @@ void Interact()
     }
 }
 
-void Meter(float x, const char* name, float value, float maximum, Color color, char key, int count)
-{
-    float ratio = (std::max)(0.f, (std::min)(1.f, value / (std::max)(1.f, maximum)));
-    Text(x - 7, 231, name, 18);
-    Panel(x, 243, 22, 280, {.2f, .22f, .3f});
-    Panel(x, 243 + 280 * (1 - ratio), 22, 280 * ratio, color);
-    Text(x - 10, 542, std::to_string(int(value)) + "/" + std::to_string(int(maximum)), 14);
-    Text(x - 14, 560, std::string("[") + key + "] " + std::to_string(count) + "개", 15);
-}
-
 void DrawHud()
 {
     Performance::Scope scope("cpu.quest_two.hud_ms");
@@ -535,7 +533,7 @@ void DrawHud()
     }
     Text(42, 88,
          awaitingHall              ? "조사 완료 · 출입문 [E]로 중앙 복도에 돌아가세요."
-         : transformation.Active() ? "별빛 변신 중 · 연출 후 Q로 전투가 시작됩니다."
+         : transformation.Active() ? "별빛 변신 중 · 연출 후 J로 전투가 시작됩니다."
                                    : story.Current().text,
          19, gold);
     std::string detail = "조사 " + std::to_string(story.ClueCount()) + "/3 · 검은 조각 " +
@@ -555,17 +553,13 @@ void DrawHud()
              ? "[E]로 마을 귀환 · 편의점 직원에게 물약 구매 가능"
          : story.step == Step::Complete && story.sealOpened
              ? "봉인 해제 완료 · 보급품에 가까이 가서 [E]"
-         : story.step == Step::Complete ? "창고의 보라색 봉인에 가까이 가서 [2] 정화"
+         : story.step == Step::Complete ? "출구로 돌아가세요"
                                         : "[E] 조사/대화",
          16, blue);
-    Panel(22, 212, 152, 354);
-    Meter(48, "체력", combat.health, float(story.progress.stats.maxHealth), pink, 'Z',
-          story.progress.potions);
-    Meter(112, "마나", combat.mana, float(story.progress.stats.maxMana), blue, 'X',
-          story.progress.manaPotions);
+    CombatVitals::Draw(*graphics, width, height, combat.health, combat.mana, story.progress);
     Panel(22, 710, 1236, 76);
     Text(42, 740,
-         "WASD 이동 · Shift 달리기 · Space 점프 · Q 공격 · 1 별빛 폭발 · Z/X 물약 · E 조사", 17);
+         "WASD 이동 · Shift 달리기 · J 공격 · K 별빛 폭발 (10) · L 별빛 낙하 (8) · U/I 물약 · E 조사", 17);
     Text(42, 770,
          "ESC 메뉴 · N 재시도 · F1 마을 · F2 사냥터 · F3 이전 이야기 · F4 퀘스트2 · F6 마을", 16,
          pink);
@@ -614,7 +608,7 @@ void DrawHud()
         {
             targetHint = story.treasureTaken ? "[E] 마을로"
                          : story.sealOpened  ? "[E] 보급품"
-                                             : "[2] 정화";
+                                             : "체육 창고";
             target = story.treasureTaken ? player
                      : story.sealOpened  ? Places::Treasure
                                          : Places::Seal;
@@ -693,8 +687,8 @@ void DrawHud()
     {
         Panel(300, 270, 700, 160);
         Text(330, 318, combat.Dead() ? "쓰러졌습니다" : "메인 퀘스트 2 · 일시정지", 27, pink);
-        Text(330, 363, "[N] 현재 단계 재시도 · 전투 처치 수 초기화", 21);
-        Text(330, 401, "[ESC] 계속하기", 17);
+        Text(330, 363, "[N] 다시 도전", 21);
+        Text(330, 401, combat.Dead() ? "[M] 마을로 돌아가기 · 물약 정비" : "[ESC] 계속하기", 17);
     }
 }
 } // namespace
@@ -739,6 +733,26 @@ bool ConsumeWorldRequest()
     const bool requested = worldRequested;
     worldRequested = false;
     return requested;
+}
+
+bool Defeated()
+{
+    return loaded && combat.Dead();
+}
+
+const Rpg::Progress& Progress()
+{
+    return story.progress;
+}
+
+void Restock(int healthPotions, int manaPotions)
+{
+    story.progress.potions = healthPotions;
+    story.progress.manaPotions = manaPotions;
+    dialogue.clear();
+    pendingAdvance = false;
+    pendingClue = -1;
+    EnterStep(true);
 }
 
 bool Finished()
@@ -793,6 +807,18 @@ void StoreWorldPotions(int healthPotions, int magicPotions)
     story.progress.manaPotions = (std::max)(0, (std::min)(99, magicPotions));
 }
 
+void StoreParkProgress(const Rpg::Progress& progress, bool foundFragment)
+{
+    if (Finished())
+    {
+        story.progress = progress;
+        if (foundFragment)
+        {
+            ++story.fragments;
+        }
+    }
+}
+
 bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, float& x, float& y,
                      std::string& label)
 {
@@ -838,7 +864,7 @@ bool SchoolObjective(int currentRoom, float playerX, float playerY, int& room, f
     if (story.step == Step::Complete)
     {
         target = story.sealOpened ? Places::Treasure : Places::Seal;
-        label = story.sealOpened ? "체육관 창고 보급품[E]" : "체육관 창고 봉인[2]";
+        label = story.sealOpened ? "체육관 창고 보급품 [E]" : "체육관 창고";
     }
     x = target.x;
     y = target.y;
@@ -892,7 +918,13 @@ void Key(unsigned char key, bool down)
         keys.fill(false);
         return;
     }
-    if (key == 'n' && (paused || combat.Dead()))
+    if (Defeated() && key == CombatKeys::ReturnToTown)
+    {
+        worldRequested = true;
+        keys.fill(false);
+        return;
+    }
+    if (key == CombatKeys::Retry && (paused || combat.Dead()))
     {
         dialogue.clear();
         pendingAdvance = false;
@@ -922,19 +954,30 @@ void Key(unsigned char key, bool down)
     {
         return;
     }
+    if (key == 'f' && !story.Fighting())
+    {
+        Talk("루미", story.step == Step::Complete
+                         ? "학교의 악몽은 사라졌어. 마을로 돌아가 편의점에 들러 보자!"
+                         : "노란 목표를 따라가면 다음 단서를 찾을 수 있어. 내가 옆을 지킬게!");
+        return;
+    }
     if (key == ' ')
     {
         combat.actions.Jump();
     }
-    if (key == '1' && story.Fighting())
+    if (key == CombatKeys::Burst && story.Fighting())
     {
         combat.Burst(player, encounter);
     }
-    if (key == 'z' && combat.UsePotion(encounter))
+    if (key == CombatKeys::Starfall && BattleReady())
+    {
+        combat.Starfall(player, facingDirection, encounter, Walkable);
+    }
+    if (key == CombatKeys::HealthPotion && combat.UsePotion(encounter))
     {
         story.progress = encounter.progress;
     }
-    if (key == 'x' && combat.actions.UseManaPotion(combat.mana, float(story.progress.stats.maxMana),
+    if (key == CombatKeys::ManaPotion && combat.actions.UseManaPotion(combat.mana, float(story.progress.stats.maxMana),
                                                    story.progress.manaPotions))
     {
         encounter.progress = story.progress;
@@ -1010,15 +1053,13 @@ void Update(float dt)
                 "학교 사건 해결",
                 alreadyRewarded
                     ? "체육관의 악몽을 다시 물리쳤다! 기존 성장과 보상은 유지된다. E로 마을로 돌아가자."
-                    : "체육관의 악몽이 사라졌다! 경험치 180, 골드 150, 물약을 받았다. E로 마을에 돌아가 편의점에서 물약을 구입하자.");
+                    : "체육관의 악몽이 사라졌다! 경험치 180, 골드 150, 물약을 받았다. E로 마을에 돌아가 쇼핑몰의 미아를 만나자.");
         }
-        else if (keys['q'])
+        else if (keys[CombatKeys::Attack])
         {
-            combat.Attack(player, facingDirection, encounter, combat.actions.height, Walkable);
+            combat.Attack(player, facingDirection, encounter, combat.actions.height);
         }
     }
-    const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
-    lumiFollower.Update(player, look, dt, Walkable);
     float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x - camera.x) * follow;
     const float focusY = story.step == Step::Reaction && introTime < 4.f ? 7.f : player.y;
@@ -1081,7 +1122,11 @@ void Draw()
         auto& lumi =
             Model("lumi", {lumiPosition.x, lumiPosition.y, 28 + 4 * std::sin(clockTime * 3)},
                   ModelId::Lumi);
-        Label("lumi/name", {0, 0, 60}, "루미", paper, &lumi);
+        Label("lumi/name", {0, 0, 60},
+              story.step == Step::Reaction || story.Fighting() || transformation.Active()
+                  ? "루미"
+                  : "루미 [F]",
+              paper, &lumi);
         if (story.step == Step::Reaction && introTime < 4.f)
         {
             Model("intro/window_shadow",
@@ -1111,17 +1156,48 @@ void Draw()
                       &actor);
             }
             Label(id + "/hp", {0, 0, enemy.boss ? 140.f : 75.f},
-                  std::string(enemy.boss ? "체육관의 악몽 " : MonsterAnimation::Name(enemy.kind)) +
+                  std::string(enemy.Enraged() ? "체육관의 악몽 · 격노 "
+                              : enemy.boss ? "체육관의 악몽 " : MonsterAnimation::Name(enemy.kind)) +
                       " " + std::to_string(int(enemy.health)),
                   pink, &actor);
             if (enemy.boss && enemy.phase == 1)
             {
+                const char* warnings[] = {"내려찍기", "돌진", "도약 강타", "부채꼴 마법탄"};
+                Label(id + "/attack-name", {0, 0, 171}, warnings[enemy.pattern], gold, &actor);
                 graph.Place(
                     id + "/warning", {}, RenderLayer::Shadow,
                     [enemy](const Actor&, const Transform&)
                     {
-                        Point target = enemy.pattern == 0 ? enemy.position : enemy.aim;
-                        const float radius = enemy.pattern == 0 ? 2.4f : 2.f;
+                        const Color warning{.95f, .12f, .22f, .45f};
+                        const auto lane = [&](Point direction, float length, float halfWidth)
+                        {
+                            const Point start = enemy.position;
+                            const Point end{start.x + direction.x * length,
+                                            start.y + direction.y * length};
+                            const Point side{-direction.y * halfWidth, direction.x * halfWidth};
+                            const Point a = Project({start.x + side.x, start.y + side.y, 2});
+                            const Point b = Project({end.x + side.x, end.y + side.y, 2});
+                            const Point c = Project({end.x - side.x, end.y - side.y, 2});
+                            const Point d = Project({start.x - side.x, start.y - side.y, 2});
+                            Triangle(a, b, c, warning);
+                            Triangle(a, c, d, warning);
+                        };
+                        if (enemy.pattern == 1)
+                        {
+                            lane(enemy.facing, enemy.ChargeSpeed() * .5f, 1.2f);
+                            return;
+                        }
+                        if (enemy.pattern == 3)
+                        {
+                            const int spread = enemy.bossAttackEnraged ? 3 : 2;
+                            for (int ray = -spread; ray <= spread; ++ray)
+                            {
+                                lane(MainQuest::BossFanDirection(enemy.facing, ray), 9.f, .4f);
+                            }
+                            return;
+                        }
+                        const Point target = enemy.pattern == 0 ? enemy.position : enemy.aim;
+                        const float radius = enemy.BossRadius();
                         for (int j = 0; j < 32; ++j)
                         {
                             float a = j * 6.2831853f / 32, b = (j + 1) * 6.2831853f / 32;
@@ -1130,10 +1206,15 @@ void Draw()
                                               target.y + std::sin(a) * radius, 2}),
                                      Project({target.x + std::cos(b) * radius,
                                               target.y + std::sin(b) * radius, 2}),
-                                     {.95f, .12f, .22f, .45f});
+                                     warning);
                         }
                     },
                     &actor);
+            }
+            if (enemy.EnhancedBoss() && enemy.phase == 3 && enemy.pattern != 3 &&
+                enemy.timer > enemy.BossRecovery() - .22f)
+            {
+                Glow(id + "/impact", {0, 0, 8}, 110.f, &actor, RenderLayer::Shadow);
             }
         }
         for (const auto& shot : combat.shots)
@@ -1183,10 +1264,9 @@ void Draw()
                     &effects);
             }
         }
-        if (combat.burst > 0)
-        {
-            Glow("burst", {combat.burstOrigin.x, combat.burstOrigin.y, 25}, 150);
-        }
+        CombatEffects::Spells(graph, *graphics, combat, Scale(), Project);
+        CombatEffects::Recovery(graph, *graphics, hero, combat.actions, combat.actions.height,
+                                Scale(), Project);
     }
     graph.Place("hud", {}, RenderLayer::UserInterface,
                 [](const Actor&, const Transform&)

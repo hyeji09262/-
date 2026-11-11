@@ -81,11 +81,12 @@
     "monsters/MimicChest.blend": "66aff285036cc34461f3c6bad094051d2df4a69eb5ac31e2e80c8c46ecbb884b",
     "monsters/LanternWisp.blend": "fdd232935d1fa8b820c60278c054e505f2d1b25d2a3de691341b33b39f07fbc8",
     "monsters/ThornSeed.blend": "0a7e16cc54121c2d2aadf78616fc96948ac44589565f2a18b88384611f6b2257",
-    "monsters/Gym_EnhancedShadow_Boss.blend": "60a9bd8ec2e24a1308910c510ef65c9c87cf1d953c02aa7149b046c0393d6858"
+    "monsters/Gym_EnhancedShadow_Boss.blend": "60a9bd8ec2e24a1308910c510ef65c9c87cf1d953c02aa7149b046c0393d6858",
+    "monsters/BlackFlower_Boss.blend": "313c7f5eb9f9d318e5e450944b4b1e1e27a72e60d4f65b9df554437088960861"
   },
   "format": "MGSRES03",
   "model_count": 1435,
-  "facing_poses": 11,
+  "facing_poses": 14,
   "facing_directions": 8,
   "wand_sockets_pixels": [
     34.85263013839722,
@@ -4764,7 +4765,79 @@
     },
     "facing_87": {
       "triangles": 1920
+    },
+    "facing_88": {
+      "triangles": 657
+    },
+    "facing_89": {
+      "triangles": 656
+    },
+    "facing_90": {
+      "triangles": 656
+    },
+    "facing_91": {
+      "triangles": 653
+    },
+    "facing_92": {
+      "triangles": 652
+    },
+    "facing_93": {
+      "triangles": 653
+    },
+    "facing_94": {
+      "triangles": 666
+    },
+    "facing_95": {
+      "triangles": 648
+    },
+    "facing_96": {
+      "triangles": 1776
+    },
+    "facing_97": {
+      "triangles": 1764
+    },
+    "facing_98": {
+      "triangles": 1776
+    },
+    "facing_99": {
+      "triangles": 1800
+    },
+    "facing_100": {
+      "triangles": 1776
+    },
+    "facing_101": {
+      "triangles": 1764
+    },
+    "facing_102": {
+      "triangles": 1776
+    },
+    "facing_103": {
+      "triangles": 1800
+    },
+    "facing_104": {
+      "triangles": 1770
+    },
+    "facing_105": {
+      "triangles": 1770
+    },
+    "facing_106": {
+      "triangles": 1770
+    },
+    "facing_107": {
+      "triangles": 1800
+    },
+    "facing_108": {
+      "triangles": 1770
+    },
+    "facing_109": {
+      "triangles": 1764
+    },
+    "facing_110": {
+      "triangles": 1770
+    },
+    "facing_111": {
+      "triangles": 1794
     }
   },
-  "bytes": 100422556
+  "bytes": 102847684
 }

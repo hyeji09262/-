@@ -33,6 +33,8 @@ class Map
     bool Floor(int x, int y) const;
     bool Walkable(Position p, float radius = 0.23f) const;
     bool Safe(Position p) const;
+    Position VillageExit() const;
+    bool VillageTrail(int x, int y) const;
     void Move(Position& p, Position delta) const;
     std::array<int, Count> Distances(Position origin) const;
     bool AllFloorConnected() const;

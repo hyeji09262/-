@@ -8,8 +8,10 @@ int main()
     int manaPotions = 3;
     assert(actions.UseManaPotion(potionMana, 30, manaPotions));
     assert(potionMana == 30 && manaPotions == 2);
+    assert(actions.recoveryFlash > 0 && actions.manaRecovery);
+    actions.Update(PlayerActions::RecoveryDuration, potionMana, 30);
     assert(!actions.UseManaPotion(potionMana, 30, manaPotions));
-    assert(manaPotions == 2);
+    assert(manaPotions == 2 && actions.recoveryFlash == 0);
     potionMana = 0;
     manaPotions = 0;
     assert(!actions.UseManaPotion(potionMana, 30, manaPotions));

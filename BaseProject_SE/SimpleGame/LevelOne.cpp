@@ -4,6 +4,8 @@
 #endif
 #include "GameInput.h"
 #include "CompanionFollow.h"
+#include "CombatEffects.h"
+#include "CombatKeys.h"
 #include "Prologue.h"
 #include <algorithm>
 #include <array>
@@ -19,7 +21,6 @@
 #include "SceneGraph.h"
 #include "CharacterVisual.h"
 #include "PlayerActions.h"
-#include "AutoTarget.h"
 #include "NatureVisuals.h"
 #include "BuildingVisuals.h"
 #include "MonsterAnimation.h"
@@ -102,7 +103,6 @@ std::vector<FloatingText> floating;
 std::array<int, Hunting::Map::Count> navigation;
 std::mt19937 random;
 Position player;
-CompanionFollow<Position> lumiFollower;
 Position facing = {0.707f, -0.707f};
 Position castDirection = {.707f, -.707f};
 std::array<bool, 256> keys = {};
@@ -169,8 +169,11 @@ void Model(ModelId id, Position world, float scale = 1, float elevation = 0, boo
     Position screen = Project(world, elevation);
     if (Visible(screen, 140 * scale))
     {
+        const Position look = castTimer > 0 ? castDirection : facing;
+        const auto& mesh = id == ModelId::Lumi ? models.GetFacing(id, look.x, look.y)
+                                               : models.Get(id);
         graphics->DrawModel(
-            models.Get(id), screen.x * screenWidth / 1280, screen.y * screenHeight / 800,
+            mesh, screen.x * screenWidth / 1280, screen.y * screenHeight / 800,
             scale * screenWidth / 1280 * (mirror ? -1.f : 1.f), scale * screenHeight / 800);
     }
 }
@@ -218,7 +221,6 @@ void NewMap()
 {
     Performance::Scope profileScope("cpu.map.generate_level_ms");
     scene.Clear();
-    lumiFollower.Reset();
     map.Generate(random());
     player = map.camp;
     enemies.clear();
@@ -262,7 +264,7 @@ void NewMap()
         }
     }
     navigation = map.Distances(player);
-    Notify("마법소녀의 첫 임무! Q 공격 / Space 점프 / X 마나 물약 / E 획득");
+    Notify("마법소녀의 첫 임무! J 공격 / Space 점프 / I 마나 물약 / E 획득");
 }
 
 bool LineOfSight(Position a, Position b)
@@ -286,28 +288,12 @@ void Attack()
         return;
     }
 
-    AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 7.f,
-                              AutoTarget::Mode::Nearest);
-    {
-        Performance::Scope scope("cpu.combat.auto_target_ms");
-        for (const auto& enemy : enemies)
-        {
-            const bool candidate =
-                enemy.health > 0 && Distance(player, enemy.position) < aim.distance;
-            if (candidate)
-            {
-                aim.Consider(enemy.position.x, enemy.position.y, true,
-                             LineOfSight(player, enemy.position));
-            }
-        }
-    }
-    Position direction = {aim.directionX, aim.directionY};
-    castDirection = direction;
+    castDirection = facing;
 
     attackTimer = .5f;
     castTimer = CharacterVisual::CastDuration;
-    castMirror = direction.x - direction.y < 0;
-    projectiles.push_back({player, direction, progress.stats.attack, .85f});
+    castMirror = castDirection.x - castDirection.y < 0;
+    projectiles.push_back({player, castDirection, progress.stats.attack, .85f});
     projectiles.back().launchHeight = actions.height;
 }
 
@@ -385,24 +371,35 @@ void UpdateProjectiles(float dt)
                       projectiles.end());
 }
 
+void RetryFight()
+{
+    player = map.camp;
+    health = float(progress.stats.maxHealth);
+    mana = float(progress.stats.maxMana);
+    navigationTimer = 0;
+    projectiles.clear();
+    hostileShots.clear();
+    poisonZones.clear();
+    actions = PlayerActions{};
+    damageTimer = castTimer = attackTimer = 0;
+    paused = false;
+    keys.fill(false);
+    Notify("별빛 숲 캠프에서 다시 도전합니다.");
+}
+
 void ReceiveDamage(int attack)
 {
-    if (damageTimer > 0 || map.Safe(player))
+    if (Defeated() || damageTimer > 0 || map.Safe(player))
     {
         return;
     }
     int damage = (std::max)(1, attack - progress.stats.defense);
-    health -= damage;
+    health = (std::max)(0.f, health - damage);
     damageTimer = .8f;
     FloatText(player, "-" + std::to_string(damage), {1, .3f, .4f, 1});
-    if (health <= 0)
+    if (Defeated())
     {
-        player = map.camp;
-        health = static_cast<float>(progress.stats.maxHealth);
-        mana = static_cast<float>(progress.stats.maxMana);
-        navigationTimer = 0;
-        projectiles.clear();
-        Notify("학교에서 회복했습니다. 경험치와 소지품은 잃지 않습니다.");
+        keys.fill(false);
     }
 }
 
@@ -702,11 +699,11 @@ void DrawMap()
         {
             auto tile = map.tiles[Hunting::Map::Index(x, y)];
             Position p = {x + .5f, y + .5f};
-            Color ground = map.Safe(p) ? Color{.67f, .60f, .64f, 1} : Color{.34f, .48f, .40f, 1};
+            const bool stone = map.Safe(p) || map.VillageTrail(x, y);
             std::string key = std::to_string(Hunting::Map::Index(x, y));
             scene.Place(
                 "tile/" + key, {p.x, p.y}, Game::RenderLayer::Ground,
-                [tile, ground, x, y](const Game::Actor&, const Game::Transform& world)
+                [tile, stone, x, y](const Game::Actor&, const Game::Transform& world)
                 {
                     Position screen = Project({world.x, world.y}, world.z);
                     if (!Visible(screen, 36 * world.scale))
@@ -720,8 +717,7 @@ void DrawMap()
                     }
                     else
                     {
-                        Model(map.Safe({world.x, world.y}) ? ModelId::FloorStone
-                                                           : ModelId::TerrainGrass,
+                        Model(stone ? ModelId::FloorStone : ModelId::TerrainGrass,
                               {world.x, world.y}, world.scale * 1.01f, world.z);
                     }
                 },
@@ -739,8 +735,9 @@ void DrawMap()
             }
         }
     }
+    const Position exit = map.VillageExit();
     auto& sign = scene.Place(
-        "return/sign", {map.camp.x - 2, map.camp.y - 1}, Game::RenderLayer::World,
+        "return/sign", {exit.x, exit.y}, Game::RenderLayer::World,
         [](const Game::Actor&, const Game::Transform& world)
         {
             Position p = Project({world.x, world.y});
@@ -761,10 +758,19 @@ void DrawMap()
             if (Visible(screen, 0))
             {
                 graphics->Nameplate(screen.x * screenWidth / 1280, screen.y * screenHeight / 800,
-                                    "[E] 마을로 돌아가기", 17.f * screenHeight / 800);
+                                    Distance(player, {world.x, world.y}) < 1.8f
+                                        ? "별빛 마을로 [E]"
+                                        : "별빛 마을 입구",
+                                    17.f * screenHeight / 800);
             }
         },
         &sign);
+    scene.Place("return/ground", {}, Game::RenderLayer::Shadow,
+                [](const Game::Actor&, const Game::Transform& world)
+                {
+                    Diamond(Project({world.x, world.y}), 17, 9, gold);
+                },
+                &sign);
     PlaceModel("beacon", ModelId::Campfire, {map.camp.x + 1, map.camp.y - 1}, &scenery);
     PlaceEffect("beacon/flame", {0, 0, 31.5f}, 42, 63, 1, scene.Find("beacon"));
     scene.RetainSubtree(terrain);
@@ -833,9 +839,19 @@ void DrawActors()
     auto& dynamic = scene.Place("characters", {}, Game::RenderLayer::World);
     if (Prologue::TransformationUnlocked())
     {
-        const Position position = lumiFollower.Position(player, facing);
+        const Position look = castTimer > 0 ? castDirection : facing;
+        const Position position = CompanionFollow::RightOf(player, look);
         PlaceModel("lumi", ModelId::Lumi, {position.x, position.y, 26 + 4 * std::sin(time * 3)},
                    &dynamic);
+        scene.Place("lumi/name", {0, 0, 60}, Game::RenderLayer::Overlay,
+                    [](const Game::Actor&, const Game::Transform& world)
+                    {
+                        const Position screen = Project({world.x, world.y}, world.z);
+                        graphics->Nameplate(screen.x * screenWidth / 1280,
+                                            screen.y * screenHeight / 800,
+                                            "루미 [F]", 16.f * screenHeight / 800);
+                    },
+                    scene.Find("lumi"));
     }
     ModelId playerModel =
         static_cast<ModelId>(CharacterVisual::FrameIndex(castTimer, moving, walkFrame));
@@ -860,6 +876,14 @@ void DrawActors()
         &heroine);
     scene.Find("player/body")->visible = damageTimer <= 0 || static_cast<int>(time * 14) % 2 == 0;
     PlaceModel("player/shadow", ModelId::Shadow, {}, &heroine, false, Game::RenderLayer::Shadow);
+    CombatEffects::Recovery(
+        scene, *graphics, heroine, actions, actions.height,
+        (std::min)(screenWidth / 1280.f, screenHeight / 800.f),
+        [](const Game::Transform& world)
+        {
+            const Position p = Project({world.x, world.y}, world.z);
+            return Position{p.x * screenWidth / 1280, p.y * screenHeight / 800};
+        });
     auto& socket =
         scene.Place("player/wand", CharacterVisual::FacingSocket(castTimer > 0, look.x, look.y),
                     Game::RenderLayer::World, {}, &heroine);
@@ -959,7 +983,7 @@ void DrawActors()
 void DrawHud()
 {
     Box(18, 18, 820, 136, panel);
-    Text(35, 48, "마법소녀 · 방과 후 첫 임무", gold, 25);
+    Text(35, 48, "마법소녀 · 별빛 숲 사냥터", gold, 25);
     char line[320];
     sprintf_s(line, "레벨 %d   공격력 %d   방어력 %d", progress.stats.level, progress.stats.attack,
               progress.stats.defense);
@@ -977,8 +1001,8 @@ void DrawHud()
     Text(34, 542, line, white, 14);
     sprintf_s(line, "%.0f/%d", mana, progress.stats.maxMana);
     Text(98, 542, line, white, 14);
-    Text(34, 560, "[Z] " + std::to_string(progress.potions) + "개", white, 15);
-    Text(98, 560, "[X] " + std::to_string(progress.manaPotions) + "개", white, 15);
+    Text(34, 560, "[U] " + std::to_string(progress.potions) + "개", white, 15);
+    Text(98, 560, "[I] " + std::to_string(progress.manaPotions) + "개", white, 15);
 
     float ratio = progress.stats.level == Rpg::LevelCap
                       ? 1.f
@@ -1002,7 +1026,7 @@ void DrawHud()
     Text(35, 135, line, teal, 16);
 
     Box(18, 166, 600, 40, panel);
-    sprintf_s(line, "골드 %d    체력 물약 %d [Z]    마력 물약 %d [X]    %s", progress.coins,
+    sprintf_s(line, "골드 %d    체력 물약 %d [U]    마력 물약 %d [I]    %s", progress.coins,
               progress.potions, progress.manaPotions,
               map.Safe(player) ? "모닥불: 회복 중 · 표지판 E로 마을 이동"
                                : "숲 사냥터 · 악몽 출현");
@@ -1056,7 +1080,7 @@ void DrawHud()
         }
     }
     Box(18, 710, 1244, 74, panel);
-    Text(35, 738, "WASD 이동 · Space 점프 · Q 공격 · X 마나 물약 · E 획득 · Z 체력 물약 · ESC 메뉴",
+    Text(35, 738, "WASD 이동 · Space 점프 · J 공격 · I 마나 물약 · E 획득 · U 체력 물약 · ESC 메뉴",
          gold, 17);
     std::string cache = models.loadedFromFile ? "모델: 파일 캐시 로딩"
                         : models.storedToFile ? "모델: 최초 생성·캐시 저장 완료"
@@ -1067,11 +1091,18 @@ void DrawHud()
         Box(250, 655, 1012, 45, panel);
         Text(267, 685, notice, teal, 18);
     }
-    if (paused)
+    if (Defeated())
+    {
+        Box(270, 275, 740, 195, panel);
+        Text(307, 320, "쓰러졌습니다", gold, 26);
+        Text(307, 370, "[N] 다시 도전", white, 21);
+        Text(307, 416, "[M] 마을로 돌아가기 · 물약 정비", white, 21);
+    }
+    else if (paused)
     {
         Box(0, 0, 1280, 800, {.02f, .025f, .04f, .78f});
         Box(270, 250, 740, 275, panel);
-        Text(307, 298, "학교 주변 메뉴", gold, 26);
+        Text(307, 298, "별빛 숲 메뉴", gold, 26);
         Text(307, 347, "ESC: 계속하기   |   N: 새로운 랜덤 맵");
         Text(307, 391, "새 맵에서도 경험치와 소지품은 유지됩니다.", teal);
         Text(307, 427, "단, 바닥에 남은 전리품과 몬스터 배치는 초기화됩니다.", white, 16);
@@ -1098,7 +1129,7 @@ WorldMonitor::Scene MonitorSnapshot()
 {
     WorldMonitor::Scene snapshot;
     snapshot.id = "hunting";
-    snapshot.name = "사냥터 · 학교 주변";
+    snapshot.name = "사냥터 · 별빛 숲";
     snapshot.paused = paused;
     snapshot.objective = "몬스터 사냥 · 경험치 획득";
     for (const auto& enemy : enemies)
@@ -1106,7 +1137,7 @@ WorldMonitor::Scene MonitorSnapshot()
         enemy.health > 0 ? ++snapshot.mobsAlive : ++snapshot.mobsDead;
     }
     snapshot.towns.push_back(
-        {"hunting_camp", "학교 주변 사냥 지역", "안전 거점과 야생 구역 공존", {}});
+        {"hunting_camp", "별빛 숲 사냥 지역", "안전 거점과 야생 구역 공존", {}});
     return snapshot;
 }
 
@@ -1122,11 +1153,41 @@ void Pause()
     keys.fill(false);
 }
 
+void Resume(bool fromVillage)
+{
+    paused = false;
+    worldRequested = false;
+    keys.fill(false);
+    if (fromVillage)
+    {
+        player = map.camp;
+        actions.height = actions.velocity = 0;
+    }
+}
+
 bool ConsumeWorldRequest()
 {
     const bool requested = worldRequested;
     worldRequested = false;
     return requested;
+}
+
+bool Defeated()
+{
+    return health <= 0;
+}
+
+const Rpg::Progress& Progress()
+{
+    return progress;
+}
+
+void Restock(const Rpg::Progress& supplies)
+{
+    progress.potions = supplies.potions;
+    progress.manaPotions = supplies.manaPotions;
+    progress.coins = supplies.coins;
+    RetryFight();
 }
 
 void Key(unsigned char key, bool down)
@@ -1139,6 +1200,19 @@ void Key(unsigned char key, bool down)
     keys[key] = down;
     if (!fresh)
     {
+        return;
+    }
+    if (Defeated())
+    {
+        if (key == CombatKeys::Retry)
+        {
+            RetryFight();
+        }
+        else if (key == CombatKeys::ReturnToTown)
+        {
+            worldRequested = true;
+            keys.fill(false);
+        }
         return;
     }
     if (key == 27)
@@ -1156,9 +1230,14 @@ void Key(unsigned char key, bool down)
         }
         return;
     }
+    if (key == 'f' && Prologue::TransformationUnlocked())
+    {
+        Notify("루미: 체력이 부족하면 캠프 모닥불 근처에서 쉬어 가자!");
+        return;
+    }
     if (key == 'e')
     {
-        if (Distance(player, {map.camp.x - 2, map.camp.y - 1}) < 1.8f)
+        if (Distance(player, map.VillageExit()) < 1.8f)
         {
             worldRequested = true;
             return;
@@ -1169,18 +1248,19 @@ void Key(unsigned char key, bool down)
     {
         actions.Jump();
     }
-    if (key == 'x' && health > 0)
+    if (key == CombatKeys::ManaPotion && health > 0)
     {
         if (actions.UseManaPotion(mana, float(progress.stats.maxMana), progress.manaPotions))
         {
             FloatText(player, "마나 회복", teal);
         }
     }
-    if (key == 'z' && progress.potions > 0 && health < progress.stats.maxHealth)
+    if (key == CombatKeys::HealthPotion && progress.potions > 0 && health < progress.stats.maxHealth)
     {
         --progress.potions;
         health =
             (std::min)(float(progress.stats.maxHealth), health + progress.stats.maxHealth * .45f);
+        actions.MarkRecovery(false);
         FloatText(player, "체력 회복", teal);
     }
 }
@@ -1188,7 +1268,7 @@ void Key(unsigned char key, bool down)
 void Update(float dt)
 {
     Performance::Scope profileScope("cpu.gameplay.level_update_ms");
-    if (!initialized || paused)
+    if (!initialized || paused || Defeated())
     {
         return;
     }
@@ -1220,20 +1300,11 @@ void Update(float dt)
     {
         walkFrame += Distance(before, player) / 3.5f * CharacterVisual::WalkFramesPerSecond;
     }
-    if (keys['q'])
+    if (keys[CombatKeys::Attack])
     {
         Attack();
     }
 
-    if (Prologue::TransformationUnlocked())
-    {
-        const Position look = castTimer > 0 ? castDirection : facing;
-        lumiFollower.Update(player, look, dt,
-                            [](Position position)
-                            {
-                                return map.Walkable(position);
-                            });
-    }
     UpdateProjectiles(dt);
     UpdateEnemies(dt);
     UpdateHostileSkills(dt);

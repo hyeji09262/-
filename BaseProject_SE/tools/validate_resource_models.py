@@ -26,7 +26,7 @@ def main():
         checksum = ((checksum ^ byte) * 16777619) & 0xffffffff
     assert checksum == struct.unpack_from("<I", data, len(data) - 4)[0]
     count, poses, directions = struct.unpack_from("<III", data, 8)
-    assert poses == 11 and directions == 8
+    assert poses == 14 and directions == 8
     sockets = struct.unpack_from("<32f", data, 20)
     assert all(math.isfinite(v) for v in sockets)
     styles = list(struct.iter_unpack("<6f", data[148:364]))
@@ -51,6 +51,11 @@ def main():
         meshes.append(mesh)
     assert offset == len(data) - 4
     assert len({tuple(meshes[count + direction]) for direction in range(8)}) == 8
+    assert len({tuple(meshes[count + 11 * directions + direction])
+                for direction in range(directions)}) == directions
+    for pose in (12, 13):
+        assert len({tuple(meshes[count + pose * directions + direction])
+                    for direction in range(directions)}) == directions
     if args.preview:
         from PIL import Image, ImageDraw, ImageFont
         image = Image.new("RGB", (1600, 600), (28, 31, 48))

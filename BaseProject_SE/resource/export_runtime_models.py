@@ -489,11 +489,14 @@ for sector in range(8):
 for source, clip, frame in [("Hero_Magical", "Idle", 1)] + [
         ("Hero_Magical", "Walk", 1 + i * 7) for i in range(4)] + [
         ("Hero_Magical", "Attack", 13), ("Hero_Student", "Idle", 1)] + [
-        ("Hero_Student", "Walk", 1 + i * 7) for i in range(4)]:
+        ("Hero_Student", "Walk", 1 + i * 7) for i in range(4)] + [
+        ("Lumi", "Idle", 1), ("BlackFlower_Boss", "Idle", 1),
+        ("BlackFlower_Boss", "Attack", 13)]:
     for sector in range(8):
         directional.append(bake(character(source, clip, frame, sector * math.pi / 4 + math.pi / 2)[0], 28))
 assert len(direction_sockets) == 32 and all(math.isfinite(v) for v in direction_sockets)
-payload = bytearray(b"MGSRES03" + struct.pack("<III32f", len(names), 11, 8, *direction_sockets))
+pose_count = len(directional) // 8
+payload = bytearray(b"MGSRES03" + struct.pack("<III32f", len(names), pose_count, 8, *direction_sockets))
 for info in building_info:
     payload.extend(struct.pack("<6f", *info))
 for name, mesh in [(name, meshes[name]) for name in names] + [
@@ -514,7 +517,8 @@ temporary = out / "school_models.bin.tmp"
 temporary.write_bytes(payload)
 temporary.replace(out / "school_models.bin")
 (out / "manifest.json").write_text(json.dumps({"source": "assets", "source_sha256": SOURCES,
-    "format": "MGSRES03", "model_count": len(names), "facing_poses": 11, "facing_directions": 8,
+    "format": "MGSRES03", "model_count": len(names), "facing_poses": pose_count, "facing_directions": 8,
     "wand_sockets_pixels": direction_sockets, "building_layout": building_info,
     "models": REPORT, "bytes": len(payload)}, ensure_ascii=False, indent=2), encoding="utf-8")
-print("EXPORTED", len(names), "models + 88 directional poses,", len(payload), "bytes;", len(SOURCES), "source files")
+print("EXPORTED", len(names), "models +", len(directional), "directional meshes,", len(payload),
+      "bytes;", len(SOURCES), "source files")

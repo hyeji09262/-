@@ -20,6 +20,8 @@
 #include "BuildingVisuals.h"
 #include "GameInput.h"
 #include "CompanionFollow.h"
+#include "CombatEffects.h"
+#include "CombatKeys.h"
 
 namespace Prologue
 {
@@ -62,7 +64,6 @@ Game::SceneGraph scene;
 Story story;
 MainQuest::State quest;
 MainQuest::Combat combat;
-CompanionFollow<Point> lumiFollower;
 QuestStep enteredStep = QuestStep::Complete;
 bool questDialogue = false, builtAlley = false;
 bool questTwoRequested = false;
@@ -70,6 +71,7 @@ bool endingContinueRequested = false;
 bool worldRequested = false;
 float transformTime = 0;
 float endingTime = 0, farewellTime = 0;
+float lumiTalkTime = 0;
 
 bool EndingSchool()
 {
@@ -101,8 +103,8 @@ bool builtHome = true;
 
 Point LumiPosition()
 {
-    return quest.step == QuestStep::Lumi ? Point{3, 7}
-                                        : lumiFollower.Position(player, facingDirection);
+    const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+    return quest.step == QuestStep::Lumi ? Point{3, 7} : CompanionFollow::RightOf(player, look);
 }
 
 float LumiHeight()
@@ -205,9 +207,12 @@ Actor& PlaceModel(const std::string& name, Transform p, ModelId model,
         {
             Point s = Project(world);
             const bool leaving = name == "yuna/leaving";
-            graphics->DrawModel(models.GetFacing(model, leaving ? -1.f : player.x - world.x,
-                                                 leaving ? 0.f : player.y - world.y),
-                                s.x, s.y, world.scale * Scale(), world.scale * Scale());
+            const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
+            const auto& mesh = model == ModelId::Lumi && quest.step != QuestStep::Lumi
+                                   ? models.GetFacing(model, look.x, look.y)
+                                   : models.GetFacing(model, leaving ? -1.f : player.x - world.x,
+                                                      leaving ? 0.f : player.y - world.y);
+            graphics->DrawModel(mesh, s.x, s.y, world.scale * Scale(), world.scale * Scale());
         },
         parent);
 }
@@ -274,7 +279,6 @@ bool Walkable(Point p)
 
 void BuildScene()
 {
-    lumiFollower.Reset();
     Performance::Scope scope("cpu.prologue.static_scene_build_ms");
     scene.Clear();
     builtHome = story.IsHome();
@@ -438,7 +442,7 @@ void Reset()
 {
     questTwoRequested = false;
     worldRequested = false;
-    endingTime = farewellTime = 0;
+    endingTime = farewellTime = lumiTalkTime = 0;
     story = Story{};
     quest = MainQuest::State{};
     combat = MainQuest::Combat{};
@@ -477,7 +481,6 @@ void EnterQuestStep(bool restorePosition = false)
     }
     if (restorePosition)
     {
-        lumiFollower.Reset();
         const auto& target = quest.Current();
         player = {target.x - 1.5f, target.y + .5f};
         if (quest.step == QuestStep::Escape)
@@ -659,14 +662,15 @@ void StatusBar(float x, float y, const std::string& label, float value, float ma
          paper);
 }
 
-void DialoguePanel(const std::string& speaker, const std::string& message)
+void DialoguePanel(const std::string& speaker, const std::string& message,
+                   const char* prompt = "[E] 다음 / 확인")
 {
     Panel(200, 430, 1010, 190, {.05f, .06f, .12f, .98f});
     Panel(200, 430, 5, 190, pink);
     Panel(225, 450, 230, 38, {.24f, .15f, .30f, 1});
     Text(240, 477, speaker, 23, pink);
     DialogueText(230, 522, message);
-    Text(985, 600, "[E] 다음 / 확인", 18, {.99f, .82f, .35f});
+    Text(985, 600, prompt, 18, {.99f, .82f, .35f});
 }
 
 void DrawHud()
@@ -693,10 +697,10 @@ void DrawHud()
         StatusBar(48, 231, "체력", combat.health, float(quest.progress.stats.maxHealth), pink);
         StatusBar(112, 231, "마나", combat.mana, float(quest.progress.stats.maxMana),
                   {.52f, .65f, .98f});
-        Text(34, 560, "[Z] " + std::to_string(quest.progress.potions) + "개", 15);
-        Text(98, 560, "[X] " + std::to_string(quest.progress.manaPotions) + "개", 15);
+        Text(34, 560, "[U] " + std::to_string(quest.progress.potions) + "개", 15);
+        Text(98, 560, "[I] " + std::to_string(quest.progress.manaPotions) + "개", 15);
         Text(540, 121,
-             "[Z] 물약 " + std::to_string(quest.progress.potions) + "  ·  검은 조각 " +
+             "[U] 물약 " + std::to_string(quest.progress.potions) + "  ·  검은 조각 " +
                  std::to_string(quest.fragments),
              16);
         Text(42, 165, magicAvailable ? "별빛 마법소녀" : "평범한 학생 · 전투 비활성", 15, pink);
@@ -715,20 +719,20 @@ void DrawHud()
     {
         Panel(852, 20, 406, 164, {.08f, .10f, .18f, .94f});
         Text(874, 53, "별빛 마법", 23, pink);
-        Text(874, 86, "[Q] 기본 공격 · 마나 4", 18);
-        Text(874, 143, "[X] 마나 물약 · 즉시 회복", 17);
-        Text(874, 168, "[1] 별빛 마법  ·  마나 10", 14, pink);
+        Text(874, 86, "[J] 기본 공격 · 마나 4", 18);
+        Text(874, 125, "[K] 별빛 폭발 · 주변 · 마나 10", 17, pink);
+        Text(874, 157, "[L] 별빛 낙하 · 전방 · 마나 8", 17, pink);
     }
 
     Panel(22, 710, 1236, 76, {.08f, .10f, .18f, .94f});
     Text(42, 740,
          magicAvailable
-             ? "Space 점프 · Q 공격 · X 마나 물약 · Z 체력 물약 · 1 마법 | WASD 이동 · E 대화"
+             ? "WASD 이동 · Space 점프 · J 공격 · K/L 스킬 · U/I 물약 · E 대화"
              : "WASD 이동 | Shift 달리기 | 스페이스 점프 | E 상호작용 | Z 물약(퀘스트 중)",
          18);
     Text(
         42, 769,
-        "방향키 카메라 · C 복귀 · ESC 메뉴 | F1 마을 · F2 사냥 · F3 이야기 · F4 퀘스트2 · F5 로그 · F6 마을",
+        "방향키 카메라 · C 복귀 · ESC 메뉴 | F1 마을 · F2 사냥 · F3 이야기 · F4 퀘스트2 · F5 로그 · F7 미아",
         15, pink);
 
     if (story.IsHome() && time < 7 && !story.dialogueOpen)
@@ -770,6 +774,11 @@ void DrawHud()
     {
         DialoguePanel(quest.Current().speaker, quest.Current().dialogue);
     }
+    if (lumiTalkTime > 0 && LumiPresent() && !questDialogue)
+    {
+        DialoguePanel("루미", "내가 옆을 지킬게. 악몽이 붉은 예고를 띄우면 먼저 피하자!",
+                      "[F] 닫기");
+    }
     if (story.step == Step::AfterSchool)
     {
         Panel(0, 0, 1280, 800, {.07f, .06f, .13f, .96f});
@@ -808,10 +817,10 @@ void DrawHud()
     {
         Panel(260, 300, 760, 220, {.10f, .04f, .12f, .97f});
         Text(300, 356, "쓰러졌습니다", 30, pink);
-        Text(300, 405, "[N] 현재 퀘스트 단계부터 다시 도전", 23);
-        Text(300, 460, "조사한 단서와 완료한 단계는 유지됩니다.", 18);
+        Text(300, 405, "[N] 다시 도전", 23);
+        Text(300, 450, "[M] 마을로 돌아가기 · 물약 정비", 23);
     }
-    if (paused)
+    else if (paused)
     {
         Panel(260, 245, 760, 320, {.06f, .07f, .13f, .98f});
         Text(310, 305, "프롤로그 일시정지", 30, pink);
@@ -853,7 +862,8 @@ void DrawQuestActors()
         const Point position = LumiPosition();
         auto& lumi =
             PlaceModel("ending/lumi", {position.x, position.y, LumiHeight()}, ModelId::Lumi);
-        Label("ending/lumi/name", {0, 0, 60}, "루미", &lumi);
+        Label("ending/lumi/name", {0, 0, 60},
+              quest.epilogueComplete ? "루미 [F]" : "루미", &lumi);
         if (!quest.epilogueComplete)
         {
             auto& shard = PlaceModel("ending/fragment", {player.x - .5f, player.y, 35},
@@ -891,7 +901,8 @@ void DrawQuestActors()
     {
         const Point p = LumiPosition();
         auto& lumi = PlaceModel("lumi", {p.x, p.y, LumiHeight()}, ModelId::Lumi);
-        Label("lumi/name", {0, 0, 60}, "루미", &lumi);
+        Label("lumi/name", {0, 0, 60},
+              quest.step == QuestStep::Lumi ? "루미" : "루미 [F]", &lumi);
     }
     if (quest.step >= QuestStep::Escape && quest.step <= QuestStep::Boss)
     {
@@ -953,15 +964,7 @@ void DrawQuestActors()
         pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
         PlaceGlow("shot/" + std::to_string(shot.id), pose, CharacterVisual::SpellSize);
     }
-    if (combat.burst > 0)
-    {
-        scene.Place(
-            "star_burst", {combat.burstOrigin.x, combat.burstOrigin.y, 2}, RenderLayer::Shadow,
-            [](const Actor&, const Transform& world)
-            {
-                Circle(world, 3 * (1 - combat.burst * .6f), {.96f, .45f, .80f, combat.burst});
-            });
-    }
+    CombatEffects::Spells(scene, *graphics, combat, Scale(), Project);
 }
 } // namespace
 
@@ -1006,6 +1009,23 @@ bool ConsumeWorldRequest()
     const bool requested = worldRequested;
     worldRequested = false;
     return requested;
+}
+
+bool Defeated()
+{
+    return quest.active && combat.Dead();
+}
+
+const Rpg::Progress& Progress()
+{
+    return quest.progress;
+}
+
+void Restock(int healthPotions, int manaPotions)
+{
+    quest.progress.potions = healthPotions;
+    quest.progress.manaPotions = manaPotions;
+    EnterQuestStep(true);
 }
 
 void ResumeFromWorld()
@@ -1191,7 +1211,13 @@ void Key(unsigned char key, bool down)
         cameraKeys.fill(false);
         return;
     }
-    if (key == 'n' && quest.active && (paused || combat.Dead()))
+    if (Defeated() && key == CombatKeys::ReturnToTown)
+    {
+        worldRequested = true;
+        keys.fill(false);
+        return;
+    }
+    if (key == CombatKeys::Retry && quest.active && (paused || combat.Dead()))
     {
         EnterQuestStep(true);
         keys.fill(false);
@@ -1212,24 +1238,33 @@ void Key(unsigned char key, bool down)
     {
         return;
     }
+    else if (key == 'f' && LumiPresent() && quest.step != QuestStep::Lumi && !questDialogue)
+    {
+        lumiTalkTime = lumiTalkTime > 0 ? 0.f : 3.5f;
+    }
     else if (key == 'c')
     {
         cameraOffset = {0, 0};
     }
-    else if (!story.dialogueOpen && !questDialogue && quest.active && key == 'z')
+    else if (!story.dialogueOpen && !questDialogue && quest.active && key == CombatKeys::HealthPotion)
     {
         combat.UsePotion(quest);
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
-             key == 'x' && !combat.Dead())
+             key == CombatKeys::ManaPotion && !combat.Dead())
     {
         combat.actions.UseManaPotion(combat.mana, float(quest.progress.stats.maxMana),
                                      quest.progress.manaPotions);
     }
     else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
-             key == '1')
+             key == CombatKeys::Burst)
     {
         combat.Burst(player, quest);
+    }
+    else if (!story.dialogueOpen && !questDialogue && quest.CanFight() && !EndingSchool() &&
+             key == CombatKeys::Starfall)
+    {
+        combat.Starfall(player, facingDirection, quest, Walkable);
     }
     else if (key == ' ' && !story.dialogueOpen && !questDialogue && jumpHeight == 0)
     {
@@ -1258,6 +1293,7 @@ void Update(float dt)
         return;
     }
     time += dt;
+    lumiTalkTime = (std::max)(0.f, lumiTalkTime - dt);
     story.Update(dt);
     UpdateQuest(dt);
     moving = false;
@@ -1300,9 +1336,9 @@ void Update(float dt)
         cameraOffset.x = (std::max)(-3.f, (std::min)(3.f, cameraOffset.x + (cx + cy) * dt * 3));
         cameraOffset.y = (std::max)(-3.f, (std::min)(3.f, cameraOffset.y + (cy - cx) * dt * 3));
         looked = looked || cx != 0 || cy != 0;
-        if (quest.CanFight() && !EndingSchool() && keys['q'])
+        if (quest.CanFight() && !EndingSchool() && keys[CombatKeys::Attack])
         {
-            combat.Attack(player, facingDirection, quest, jumpHeight, Walkable);
+            combat.Attack(player, facingDirection, quest, jumpHeight);
         }
         if (story.step == Step::ReachSchool && Distance(player, yuna) < 3)
         {
@@ -1317,11 +1353,6 @@ void Update(float dt)
         {
             jumpVelocity = 0;
         }
-    }
-    if (LumiPresent() && quest.step != QuestStep::Lumi)
-    {
-        const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
-        lumiFollower.Update(player, look, dt, Walkable);
     }
     const float follow = 1 - std::exp(-8 * dt);
     camera.x += (player.x + cameraOffset.x - camera.x) * follow;
@@ -1384,6 +1415,7 @@ void Draw()
         PlaceGlow("player/transform", {0, 0, 40}, morph.glow, &actor, RenderLayer::Shadow);
     }
     DrawQuestActors();
+    CombatEffects::Recovery(scene, *graphics, actor, combat.actions, jumpHeight, Scale(), Project);
     scene.Place("sunset", {}, RenderLayer::UserInterface,
                 [](const Actor&, const Transform&)
                 {

@@ -13,7 +13,6 @@
 #include "WorldMonitor.h"
 #include "VillageWorld.h"
 #include "SchoolScene.h"
-#include "AutoTarget.h"
 #include "NatureVisuals.h"
 #include "Prologue.h"
 #include "QuestTwo.h"
@@ -22,6 +21,8 @@
 #include "MonsterAnimation.h"
 #include "GameInput.h"
 #include "CompanionFollow.h"
+#include "CombatEffects.h"
+#include "CombatKeys.h"
 
 namespace Tutorial
 {
@@ -103,15 +104,16 @@ static bool visualActive = false;
 static Game::Transform visualSource, visualWorld;
 static bool castMirror = false;
 static int width = 1280, height = 800, stage = 0, hp = 5, bossHP = 10, upgrade = 0, kills = 0;
-static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26}, beamTarget = {31, 26};
+static Vec player = {31, 26}, boss = {30, 16}, shrine = {43, 26};
+static constexpr Vec HuntingEntrance{31, 58};
 static Vec facingDirection = {.70710678f, -.70710678f};
-static CompanionFollow<Vec> lumiFollower;
 static Vec castDirection = {.70710678f, -.70710678f};
 static bool keys[256] = {}, paused = false, moving = false;
 static PlayerActions actions;
 static int potions = 5;
 static int manaPotions = 5;
 static bool shopOpen = false;
+static Rpg::Progress* recoveryShop = nullptr;
 static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, messageTime = 0,
              finishTime = 0;
 static float walkCycle = 0, healTimer = 0, castPose = 0;
@@ -127,7 +129,6 @@ static const Color ink = {.055f, .058f, .10f, 1}, gold = {1, .76f, .39f, 1},
 
 static float mana = 30.f;
 static bool exploration = false;
-static bool regionsUnlocked = false;
 static bool storyMagicUnlocked = false;
 static int interior = -1;
 static int interiorRoom = 0;
@@ -263,7 +264,8 @@ inline void Say(const std::string& line)
 inline bool Path(int x, int y)
 {
     return CoastalWorld::Paved(x, y) || (std::abs(x - 19) <= 1 && y >= 9 && y <= 37) ||
-           (std::abs(y - 36) <= 1 && x >= 18 && x <= 35);
+           (std::abs(y - 36) <= 1 && x >= 18 && x <= 35) ||
+           (std::abs(x - static_cast<int>(HuntingEntrance.x)) <= 1 && y >= 49 && y <= 60);
 }
 
 inline bool Safe(Vec p)
@@ -283,7 +285,7 @@ inline bool Walkable(Vec p)
     }
     if (p.x < .7f || p.x > LandWidth - .5f || p.y < .7f || p.y > MapHeight - 1.5f)
         return false;
-    if (exploration && !regionsUnlocked && p.y > 60)
+    if (exploration && p.y > 60)
     {
         return false;
     }
@@ -354,7 +356,6 @@ inline void Reset()
     potions = 5;
     manaPotions = 5;
     scene.Clear();
-    lumiFollower.Reset();
     player = {31, 26};
     facingDirection = {.70710678f, -.70710678f};
     castDirection = facingDirection;
@@ -447,7 +448,8 @@ inline void Interact()
         int person;
         std::string objective;
         if (Prologue::WorldObjective(x, y, person, objective) && person != 3 &&
-            Dist(player, {x, y}) < 1.8f)
+            (person != 4 || actions.height <= 0) &&
+            Dist(player, {x, y}) < WorldStoryInteractionRange)
         {
             Say(Prologue::InteractWorld());
             if (!Prologue::WorldObjective(x, y, person, objective))
@@ -514,6 +516,27 @@ inline void Interact()
         Say(villagers[i].line);
 }
 
+inline void RecoverWorld(bool returnToTown)
+{
+    const auto& shop = CoastalWorld::Buildings()[2];
+    player = returnToTown ? Vec{CoastalWorld::DoorX(shop), CoastalWorld::DoorY(shop)} : Vec{31, 26};
+    hp = 5;
+    mana = 30;
+    bossHP = 10;
+    pulse = healTimer = hurtCD = 0;
+    actions = PlayerActions{};
+    spells.clear();
+    particles.clear();
+    std::fill(keys, keys + 256, false);
+    for (auto& monster : monsters)
+    {
+        monster.p = monster.home;
+        monster.cooldown = 1;
+    }
+    Say(returnToTown ? "별빛 편의점 앞입니다. E로 들어가 물약을 정비하세요."
+                     : "별빛 마을에서 다시 도전합니다.");
+}
+
 inline void Key(unsigned char key, bool down)
 {
     if (key >= 'A' && key <= 'Z')
@@ -522,6 +545,14 @@ inline void Key(unsigned char key, bool down)
     keys[key] = down;
     if (!fresh)
         return;
+    if (hp <= 0)
+    {
+        if (key == CombatKeys::Retry || key == CombatKeys::ReturnToTown)
+        {
+            RecoverWorld(key == CombatKeys::ReturnToTown);
+        }
+        return;
+    }
     if (shopOpen)
     {
         if (key == 27 || key == 'e')
@@ -531,12 +562,31 @@ inline void Key(unsigned char key, bool down)
         else if (key == '1' || key == '2')
         {
             std::string message;
-            QuestTwo::BuyPotion(key == '2', message);
-            Rpg::Progress inventory;
-            if (QuestTwo::ShopProgress(inventory))
+            const bool magic = key == '2';
+            if (recoveryShop)
             {
-                potions = inventory.potions;
-                manaPotions = inventory.manaPotions;
+                const int count = magic ? recoveryShop->manaPotions : recoveryShop->potions;
+                if (recoveryShop->BuyPotion(magic))
+                {
+                    message = "물약 구매 완료";
+                }
+                else
+                {
+                    message = count >= 99 ? "물약은 99개까지 보유할 수 있습니다."
+                                          : "골드가 부족합니다.";
+                }
+                potions = recoveryShop->potions;
+                manaPotions = recoveryShop->manaPotions;
+            }
+            else
+            {
+                QuestTwo::BuyPotion(magic, message);
+                Rpg::Progress inventory;
+                if (QuestTwo::ShopProgress(inventory))
+                {
+                    potions = inventory.potions;
+                    manaPotions = inventory.manaPotions;
+                }
             }
             Say(message);
         }
@@ -560,20 +610,21 @@ inline void Key(unsigned char key, bool down)
         {
             actions.Jump();
         }
-        if (key == 'x' && hp > 0)
+        if (key == CombatKeys::ManaPotion && hp > 0)
         {
             if (actions.UseManaPotion(mana, 30.f, manaPotions))
             {
                 Say("마나 물약으로 마나를 회복했습니다.");
-                QuestTwo::StoreWorldPotions(potions, manaPotions);
+                StoreVillagePotions();
             }
         }
-        if (key == 'z' && potions > 0 && hp > 0 && hp < 5)
+        if (key == CombatKeys::HealthPotion && potions > 0 && hp > 0 && hp < 5)
         {
             --potions;
             hp = (std::min)(5, hp + 2);
+            actions.MarkRecovery(false);
             Say("물약으로 체력을 회복했습니다.");
-            QuestTwo::StoreWorldPotions(potions, manaPotions);
+            StoreVillagePotions();
         }
     }
     if (!exploration && stage == 2 && (key == '1' || key == '2'))
@@ -585,30 +636,24 @@ inline void Key(unsigned char key, bool down)
                 ? "먼 손길을 배웠습니다! 해안 별빛 장치를 4타일 거리에서 열 수 있어요."
                 : "가벼운 발을 배웠습니다! 이동 속도가 올랐어요. 해안 별빛 장치로 가세요.");
     }
+    if (key == 'f' && exploration && storyMagicUnlocked)
+    {
+        Say("루미: 노란 목표를 따라가 보자. 물약이 부족하면 편의점에서 살 수 있어!");
+    }
     if (key == 'e')
         Interact();
 }
 
 inline void Damage()
 {
-    if (hurtCD > 0)
+    if (hp <= 0 || hurtCD > 0)
         return;
     --hp;
     hurtCD = 1.2f;
     Burst(player, 14, {1, .3f, .35f, 1});
     if (hp <= 0)
     {
-        player = {31, 26};
-        hp = 5;
-        bossHP = 10;
-        pulse = 0;
-        healTimer = 0;
-        for (auto& m : monsters)
-        {
-            m.p = m.home;
-            m.cooldown = 1;
-        }
-        Say("주민들이 구해 주었습니다. 퀘스트는 유지됩니다. 붉은 공격 범위를 피하세요.");
+        std::fill(keys, keys + 256, false);
     }
 }
 
@@ -617,7 +662,7 @@ inline void Update(float dt)
     Performance::Scope scope(exploration ? "cpu.world.update_ms"
                                          : "cpu.gameplay.tutorial_update_ms");
     collisionTests = 0;
-    if (paused || shopOpen || (!exploration && (stage == 2 || stage == 5)))
+    if (paused || hp <= 0 || shopOpen || (!exploration && (stage == 2 || stage == 5)))
         return;
     if (exploration && interior >= 0)
     {
@@ -745,44 +790,53 @@ inline void Update(float dt)
     }
     else
         pulse = 0;
-    if (MagicUnlocked() && interior < 0 && keys['q'] && attackCD <= 0 && actions.Fire(mana))
+    if (MagicUnlocked() && interior < 0 && keys[CombatKeys::Attack] && attackCD <= 0 && actions.Fire(mana))
     {
         attackCD = .5f;
         castPose = CharacterVisual::CastDuration;
-        AutoTarget::Selection aim(player.x, player.y, facingDirection.x, facingDirection.y, 6.5f,
-                                  AutoTarget::Mode::Nearest);
+        castDirection = facingDirection;
+        float spellDistance = 6.5f;
         int target = -1;
         bool hitBoss = false;
         {
-            Performance::Scope scope("cpu.combat.auto_target_ms");
-            if (!exploration && stage == 1)
+            Performance::Scope scope("cpu.combat.forward_hit_ms");
+            const auto intersects = [&](Vec position, float radius)
             {
-                hitBoss = aim.Consider(boss.x, boss.y, bossHP > 0);
+                const Vec offset{position.x - player.x, position.y - player.y};
+                const float along = offset.x * castDirection.x + offset.y * castDirection.y;
+                const float side = offset.x * castDirection.y - offset.y * castDirection.x;
+                if (along < 0 || std::abs(side) >= radius)
+                {
+                    return false;
+                }
+                const float entry = (std::max)(0.f, along - std::sqrt(radius * radius - side * side));
+                if (entry >= spellDistance)
+                {
+                    return false;
+                }
+                spellDistance = entry;
+                return true;
+            };
+            if (!exploration && stage == 1 && bossHP > 0)
+            {
+                hitBoss = intersects(boss, 1.35f);
             }
             for (int i = 0; i < int(monsters.size()); ++i)
             {
-                if (aim.Consider(monsters[i].p.x, monsters[i].p.y, monsters[i].hp > 0))
+                if (monsters[i].hp > 0 && intersects(monsters[i].p, .85f))
                 {
                     target = i;
                     hitBoss = false;
                 }
             }
         }
-        castDirection = {aim.directionX, aim.directionY};
-        beamTarget =
-            aim.found ? Vec{aim.x, aim.y}
-                      : Vec{player.x + castDirection.x * 6.5f, player.y + castDirection.y * 6.5f};
+        const Vec impact{player.x + castDirection.x * spellDistance,
+                         player.y + castDirection.y * spellDistance};
         castMirror = castDirection.x - castDirection.y < 0;
-        float spellDistance = (std::max)(.01f, Dist(player, beamTarget));
-        spells.push_back(
-            {player,
-             {(beamTarget.x - player.x) / spellDistance, (beamTarget.y - player.y) / spellDistance},
-             0,
-             (std::max)(.05f, spellDistance / CharacterVisual::SpellSpeed),
-             castMirror,
-             nextSpellId++,
-             actions.height});
-        Burst(beamTarget, 16, teal, 25);
+        spells.push_back({player, castDirection, 0,
+                          (std::max)(.05f, spellDistance / CharacterVisual::SpellSpeed),
+                          castMirror, nextSpellId++, actions.height});
+        Burst(impact, 16, teal, 25);
         if (hitBoss)
         {
             if (--bossHP <= 0)
@@ -798,7 +852,7 @@ inline void Update(float dt)
             ++townKills[CoastalWorld::NearestTown(monsters[target].p.y)];
             monsters[target].respawn = CoastalWorld::RespawnSeconds;
             manaPotions = (std::min)(99, manaPotions + 1);
-            QuestTwo::StoreWorldPotions(potions, manaPotions);
+            StoreVillagePotions();
             hp = (std::min)(5, hp + 1);
             Burst(monsters[target].p, 24, gold);
         }
@@ -817,11 +871,6 @@ inline void Update(float dt)
                                        return p.life <= 0;
                                    }),
                     particles.end());
-    if (exploration && storyMagicUnlocked)
-    {
-        const Vec look = castPose > 0 ? castDirection : facingDirection;
-        lumiFollower.Update(player, look, dt, Walkable);
-    }
     Performance::Profiler::Get().Gauge("world.collision_tests_per_tick_count", collisionTests);
     Performance::Profiler::Get().Gauge("world.wildlife_slots_count", double(monsters.size()));
 }
@@ -852,7 +901,14 @@ inline void DrawHud()
     if (shopOpen)
     {
         Rpg::Progress inventory;
-        QuestTwo::ShopProgress(inventory);
+        if (recoveryShop)
+        {
+            inventory = *recoveryShop;
+        }
+        else
+        {
+            QuestTwo::ShopProgress(inventory);
+        }
         Box(340, 260, 610, 230, {.06f, .07f, .13f, .96f});
         Text(370, 299, "별빛 편의점 · 물약 판매", gold, 24);
         Text(370, 344, "[1] 체력물약 20골드 · 보유 " + std::to_string(potions), gold, 19);
@@ -879,7 +935,7 @@ inline void DrawHud()
                        : "별빛 학교  ·  갑자기 마법소녀!",
          gold, 23);
     const char* objectives[] = {
-        "01  담임 모라에게 말 걸기 [E]",         "02  악몽 교감 처치하기 [Q]",
+        "01  담임 모라에게 말 걸기 [E]",         "02  악몽 교감 처치하기 [J]",
         "03  스킬 강화 선택하기 [1 / 2]",        "04  해안 별빛 장치의 봉인 풀기 [E]",
         "05  선생님에게 별빛 조각 전달하기 [E]", "완료  ·  학교에 일상이 돌아왔습니다"};
     float objectiveX, objectiveY;
@@ -889,10 +945,12 @@ inline void DrawHud()
         exploration &&
         Prologue::WorldObjective(objectiveX, objectiveY, objectivePerson, worldObjective);
     Text(38, 81,
-         hasWorldObjective ? worldObjective.c_str()
+         MiaQuestDestination() >= 0 ? MiaQuestObjective()
+         : hasWorldObjective ? worldObjective.c_str()
+         : MiaQuestUnlocked() ? MiaQuestObjective()
          : interior >= 0   ? "노란 안내 지점에서 [E] 조사 / 이동 · 출입구로 마을 복귀"
          : exploration
-             ? (MagicUnlocked() ? "숲의 악몽 처치 · 세 마을 탐험 · 학교에서 사건 이어가기"
+             ? (MagicUnlocked() ? "별빛 마을 탐험 · 학교에서 사건 이어가기"
                                 : "집과 별빛 학교에서 이야기 진행 · 변신 전에는 악몽이 없습니다")
              : objectives[stage],
          gold, 18);
@@ -900,7 +958,10 @@ inline void DrawHud()
     sprintf_s(status, "시간 %02d:%02d    목표 %.0f타일    야생 몬스터 처치 %d", int(elapsed) / 60,
               int(elapsed) % 60, Dist(player, Target()), kills);
     Text(38, 114,
-         exploration ? "F1 마을 · F2 사냥터 · F3 이야기 · F4 학교 사건 · F6 마을 탐험" : status,
+         exploration && QuestTwo::NeedsPotionShop()
+             ? "별빛 편의점에서 체력·마나 물약 구매 가능"
+         : exploration ? "F1 마을 · F2 사냥터 · F3 이야기 · F4 학교 사건 · F7 미아 이야기"
+                       : status,
          {.8f, .83f, .85f, 1}, 16);
     Box(22, 212, 152, 354, {ink.r, ink.g, ink.b, .96f});
     const float healthRatio = (std::max)(0.f, (std::min)(1.f, hp / 5.f));
@@ -913,8 +974,8 @@ inline void DrawHud()
     Box(112, 243 + 280 * (1 - manaRatio), 22, 280 * manaRatio, {.52f, .65f, .98f, 1});
     Text(34, 542, std::to_string(hp) + "/5", gold, 14);
     Text(98, 542, std::to_string(int(mana)) + "/30", gold, 14);
-    Text(34, 560, "[Z] " + std::to_string(potions) + "개", gold, 15);
-    Text(98, 560, "[X] " + std::to_string(manaPotions) + "개", gold, 15);
+    Text(34, 560, "[U] " + std::to_string(potions) + "개", gold, 15);
+    Text(98, 560, "[I] " + std::to_string(manaPotions) + "개", gold, 15);
     Text(970, 38, exploration ? "싱글플레이 · 마을 탐험" : "싱글플레이 · 튜토리얼", gold, 16);
     Text(970, 62,
          interior >= 0   ? "건물 내부 · 안전 지역"
@@ -932,7 +993,7 @@ inline void DrawHud()
     }
     Box(20, 748, 1240, 34, {ink.r, ink.g, ink.b, .94f});
     Text(36, 772,
-         "WASD 이동 · Shift 달리기 · Space 점프 · Q 공격 · X 마나 · Z 체력 · E 출입/대화 · F6 마을",
+         "WASD 이동 · Shift 달리기 · Space 점프 · J 공격 · I 마나 · U 체력 · E 출입/대화 · F6 마을",
          gold, 17);
     int nearestNpcIndex = NearestNPC();
     if (interior < 0)
@@ -961,15 +1022,21 @@ inline void DrawHud()
         Box(425, 161, 430 * bossHP / 10.f, 7, {.85f, .25f, .33f, 1});
         Text(430, 196,
              pulse > 2.1f ? "악몽 교감: 공격 준비! 붉은 범위 밖으로 피하세요!"
-                          : "악몽 교감 · Q를 눌러 마법 공격",
+                          : "악몽 교감 · J를 눌러 마법 공격",
              gold, 16);
     }
-    if ((!exploration && (stage == 2 || stage == 5)) || paused)
+    if ((!exploration && (stage == 2 || stage == 5)) || paused || hp <= 0)
     {
         Box(0, 0, 1280, 800, {.025f, .02f, .06f, .72f});
         Box(250, 240, 780, 302, ink);
         Box(250, 240, 780, 3, gold);
-        if (paused)
+        if (hp <= 0)
+        {
+            Text(295, 303, "쓰러졌습니다", gold, 27);
+            Text(295, 365, "[N] 다시 도전");
+            Text(295, 410, "[M] 마을로 돌아가기 · 물약 정비");
+        }
+        else if (paused)
         {
             Text(295, 303, "일시 정지", gold, 27);
             Text(295, 365, "ESC를 눌러 계속합니다. 시간도 잠시 쉬어 갑니다.");

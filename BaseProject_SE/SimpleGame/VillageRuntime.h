@@ -17,6 +17,113 @@ struct VillageVisit
 
 static std::array<VillageVisit, 2> visits;
 
+enum class MiaQuest
+{
+    MeetMia,
+    ShowFragment,
+    VisitPark,
+    ParkIncident,
+    ReportPark,
+    Complete
+};
+
+static MiaQuest miaQuest = MiaQuest::MeetMia;
+static bool miaQuestShortcut = false;
+constexpr int StoryMall = 4;
+constexpr int StoryPark = 6;
+constexpr Vec MiaPosition{14, 2};
+constexpr Vec MiaCounter{14, 5};
+constexpr float MiaInteractionRange = 2.3f;
+constexpr float BuildingEntryRange = 2.f;
+constexpr float WorldStoryInteractionRange = 1.8f;
+constexpr int ParkSceneRequest = 4;
+constexpr int HuntingSceneRequest = 5;
+
+inline void StoreVillagePotions()
+{
+    if (recoveryShop)
+    {
+        recoveryShop->potions = potions;
+        recoveryShop->manaPotions = manaPotions;
+    }
+    else
+    {
+        QuestTwo::StoreWorldPotions(potions, manaPotions);
+    }
+}
+
+inline bool HuntingEntranceOpen()
+{
+    return exploration && QuestTwo::Finished();
+}
+
+inline bool MiaQuestUnlocked()
+{
+    return exploration && (miaQuestShortcut || QuestTwo::Finished());
+}
+
+inline bool IsMia(const TownPopulation::Staff& staff, int town)
+{
+    return town == 0 && MiaQuestUnlocked() &&
+           staff.model == Hunting::ModelId::Department_Staff_01View0;
+}
+
+inline int MiaQuestDestination()
+{
+    if (!MiaQuestUnlocked() || miaQuest == MiaQuest::Complete)
+    {
+        return -1;
+    }
+    return miaQuest == MiaQuest::VisitPark || miaQuest == MiaQuest::ParkIncident
+               ? StoryPark
+               : StoryMall;
+}
+
+inline const char* MiaQuestObjective()
+{
+    switch (miaQuest)
+    {
+    case MiaQuest::MeetMia:
+        return "별빛 쇼핑몰 안내 데스크에서 미아를 만나세요.";
+    case MiaQuest::ShowFragment:
+        return "미아에게 검은 조각을 보여 주세요. [E]";
+    case MiaQuest::VisitPark:
+    case MiaQuest::ParkIncident:
+        return "별빛 중앙공원에 들어가 검은 조각의 반응을 조사하세요.";
+    case MiaQuest::ReportPark:
+        return "별빛 쇼핑몰의 미아에게 공원에서 찾은 조각을 보여 주세요.";
+    case MiaQuest::Complete:
+        return "공원 사건 해결 · 두부가 민호에게 돌아갔습니다.";
+    }
+    return "";
+}
+
+inline void TalkToMia()
+{
+    switch (miaQuest)
+    {
+    case MiaQuest::MeetMia:
+        Say("미아: 루미가 보냈구나. 그 검은 조각, 잠깐 보여 줄래?");
+        miaQuest = MiaQuest::ShowFragment;
+        break;
+    case MiaQuest::ShowFragment:
+        Say("미아: 이건 그냥 괴물의 일부가 아니야. 별빛 중앙공원에서 같은 마력이 느껴졌어.");
+        miaQuest = MiaQuest::VisitPark;
+        break;
+    case MiaQuest::VisitPark:
+    case MiaQuest::ParkIncident:
+        Say("미아: 중앙공원에 들어가 봐. 가까워지면 조각이 반응할 거야.");
+        break;
+    case MiaQuest::ReportPark:
+        Say("미아: 두부를 구했구나! 이 조각에서도 같은 마력이 느껴져. 이번에는 별빛역 쪽이야.");
+        miaQuest = MiaQuest::Complete;
+        break;
+    case MiaQuest::Complete:
+        Say("미아: 두부는 무사해. 별빛역의 마력은 내가 더 알아볼게.");
+        break;
+    }
+}
+
 inline int CurrentTown()
 {
     return interior >= 0 ? CoastalWorld::Buildings()[interior].town
@@ -37,7 +144,6 @@ inline void LeaveBuilding()
     particles.clear();
     std::fill(keys, keys + 256, false);
     scene.Clear();
-    lumiFollower.Reset();
 }
 
 inline void SetExploration(bool enabled, bool unlocked)
@@ -73,7 +179,6 @@ inline void SetExploration(bool enabled, bool unlocked)
         actions = PlayerActions{};
         castPose = attackCD = hurtCD = 0;
         scene.Clear();
-        lumiFollower.Reset();
     }
     sceneRequest = 0;
     exploration = enabled;
@@ -108,7 +213,6 @@ inline bool SchoolInteraction()
             }
             interiorRoom = 0;
             scene.Clear();
-            lumiFollower.Reset();
             Say("중앙 복도로 돌아왔습니다.");
         }
         return true;
@@ -134,7 +238,6 @@ inline bool SchoolInteraction()
                     return true;
                 }
                 scene.Clear();
-                lumiFollower.Reset();
                 Say(std::string(next.name) + " · 출입문에서 E를 누르면 복도로 돌아갑니다.");
                 Performance::Profiler::Get().Count("school.room_entries_count");
                 return true;
@@ -165,13 +268,28 @@ inline bool BuildingInteraction()
     }
     if (interior < 0)
     {
+        if (HuntingEntranceOpen() && Dist(player, HuntingEntrance) < BuildingEntryRange)
+        {
+            sceneRequest = HuntingSceneRequest;
+            return true;
+        }
         for (size_t i = 0; i < CoastalWorld::Buildings().size(); ++i)
         {
             const auto& building = CoastalWorld::Buildings()[i];
-            if (Dist(player, {CoastalWorld::DoorX(building), CoastalWorld::DoorY(building)}) < 2.f)
+            const Vec entrance{CoastalWorld::DoorX(building), CoastalWorld::DoorY(building)};
+            if (Dist(player, entrance) < BuildingEntryRange)
             {
                 if (building.interior == 5)
                 {
+                    if (int(i) == StoryPark && MiaQuestUnlocked() && miaQuest >= MiaQuest::VisitPark)
+                    {
+                        if (miaQuest == MiaQuest::VisitPark)
+                        {
+                            miaQuest = MiaQuest::ParkIncident;
+                        }
+                        sceneRequest = ParkSceneRequest;
+                        return true;
+                    }
                     Say("중앙공원 · 주민들의 쉼터입니다. 앞으로 이곳에서 마을 이야기가 이어집니다.");
                     return true;
                 }
@@ -182,7 +300,6 @@ inline bool BuildingInteraction()
                 spells.clear();
                 particles.clear();
                 scene.Clear();
-                lumiFollower.Reset();
                 Say(std::string(building.name) + "에 들어왔습니다. 출입구 [E]로 나갈 수 있습니다.");
                 int targetRoom;
                 float targetX, targetY;
@@ -201,6 +318,12 @@ inline bool BuildingInteraction()
         return false;
     }
     const auto& building = CoastalWorld::Buildings()[interior];
+    if (interior == StoryMall && MiaQuestUnlocked() &&
+        (Dist(player, MiaCounter) < MiaInteractionRange || Dist(player, MiaPosition) < 1.8f))
+    {
+        TalkToMia();
+        return true;
+    }
     for (const auto& staff : TownPopulation::StaffMembers())
     {
         if (staff.kind == building.interior && staff.kind != 2 &&
@@ -222,7 +345,6 @@ inline bool BuildingInteraction()
             interiorRoom = 0;
             player = {5, 6};
             scene.Clear();
-            lumiFollower.Reset();
             Say("학교 로비로 돌아왔습니다.");
         }
         else
@@ -250,7 +372,7 @@ inline bool BuildingInteraction()
                 Say(Prologue::InteractWorld());
                 return true;
             }
-            if (QuestTwo::Finished())
+            if (recoveryShop || QuestTwo::Finished())
             {
                 shopOpen = true;
                 Say("편의점 물약 판매 · 1: 체력 20골드 / 2: 마나 25골드 / E 또는 ESC: 닫기");
@@ -315,7 +437,8 @@ inline bool Respawn(Monster& monster, bool initial)
     for (size_t attempt = 0; attempt < spawnSites.size(); ++attempt)
     {
         const Vec p = spawnSites[spawnCursor++ % spawnSites.size()];
-        if (Dist(p, player) < 10 || (!initial && Dist(p, monster.p) < 10))
+        if ((exploration && p.y > 60) || Dist(p, player) < 10 ||
+            (!initial && Dist(p, monster.p) < 10))
         {
             continue;
         }
@@ -374,10 +497,12 @@ inline WorldMonitor::Scene MonitorSnapshot()
     snapshot.id = exploration ? "world" : "tutorial";
     snapshot.name = exploration ? "해안 마을 탐험" : "튜토리얼 · 해안 마을";
     snapshot.paused = paused || (!exploration && (stage == 2 || stage == 5));
-    snapshot.objective = interior >= 0 ? CoastalWorld::Buildings()[interior].name
-                         : exploration ? "3개 마을 탐험 · 학교와 집에서 스토리 진행"
+    snapshot.objective = MiaQuestDestination() >= 0 ? MiaQuestObjective()
+                         : interior >= 0 ? CoastalWorld::Buildings()[interior].name
+                         : exploration ? "별빛 마을 탐험 · 학교와 집에서 스토리 진행"
                                        : "튜토리얼 단계 " + std::to_string(stage);
-    for (int i = 0; i < NPCCount; ++i)
+    const int townCount = exploration ? 1 : CoastalWorld::TownCount;
+    for (int i = 0; i < townCount * CoastalWorld::ResidentsPerTown; ++i)
     {
         const auto& npc = villagers[i];
         snapshot.npcs.push_back(
@@ -385,7 +510,7 @@ inline WorldMonitor::Scene MonitorSnapshot()
              interior < 0 && Dist(player, npc.p) < 1.8f ? "상호작용 근처" : "마을 생활 중", npc.p.x,
              npc.p.y, 0, true});
     }
-    for (int town = 0; town < 3; ++town)
+    for (int town = 0; town < townCount; ++town)
     {
         for (size_t i = 0; i < TownPopulation::StaffMembers().size(); ++i)
         {
@@ -404,7 +529,8 @@ inline WorldMonitor::Scene MonitorSnapshot()
                 }
             }
             snapshot.npcs.push_back(
-                {"staff_" + std::to_string(town) + "_" + std::to_string(i), staff.name,
+                {"staff_" + std::to_string(town) + "_" + std::to_string(i),
+                 IsMia(staff, town) ? "미아" : staff.name,
                  staff.kind < 0 ? "학교 정문 근무" : "시설 내부 근무", x, y, 0, true});
         }
         int threats = 0;

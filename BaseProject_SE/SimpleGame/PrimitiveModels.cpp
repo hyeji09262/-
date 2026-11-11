@@ -102,6 +102,11 @@ const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetFacing(ModelId id,
                                                                      float y) const
 {
     const int value = static_cast<int>(id);
+    if (loadedFromResource && id == ModelId::Lumi)
+    {
+        const auto& mesh = m_FacingModels[LumiFacingPose][CharacterVisual::FacingSector(x, y)];
+        return mesh.empty() ? Get(id) : mesh;
+    }
     if (loadedFromResource && (id == ModelId::SchoolGuard || id == ModelId::StoreClerk))
     {
         const ModelId base = id == ModelId::SchoolGuard ? ModelId::Security_GuardView0
@@ -135,6 +140,14 @@ const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetFacing(ModelId id,
     return Get(id);
 }
 
+const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetParkBoss(float x, float y,
+                                                                      bool attacking) const
+{
+    const auto& mesh = m_FacingModels[ParkBossFacingPose + (attacking ? 1 : 0)]
+                                    [CharacterVisual::FacingSector(x, y)];
+    return mesh.empty() ? Get(ModelId::Shade0) : mesh;
+}
+
 bool PrimitiveModels::LoadResource()
 {
     Performance::Scope scope("cpu.assets.resource_mesh_load_ms");
@@ -161,7 +174,9 @@ bool PrimitiveModels::LoadResource()
     }
     std::array<std::uint32_t, 3> counts{};
     std::memcpy(counts.data(), bytes.data() + 8, sizeof(counts));
-    if (counts[0] != m_Models.size() || counts[1] != 11 || counts[2] != 8)
+    if (counts[0] != m_Models.size() ||
+        (counts[1] != LumiFacingPose && counts[1] != ParkBossFacingPose &&
+         counts[1] != m_FacingModels.size()) || counts[2] != 8)
     {
         return false;
     }
@@ -230,9 +245,9 @@ bool PrimitiveModels::LoadResource()
             return false;
         }
     }
-    for (auto& pose : facingCandidate)
+    for (size_t i = 0; i < counts[1]; ++i)
     {
-        for (auto& mesh : pose)
+        for (auto& mesh : facingCandidate[i])
         {
             if (!readMesh(mesh))
             {
@@ -248,7 +263,8 @@ bool PrimitiveModels::LoadResource()
     m_FacingModels = std::move(facingCandidate);
     CharacterVisual::SetDirectionSockets(sockets);
     BuildingVisuals::Set(buildingStyles);
-    Performance::Profiler::Get().Gauge("assets.resource_mesh_count", double(m_Models.size() + 88));
+    Performance::Profiler::Get().Gauge("assets.resource_mesh_count",
+                                        double(m_Models.size() + counts[1] * counts[2]));
     Performance::Profiler::Get().Gauge("assets.resource_pack_bytes", double(bytes.size()));
     return true;
 }

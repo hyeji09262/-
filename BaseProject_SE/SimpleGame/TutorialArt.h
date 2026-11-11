@@ -198,17 +198,28 @@ inline void DrawMinimap()
     float tx, ty;
     int person;
     std::string objective;
-    if (Prologue::WorldObjective(tx, ty, person, objective) && inside({tx, ty}))
+    const int destination = MiaQuestDestination();
+    if (destination < 0 && Prologue::WorldObjective(tx, ty, person, objective) && inside({tx, ty}))
     {
         Diamond(map({tx, ty}), 4, 4, gold);
     }
     else
     {
         int room;
-        if (QuestTwo::SchoolObjective(0, player.x, player.y, room, tx, ty, objective))
+        if (destination < 0 &&
+            QuestTwo::SchoolObjective(0, player.x, player.y, room, tx, ty, objective))
         {
             const auto& school = CoastalWorld::Buildings()[1];
             const Vec p{CoastalWorld::DoorX(school), CoastalWorld::DoorY(school)};
+            if (inside(p))
+            {
+                Diamond(map(p), 4, 4, gold);
+            }
+        }
+        else if (destination >= 0)
+        {
+            const auto& building = CoastalWorld::Buildings()[destination];
+            const Vec p{CoastalWorld::DoorX(building), CoastalWorld::DoorY(building)};
             if (inside(p))
             {
                 Diamond(map(p), 4, 4, gold);
@@ -226,7 +237,13 @@ inline void DrawMinimap()
     }
     if (inside(player))
         Ellipse(map(player), 3, 3, teal, 10);
-    Text(1020, 318, "청록: 나 · 노랑: 현재 목표", teal, 13);
+    if (HuntingEntranceOpen() && inside(HuntingEntrance))
+    {
+        Diamond(map(HuntingEntrance), 4, 4, {.62f, .93f, .52f, 1});
+    }
+    Text(1020, 318, HuntingEntranceOpen() ? "청록: 나 · 노랑: 목표 · 연두: 숲"
+                                         : "청록: 나 · 노랑: 현재 목표",
+         teal, 13);
 }
 
 // Legacy procedural shapes remain renderer primitives inside one scene actor per object.
@@ -287,20 +304,41 @@ inline void BuildingObjectiveLabel(const std::string& id, const CoastalWorld::Bu
                   true, labelHeight);
 }
 
+inline void EntranceMarker(const std::string& id, Vec entrance, float range, const char* name,
+                           const char* action)
+{
+    const bool ready = Dist(player, entrance) < range && actions.height <= 0;
+    PlaceArt(id + "/ground", {entrance.x, entrance.y}, Game::RenderLayer::Shadow,
+             [entrance, ready]()
+             {
+                 const Vec center = Project(entrance);
+                 const float pulse = 2.f * std::sin(clockTime * 4.f);
+                 Diamond(center, 23.f + pulse, 13.f + pulse * .5f, {.22f, .17f, .25f, .95f});
+                 Diamond(center, 19.f, 9.f, ready ? Color{1.f, .9f, .61f, 1.f} : gold);
+                 Diamond(center, 5.f, 3.f, {.22f, .17f, .25f, 1.f});
+             });
+    InteriorLabel(id + "/label", entrance, ready ? action : name, true, 50.f);
+}
+
 inline void DrawLumi()
 {
     if (!exploration || !storyMagicUnlocked)
     {
         return;
     }
-    const Vec position = lumiFollower.Position(player, facingDirection);
+    const Vec look = castPose > 0 ? castDirection : facingDirection;
+    const Vec position = CompanionFollow::RightOf(player, look);
     scene.Place("lumi", {position.x, position.y, 26 + 4 * std::sin(clockTime * 3)},
                 Game::RenderLayer::World,
-                [](const Game::Actor&, const Game::Transform& world)
+                [look](const Game::Actor&, const Game::Transform& world)
                 {
-                    CachedArt(Hunting::ModelId::Lumi, Project({world.x, world.y}, world.z));
+                    const Vec screen = Project({world.x, world.y}, world.z);
+                    const auto& mesh = VisualModels().GetFacing(Hunting::ModelId::Lumi,
+                                                               look.x, look.y);
+                    renderer->DrawModel(mesh, screen.x * width / 1280, screen.y * height / 800,
+                                        world.scale * width / 1280, world.scale * height / 800);
                 });
-    InteriorLabel("lumi/name", position, "루미", false, 86.f);
+    InteriorLabel("lumi/name", position, "루미 [F]", false, 86.f);
 }
 
 inline void DrawStaff()
@@ -319,8 +357,20 @@ inline void DrawStaff()
                      FacingNpc(staff.model, p);
                  });
         if (Dist(player, p) < 5)
-            InteriorLabel("staff/name/" + std::to_string(i), p, staff.name);
+            InteriorLabel("staff/name/" + std::to_string(i), p,
+                          IsMia(staff, CurrentTown()) ? "미아" : staff.name);
     }
+}
+
+inline void DrawRecovery(Game::Actor& hero)
+{
+    CombatEffects::Recovery(
+        scene, *renderer, hero, actions, actions.height, (std::min)(width / 1280.f, height / 800.f),
+        [](const Game::Transform& world)
+        {
+            const Vec p = Project({world.x, world.y}, world.z);
+            return Vec{p.x * width / 1280, p.y * height / 800};
+        });
 }
 
 inline void DrawInterior()
@@ -436,7 +486,8 @@ inline void DrawInterior()
                                Prologue::WorldObjective(storyX, storyY, storyPerson, storyText) &&
                                storyPerson == 3;
         const bool potionGoal = building.interior == 2 && QuestTwo::NeedsPotionShop();
-        if (!clerkGoal && !potionGoal)
+        const bool miaGoal = interior == StoryMall && MiaQuestDestination() == StoryMall;
+        if (!clerkGoal && !potionGoal && !miaGoal)
         {
             InteriorLabel("inside/examine", {14, VillageInterior::ServiceY(building.interior)},
                           building.interior == 2   ? "[E] 직원 대화 / 물약 구매"
@@ -470,6 +521,16 @@ inline void DrawInterior()
         else if (building.interior == 7)
         {
             InteriorLabel("inside/mall-sign", {5, 3}, "상점가 · 상품 진열");
+            if (miaGoal)
+            {
+                const bool nearMia = Dist(player, MiaCounter) < MiaInteractionRange ||
+                                     Dist(player, MiaPosition) < 1.8f;
+                const char* action = miaQuest == MiaQuest::ShowFragment ? "검은 조각 보여 주기 [E]"
+                                     : miaQuest == MiaQuest::ReportPark ? "미아에게 보고 [E]"
+                                                                       : "미아와 대화 [E]";
+                InteriorLabel("inside/mia-goal", MiaPosition, nearMia ? action : "목표 · 미아", true,
+                              140.f);
+            }
         }
         if (interior == 0 && exploration)
         {
@@ -490,6 +551,7 @@ inline void DrawInterior()
             Shadow({0, 0}, 13, 5, 18);
         },
         &actor);
+    DrawRecovery(actor);
 }
 
 inline void DrawWorld()
@@ -701,7 +763,8 @@ inline void DrawWorld()
     float objectiveX, objectiveY;
     int objectivePerson;
     std::string objectiveText;
-    if (exploration &&
+    const int destination = MiaQuestDestination();
+    if (destination < 0 && exploration &&
         Prologue::WorldObjective(objectiveX, objectiveY, objectivePerson, objectiveText))
     {
         const Hunting::ModelId people[] = {Hunting::ModelId::Yuna, Hunting::ModelId::Jisoo,
@@ -724,13 +787,17 @@ inline void DrawWorld()
             BuildingObjectiveLabel("world/story-objective", CoastalWorld::Buildings()[2], target,
                                    "편의점 안 직원에게");
         }
+        else if (objectivePerson == 4)
+        {
+            EntranceMarker("world/alley-entrance", target, WorldStoryInteractionRange,
+                           "학교 뒤 골목 입구", "골목 들어가기 [E]");
+        }
         else
         {
-            ObjectiveLabel("world/story-objective", target,
-                           objectivePerson == 4 ? "[E] 학교 뒤 골목" : "[E] 이야기");
+            ObjectiveLabel("world/story-objective", target, "[E] 이야기");
         }
     }
-    if (exploration)
+    if (destination < 0 && exploration)
     {
         int room;
         float x, y;
@@ -742,15 +809,44 @@ inline void DrawWorld()
             BuildingObjectiveLabel("world/quest-two-school", school, target, "별빛 학교 [E]");
         }
     }
-    if (exploration && QuestTwo::NeedsPotionShop())
+    if (destination >= 0)
+    {
+        const auto& building = CoastalWorld::Buildings()[destination];
+        const Vec target{CoastalWorld::DoorX(building), CoastalWorld::DoorY(building)};
+        if (destination == StoryPark)
+        {
+            EntranceMarker("world/park-entrance", target, BuildingEntryRange,
+                           "별빛 중앙공원 입구", "공원으로 이동 [E]");
+        }
+        else
+        {
+            BuildingObjectiveLabel("world/mia-quest-goal", building, target, "별빛 쇼핑몰 [E]");
+        }
+    }
+    else if (exploration && QuestTwo::NeedsPotionShop())
     {
         const auto& shop = CoastalWorld::Buildings()[2];
         const Vec target{CoastalWorld::DoorX(shop), CoastalWorld::DoorY(shop)};
         BuildingObjectiveLabel("world/potion-shop-goal", shop, target, "편의점 [E]");
     }
-    if (!regionsUnlocked && exploration)
+    if (destination != StoryPark && MiaQuestUnlocked() && miaQuest >= MiaQuest::ParkIncident)
     {
-        InteriorLabel("world/region-gate", {31, 59}, "학교 사건 해결 후 다음 마을 개방");
+        const auto& park = CoastalWorld::Buildings()[StoryPark];
+        const Vec entrance{CoastalWorld::DoorX(park), CoastalWorld::DoorY(park)};
+        if (Dist(player, entrance) < 5.f)
+        {
+            EntranceMarker("world/park-entrance", entrance, BuildingEntryRange,
+                           "별빛 중앙공원 입구", "공원으로 이동 [E]");
+        }
+    }
+    if (HuntingEntranceOpen())
+    {
+        EntranceMarker("world/hunting-entrance", HuntingEntrance, BuildingEntryRange,
+                       "별빛 숲 입구", "사냥터로 이동 [E]");
+    }
+    else if (exploration)
+    {
+        InteriorLabel("world/region-gate", HuntingEntrance, "학교 사건 해결 후 별빛 숲 개방");
     }
     for (int i = 0; i < NPCCount; ++i)
     {
@@ -784,6 +880,7 @@ inline void DrawWorld()
             Shadow({0, 0}, 13, 5, 18);
         },
         &heroine);
+    DrawRecovery(heroine);
     const Vec look = castPose > 0 ? castDirection : facingDirection;
     scene.Place("player/wand", CharacterVisual::FacingSocket(castPose > 0, look.x, look.y),
                 RenderLayer::World, {}, &heroine);
