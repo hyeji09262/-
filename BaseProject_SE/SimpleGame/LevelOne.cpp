@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "MagicalTheme.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -184,6 +185,15 @@ void Triangle(Position a, Position b, Position c, Color color)
 
 void Box(float x, float y, float width, float height, Color color)
 {
+    if (color.r < .12f && color.g < .12f && color.b < .2f && color.a > .9f &&
+        width > 100 && height > 30)
+    {
+        MagicalTheme::Panel(*graphics, x * screenWidth / 1280, y * screenHeight / 800,
+                            width * screenWidth / 1280, height * screenHeight / 800,
+                            (std::min)(screenWidth / 1280.f, screenHeight / 800.f));
+        return;
+    }
+
     Triangle({x, y}, {x + width, y}, {x + width, y + height}, color);
     Triangle({x, y}, {x + width, y + height}, {x, y + height}, color);
 }
@@ -196,6 +206,7 @@ void Diamond(Position p, float width, float height, Color color)
 
 void Text(float x, float y, const std::string& label, Color color = white, float size = 18)
 {
+    color = {MagicalTheme::TextR, MagicalTheme::TextG, MagicalTheme::TextB, color.a};
     graphics->Text(x * screenWidth / 1280, y * screenHeight / 800, label, size * screenHeight / 800,
                    color.r, color.g, color.b, color.a);
 }

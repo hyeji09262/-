@@ -7,6 +7,7 @@
 #include <iterator>
 #include <unordered_map>
 #include "Renderer.h"
+#include "MagicalTheme.h"
 #include "RuntimeFiles.h"
 
 struct Renderer::Font
@@ -498,16 +499,16 @@ void Renderer::Nameplate(float centerX, float baseline, const std::string& label
     float left = centerX - advance * .5f - size * .5f;
     float right = centerX + advance * .5f + size * .5f;
     float top = baseline - size * 1.3f, bottom = baseline + size * .4f;
-    const float backgroundR = objective ? .91f : .04f;
-    const float backgroundG = objective ? .83f : .04f;
-    const float backgroundB = objective ? .58f : .09f;
-    const float backgroundAlpha = objective ? 1.f : .94f;
+    const float backgroundR = MagicalTheme::BackgroundR;
+    const float backgroundG = MagicalTheme::BackgroundG;
+    const float backgroundB = MagicalTheme::BackgroundB;
+    const float backgroundAlpha = 1.f;
     Triangle(left, top, right, top, right, bottom, backgroundR, backgroundG, backgroundB,
              backgroundAlpha);
     Triangle(left, top, right, bottom, left, bottom, backgroundR, backgroundG, backgroundB,
              backgroundAlpha);
-    Text(centerX - advance * .5f, baseline, label, size, objective ? 0.f : r,
-         objective ? 0.f : g, objective ? 0.f : b);
+    Text(centerX - advance * .5f, baseline, label, size,
+         MagicalTheme::TextR, MagicalTheme::TextG, MagicalTheme::TextB);
 }
 
 void Renderer::BeginWorld()

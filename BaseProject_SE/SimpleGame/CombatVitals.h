@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Renderer.h"
+#include "MagicalTheme.h"
 #include "RpgProgress.h"
 
 namespace CombatVitals
@@ -21,20 +22,21 @@ inline void Draw(Renderer& renderer, int width, int height, float health, float 
     const auto text = [&](float x, float y, const std::string& label, float size)
     {
         renderer.Text(offsetX + x * scale, offsetY + y * scale, label, size * scale,
-                      .95f, .95f, 1.f, 1.f);
+                      MagicalTheme::TextR, MagicalTheme::TextG, MagicalTheme::TextB, 1.f);
     };
     const auto meter = [&](float x, const char* name, float value, int maximum, char key, int count,
                            float r, float g, float b)
     {
         const float ratio = (std::max)(0.f, (std::min)(1.f, value / (std::max)(1, maximum)));
         text(x - 7, 231, name, 18);
-        panel(x, 243, 22, 280, .2f, .22f, .3f, 1.f);
+        panel(x, 243, 22, 280, .20f, .22f, .30f, 1.f);
         panel(x, 243 + 280 * (1 - ratio), 22, 280 * ratio, r, g, b, 1.f);
         text(x - 10, 542, std::to_string(int(value)) + "/" + std::to_string(maximum), 14);
         text(x - 14, 560, std::string("[") + key + "] " + std::to_string(count) + "개", 15);
     };
 
-    panel(22, 212, 152, 354, .06f, .08f, .15f, .96f);
+    MagicalTheme::Panel(renderer, offsetX + 22 * scale, offsetY + 212 * scale,
+                        152 * scale, 354 * scale, scale);
     meter(48, "체력", health, progress.stats.maxHealth, 'U', progress.potions, .95f, .40f, .63f);
     meter(112, "마나", mana, progress.stats.maxMana, 'I', progress.manaPotions, .52f, .70f, 1.f);
 }

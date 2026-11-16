@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "MagicalTheme.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -142,6 +143,16 @@ void Quad(Point a, Point b, Point c, Point d, Color color)
 
 void Panel(float x, float y, float w, float h, Color color)
 {
+    if (color.r < .25f && color.g < .25f && color.b < .30f && color.a > .9f &&
+        w > 100 && h > 30 && h < 800)
+    {
+        const float scale = Scale();
+        const float left = (width - 1280 * scale) * .5f + x * scale;
+        const float top = (height - 800 * scale) * .5f + y * scale;
+        MagicalTheme::Panel(*graphics, left, top, w * scale, h * scale, scale);
+        return;
+    }
+
     const float s = Scale();
     const float ox = (width - 1280 * s) * .5f, oy = (height - 800 * s) * .5f;
     Quad({ox + x * s, oy + y * s}, {ox + (x + w) * s, oy + y * s},
@@ -150,6 +161,8 @@ void Panel(float x, float y, float w, float h, Color color)
 
 void Text(float x, float y, const std::string& value, float size = 20, Color color = paper)
 {
+    color = {MagicalTheme::TextR, MagicalTheme::TextG, MagicalTheme::TextB, color.a};
+
     const float s = Scale();
     graphics->Text((width - 1280 * s) * .5f + x * s, (height - 800 * s) * .5f + y * s, value,
                    size * s, color.r, color.g, color.b, color.a);
@@ -656,7 +669,7 @@ void StatusBar(float x, float y, const std::string& label, float value, float ma
 {
     const float ratio = (std::max)(0.f, (std::min)(1.f, value / (std::max)(1.f, maximum)));
     Text(x - 7, y, label, 18, paper);
-    Panel(x, y + 12, 22, 280, {.19f, .20f, .29f, 1});
+    Panel(x, y + 12, 22, 280, {.20f, .22f, .30f, 1});
     Panel(x, y + 12 + 280 * (1 - ratio), 22, 280 * ratio, color);
     Text(x - 8, y + 311, std::to_string(int(value)) + "/" + std::to_string(int(maximum)), 14,
          paper);
@@ -667,7 +680,7 @@ void DialoguePanel(const std::string& speaker, const std::string& message,
 {
     Panel(200, 430, 1010, 190, {.05f, .06f, .12f, .98f});
     Panel(200, 430, 5, 190, pink);
-    Panel(225, 450, 230, 38, {.24f, .15f, .30f, 1});
+    Panel(225, 450, 230, 38, {.05f, .06f, .12f, 1});
     Text(240, 477, speaker, 23, pink);
     DialogueText(230, 522, message);
     Text(985, 600, prompt, 18, {.99f, .82f, .35f});
