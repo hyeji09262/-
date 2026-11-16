@@ -524,10 +524,10 @@ void Interact()
 void DrawHud()
 {
     Performance::Scope scope("cpu.quest_two.hud_ms");
-    Panel(22, 20, 1000, 150);
+    Panel(22, 20, 1000, 180);
     Text(42, 52, "메인 퀘스트 2 · 학교에 숨어든 것", 25, pink);
-    Text(730, 52, "레벨 " + std::to_string(story.progress.stats.level) + " · 골드 " +
-                      std::to_string(story.progress.coins), 18);
+    Text(42, 180, "레벨 " + std::to_string(story.progress.stats.level) + " · 골드 " +
+                      std::to_string(story.progress.coins) + " · " + story.progress.ExperienceLabel(), 16);
     if (!available)
     {
         Text(42, 90, "F3에서 퀘스트 1과 다음 날 1학년 1반의 마지막 대화를 완료하세요.", 20, gold);

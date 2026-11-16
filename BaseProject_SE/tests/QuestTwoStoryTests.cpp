@@ -7,13 +7,27 @@
 
 int main()
 {
+    Rpg::Progress growth;
+    growth.Award(Rpg::AlleyQuestExperience);
+    growth.Award(Rpg::SchoolQuestExperience);
+    growth.Award(Rpg::MiaQuestExperience);
+    assert(growth.stats.level == 1);
+    growth.Award(Rpg::ParkQuestExperience);
+    assert(growth.stats.level == 2 && growth.ExperienceInLevel() == 5);
+    Rpg::Progress hunting;
+    hunting.SyncGrowth(growth);
+    assert(hunting.totalExperience == growth.totalExperience && hunting.stats.level == 2);
+    hunting.Award(9);
+    growth.SyncGrowth(hunting);
+    assert(growth.ExperienceInLevel() == 14);
+
     using MainQuest::Event;
     using QuestTwo::Step;
     std::array<unsigned, 3> order{{0, 1, 2}};
     do
     {
         QuestTwo::StoryState state;
-        state.progress.totalExperience = 120;
+        state.progress.totalExperience = Rpg::AlleyQuestExperience;
         state.progress.coins = 100;
         state.progress.Recalculate();
         assert(!state.Inspect(0));
@@ -46,7 +60,7 @@ int main()
         assert(state.fragments == 5);
         assert(state.step == Step::Complete);
         assert(std::string(state.Current().id) == "MQ002_COMPLETE");
-        assert(state.progress.totalExperience == 120 + Rpg::SchoolQuestExperience &&
+        assert(state.progress.totalExperience == Rpg::AlleyQuestExperience + Rpg::SchoolQuestExperience &&
                state.progress.coins == 250);
         assert(state.progress.crystals == 0);
         assert(state.progress.potions == 7 && state.progress.manaPotions == 7);
@@ -65,7 +79,7 @@ int main()
         }
         assert(state.Advance(Event::Interact));
         assert(state.Advance(Event::Defeat));
-        assert(state.progress.totalExperience == 120 + Rpg::SchoolQuestExperience &&
+        assert(state.progress.totalExperience == Rpg::AlleyQuestExperience + Rpg::SchoolQuestExperience &&
                state.progress.coins == 250);
         assert(state.fragments == 5 && state.progress.potions == 7);
     } while (std::next_permutation(order.begin(), order.end()));

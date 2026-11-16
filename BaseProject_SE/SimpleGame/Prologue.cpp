@@ -678,8 +678,8 @@ void DrawHud()
     Performance::Scope scope("cpu.story.hud_ms");
     const Color objectiveColor{.99f, .82f, .35f};
     const bool magicAvailable = quest.CanFight() && !EndingSchool();
-    Panel(22, 20, 810, 164, {.08f, .10f, .18f, .94f});
-    Panel(22, 20, 4, 164, objectiveColor);
+    Panel(22, 20, 810, 180, {.08f, .10f, .18f, .94f});
+    Panel(22, 20, 4, 180, objectiveColor);
     Text(42, 53,
          quest.epilogueComplete ? "메인 퀘스트 1 완료 · 다음 날 학교"
          : quest.active         ? "메인 퀘스트 1 · 연락이 끊긴 친구"
@@ -692,7 +692,8 @@ void DrawHud()
                                 : story.Objective(),
          19, objectiveColor);
     Text(42, 121, "레벨 " + std::to_string(quest.progress.stats.level) + " · 골드 " +
-                      std::to_string(quest.progress.coins), 17);
+                      std::to_string(quest.progress.coins) + " · " +
+                      quest.progress.ExperienceLabel(), 17);
     if (quest.active)
     {
         Panel(22, 212, 152, 354, {.06f, .08f, .15f, .96f});
@@ -701,20 +702,20 @@ void DrawHud()
                   {.52f, .65f, .98f});
         Text(34, 560, "[U] " + std::to_string(quest.progress.potions) + "개", 15);
         Text(98, 560, "[I] " + std::to_string(quest.progress.manaPotions) + "개", 15);
-        Text(540, 121,
+        Text(42, 149,
              "[U] 물약 " + std::to_string(quest.progress.potions) + "  ·  검은 조각 " +
                  std::to_string(quest.fragments),
              16);
-        Text(42, 165, magicAvailable ? "별빛 마법소녀" : "평범한 학생 · 전투 비활성", 15, pink);
+        Text(42, 178, magicAvailable ? "별빛 마법소녀" : "평범한 학생 · 전투 비활성", 15, pink);
         if (quest.step == QuestStep::Shadows)
         {
-            Text(290, 165, "그림자 처치 " + std::to_string(quest.defeated) + " / 3", 17,
+            Text(290, 178, "그림자 처치 " + std::to_string(quest.defeated) + " / 3", 17,
                  objectiveColor);
         }
     }
     else
     {
-        Text(42, 117, "평범한 학생 · 아직 마법이나 전투 능력이 없습니다", 15, {.70f, .77f, .86f});
+        Text(42, 153, "평범한 학생 · 아직 마법이나 전투 능력이 없습니다", 15, {.70f, .77f, .86f});
     }
 
     if (magicAvailable)

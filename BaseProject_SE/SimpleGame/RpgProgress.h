@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <algorithm>
+#include <string>
 
 namespace Rpg
 {
@@ -53,6 +54,15 @@ class Progress
     std::int64_t LevelStart() const;
     int ExperienceInLevel() const;
     bool Award(int amount);
+
+    std::string ExperienceLabel() const
+    {
+        return stats.level >= LevelCap
+                   ? "경험치 MAX"
+                   : "경험치 " + std::to_string(ExperienceInLevel()) + "/" +
+                         std::to_string(RequiredExperience(stats.level));
+    }
+
     void SyncGrowth(const Progress& source)
     {
         totalExperience = source.totalExperience;

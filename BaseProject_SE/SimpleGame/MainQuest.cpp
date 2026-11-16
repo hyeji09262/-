@@ -22,14 +22,16 @@ bool State::Load()
     if (!(file >> magic >> value >> candidate.fragments >> candidate.progress.totalExperience >>
           candidate.progress.coins >> reward) ||
         (magic != "MAGICAL_QUEST_001_V1" && magic != "MAGICAL_QUEST_001_V2" &&
-         magic != "MAGICAL_QUEST_001_V3" && magic != "MAGICAL_QUEST_001_V4") ||
+         magic != "MAGICAL_QUEST_001_V3" && magic != "MAGICAL_QUEST_001_V4" &&
+         magic != "MAGICAL_QUEST_001_V5") ||
         value < 0 || value > static_cast<int>(Step::Complete) ||
         reward != (value == static_cast<int>(Step::Complete) ? 1 : 0) ||
         candidate.fragments != (reward                                     ? 4
                                 : value > static_cast<int>(Step::Fragment) ? 1
                                                                            : 0) ||
-        candidate.progress.totalExperience != (reward ? 120 : 0) ||
-        candidate.progress.coins != (reward ? 100 : 0))
+        candidate.progress.totalExperience < 0 ||
+        candidate.progress.totalExperience > Rpg::ExperienceLimit ||
+        candidate.progress.coins < 0 || candidate.progress.coins > 1000000)
     {
         return false;
     }
@@ -40,7 +42,8 @@ bool State::Load()
     {
         return false;
     }
-    if (magic == "MAGICAL_QUEST_001_V3" || magic == "MAGICAL_QUEST_001_V4")
+    if (magic == "MAGICAL_QUEST_001_V3" || magic == "MAGICAL_QUEST_001_V4" ||
+        magic == "MAGICAL_QUEST_001_V5")
     {
         int completed = 0;
         if (!(file >> completed) || completed < 0 || completed > 1 || (completed && !reward))
@@ -49,7 +52,7 @@ bool State::Load()
         }
         candidate.epilogueComplete = completed != 0;
     }
-    if (magic == "MAGICAL_QUEST_001_V4" &&
+    if ((magic == "MAGICAL_QUEST_001_V4" || magic == "MAGICAL_QUEST_001_V5") &&
         (!(file >> candidate.progress.manaPotions) || candidate.progress.manaPotions < 0 ||
          candidate.progress.manaPotions > 99))
     {
@@ -78,7 +81,7 @@ bool State::Save() const
     const auto temporary = path + L".tmp";
     {
         std::ofstream file(temporary.c_str(), std::ios::trunc);
-        file << "MAGICAL_QUEST_001_V4\n"
+        file << "MAGICAL_QUEST_001_V5\n"
              << static_cast<int>(step) << ' ' << fragments << ' ' << progress.totalExperience << ' '
              << progress.coins << ' ' << rewardClaimed << ' ' << progress.potions << ' '
              << epilogueComplete << ' ' << progress.manaPotions << '\n';

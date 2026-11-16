@@ -380,21 +380,21 @@ void DrawTarget(Point target, float height, const char* title, const char* promp
 
 void DrawHud()
 {
-    Panel(22, 20, 800, 121, Ink);
+    Panel(22, 20, 800, 150, Ink);
     Text(44, 56, "메인 퀘스트 4 · 공원의 검은 흔적", 25, Pink);
-    Text(600, 56, "레벨 " + std::to_string(encounter.progress.stats.level) + " · 골드 " +
-                       std::to_string(encounter.progress.coins), 17, Gold);
+    Text(44, 123, "레벨 " + std::to_string(encounter.progress.stats.level) + " · 골드 " +
+                       std::to_string(encounter.progress.coins) + " · " + encounter.progress.ExperienceLabel(), 16, Gold);
     Text(44, 91, Objective(), 19, Gold);
-    Text(44, 121, "E 상호작용 · J 마법 · K 별빛 폭발 (10) · L 별빛 낙하 (8) · F 루미", 16, Gold);
+    Text(44, 153, "E 상호작용 · J 마법 · K 별빛 폭발 (10) · L 별빛 낙하 (8) · F 루미", 16, Gold);
     CombatVitals::Draw(*graphics, screenWidth, screenHeight, combat.health, combat.mana,
                        encounter.progress);
     if (step == Step::FightFlower)
     {
         const auto& boss = combat.enemies.front();
-        Panel(370, 151, 540, 40, Ink);
-        Text(390, 175, boss.Enraged() ? "검은 꽃 · 격노" : "검은 꽃", 16, Pink);
+        Panel(370, 183, 540, 40, Ink);
+        Text(390, 207, boss.Enraged() ? "검은 꽃 · 격노" : "검은 꽃", 16, Pink);
         const float ratio = (std::max)(0.f, boss.health / boss.enhancedBossMaxHealth);
-        Panel(535, 166, 350 * ratio, 9, Pink);
+        Panel(535, 198, 350 * ratio, 9, Pink);
     }
     if (messageTime > 0)
     {

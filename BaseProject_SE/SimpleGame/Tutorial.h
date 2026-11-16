@@ -933,8 +933,8 @@ inline void DrawHud()
     {
         Diamond({tx, ty + std::sin(clockTime * 3) * 4}, 7, 12, gold);
     }
-    Box(20, 20, 730, 118, {ink.r, ink.g, ink.b, .94f});
-    Box(20, 20, 4, 118, gold);
+    Box(20, 20, 730, 150, {ink.r, ink.g, ink.b, .94f});
+    Box(20, 20, 4, 150, gold);
     Text(38, 49,
          interior >= 0 ? (CoastalWorld::Buildings()[interior].interior == 1
                               ? std::string(CoastalWorld::Buildings()[interior].name) + " · " +
@@ -967,13 +967,15 @@ inline void DrawHud()
     sprintf_s(status, "시간 %02d:%02d    목표 %.0f타일    야생 몬스터 처치 %d", int(elapsed) / 60,
               int(elapsed) % 60, Dist(player, Target()), kills);
     Text(38, 114,
-         exploration && QuestTwo::NeedsPotionShop()
-             ? "별빛 편의점에서 체력·마나 물약 구매 가능"
-         : exploration ? "레벨 " + std::to_string(worldGrowth.stats.level) + " · 골드 " +
-                             std::to_string(worldGrowth.coins) +
-                             " · F2 사냥터 · F3 이야기 · F4 학교 · F7 미아"
+         exploration ? "레벨 " + std::to_string(worldGrowth.stats.level) + " · 골드 " +
+                             std::to_string(worldGrowth.coins) + " · " + worldGrowth.ExperienceLabel()
+
                        : status,
          {.8f, .83f, .85f, 1}, 16);
+    if (exploration)
+    {
+        Text(38, 146, "F2 사냥터 · F3 이야기 · F4 학교 · F7 미아", {.8f, .83f, .85f, 1}, 16);
+    }
     Box(22, 212, 152, 354, {ink.r, ink.g, ink.b, .96f});
     const float healthRatio = (std::max)(0.f, (std::min)(1.f, hp / 5.f));
     const float manaRatio = (std::max)(0.f, (std::min)(1.f, mana / 30.f));
