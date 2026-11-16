@@ -20,6 +20,7 @@ bool TransformationUnlocked();
 bool ConsumeWorldRequest();
 bool Defeated();
 const Rpg::Progress& Progress();
+void SyncGrowth(const Rpg::Progress& source);
 void Restock(int healthPotions, int manaPotions);
 void ResumeFromWorld();
 bool WorldObjective(float& x, float& y, int& person, std::string& objective);

@@ -54,7 +54,7 @@ bool Map::Safe(Position p) const
 
 Position Map::VillageExit() const
 {
-    return {camp.x, camp.y + 3.f};
+    return {camp.x, camp.y + villageExitOffset};
 }
 
 bool Map::VillageTrail(int x, int y) const
@@ -137,6 +137,8 @@ void Map::Generate(std::uint32_t newSeed)
 {
     Performance::Scope scope("cpu.map.generate_ms");
     seed = newSeed;
+    camp = {30.5f, 24.5f};
+    villageExitOffset = 3.f;
     std::mt19937 random(seed);
     tiles.fill(Tile::Water);
     for (int y = 1; y < Height - 1; ++y)
@@ -216,5 +218,28 @@ std::vector<Position> Map::SpawnLocations() const
         }
     }
     return result;
+}
+
+void Map::GenerateHuntingRoom(std::uint32_t newSeed, int room)
+{
+    const bool hub = room < 0;
+    seed = newSeed;
+    camp = hub ? Position{30.5f, 24.5f} : Position{30.5f, 39.5f};
+    villageExitOffset = hub ? 7.f : 1.f;
+    tiles.fill(Tile::Void);
+    std::mt19937 random(seed);
+    const int top = hub ? 14 : 3;
+    const int bottom = hub ? 35 : 44;
+    const int left = hub ? 19 : 11;
+    const int right = hub ? 42 : 50;
+    for (int y = top; y <= bottom; ++y)
+    {
+        for (int x = left; x <= right; ++x)
+        {
+            const bool edge = x == left || x == right || y == top || y == bottom;
+            tiles[Index(x, y)] = edge ? (random() % 4 == 0 ? Tile::Rock : Tile::Tree)
+                                       : Tile::Ground;
+        }
+    }
 }
 } // namespace Hunting

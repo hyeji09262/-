@@ -40,8 +40,8 @@ void Progress::Recalculate()
     }
 
     int growth = stats.level - 1;
-    stats.maxHealth = 60 + growth * 12;
-    stats.maxMana = 30 + growth * 5;
+    stats.maxHealth = 60 + growth * 6;
+    stats.maxMana = 30 + growth * 3;
     stats.attack = 10 + growth * 3;
     stats.defense = 1 + growth;
 }

@@ -53,8 +53,12 @@ int main()
     blockedEnemy.position = {2, .5f};
     blockedEnemy.attackMotion = 100;
     const float blockedHealth = blockedEnemy.health;
-    assert(combat.Attack(player, {1, 0}, state));
-    assert(combat.castDirection.x == 1 && combat.castDirection.y == 0);
+    assert(combat.Attack(player, {1, 0}, state, 0,
+                         [](MainQuest::Point p)
+                         {
+                             return p.x < 1;
+                         }));
+    assert(combat.shots.back().direction.x == 1 && combat.shots.back().direction.y == 0);
     for (int i = 0; i < 10; ++i)
     {
         combat.Update(.05f, player, state,

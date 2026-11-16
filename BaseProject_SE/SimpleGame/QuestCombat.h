@@ -1,4 +1,5 @@
 #pragma once
+#include "AutoTarget.h"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -85,6 +86,7 @@ struct Shot
     bool mirror = false;
     unsigned id = 0;
     float launchHeight = 0;
+    Point wandFacing{};
 };
 
 class Combat
@@ -94,11 +96,10 @@ class Combat
     std::vector<Shot> shots;
     float health = 60, mana = 30;
     float hurt = 0, cast = 0, attackCooldown = 0;
-    float burst = 0, burstCooldown = 0, comboTime = 0;
+    float burst = 0, burstCooldown = 0;
     Point burstOrigin;
     float starfall = 0, starfallCooldown = 0;
     Point starfallOrigin;
-    int combo = 0;
     unsigned nextShot = 1;
     bool castMirror = false;
     Point castDirection{.70710678f, -.70710678f};
@@ -122,8 +123,6 @@ class Combat
         shots.clear();
         hurt = cast = attackCooldown = burst = burstCooldown = 0;
         starfall = starfallCooldown = 0;
-        combo = 0;
-        comboTime = 0;
         health = float(quest.progress.stats.maxHealth);
         mana = float(quest.progress.stats.maxMana);
         if (quest.step == Step::Escape || quest.step == Step::Shadows)
@@ -173,7 +172,8 @@ class Combat
         }
     }
 
-    bool Attack(Point player, Point facing, State& quest, float height = 0)
+    bool Attack(Point player, Point facing, State& quest, float height = 0,
+                const std::function<bool(Point)>& walkable = {})
     {
         if (!quest.CanFight() || Dead() || attackCooldown > 0 ||
             (quest.step != Step::Shadows && quest.step != Step::Boss))
@@ -185,14 +185,25 @@ class Combat
             return false;
         }
         castDirection = facing;
-        combo = comboTime > 0 ? (combo + 1) % 3 : 0;
-        comboTime = .9f;
+        AutoTarget::Selection aim(player.x, player.y, facing.x, facing.y, 10.f,
+                                  AutoTarget::Mode::Nearest);
+        {
+            Performance::Scope scope("cpu.combat.auto_target_ms");
+            for (const auto& enemy : enemies)
+            {
+                if (enemy.health > 0 && Distance(player, enemy.position) < aim.distance)
+                {
+                    aim.Consider(enemy.position.x, enemy.position.y, true,
+                                 !walkable || ClearPath(player, enemy.position, walkable));
+                }
+            }
+        }
         cast = CharacterVisual::CastDuration;
         castMirror = castDirection.x - castDirection.y < 0;
-        attackCooldown = .28f;
-        shots.push_back({player, castDirection, 0,
-                         quest.progress.stats.attack * (combo == 2 ? 1.5f : 1.f), castMirror,
-                         nextShot++, height});
+        attackCooldown = .5f;
+        shots.push_back({player, {aim.directionX, aim.directionY}, 0,
+                         float(quest.progress.stats.attack), castMirror, nextShot++, height,
+                         castDirection});
         Performance::Profiler::Get().Count("combat.basic_attacks_count");
         return true;
     }
@@ -346,28 +357,28 @@ class Combat
         burst -= dt;
         starfall -= dt;
         starfallCooldown -= dt;
-        comboTime -= dt;
+        static constexpr float shotDuration = 10.f / CharacterVisual::SpellSpeed;
         for (auto& shot : shots)
         {
             const int substeps =
                 (std::max)(1, int(std::ceil(CharacterVisual::SpellSpeed * dt / .12f)));
-            for (int i = 0; i < substeps && shot.age < 1; ++i)
+            for (int i = 0; i < substeps && shot.age < shotDuration; ++i)
             {
                 shot.position.x += shot.direction.x * CharacterVisual::SpellSpeed * dt / substeps;
                 shot.position.y += shot.direction.y * CharacterVisual::SpellSpeed * dt / substeps;
                 shot.age += dt / substeps;
                 if (!walkable(shot.position))
                 {
-                    shot.age = 1;
+                    shot.age = shotDuration;
                     break;
                 }
                 for (auto& enemy : enemies)
                 {
                     if (enemy.health > 0 &&
-                        Distance(shot.position, enemy.position) < (enemy.boss ? 1.35f : .85f))
+                        Distance(shot.position, enemy.position) < (enemy.boss ? 1.35f : .95f))
                     {
                         Damage(enemy, shot.damage, quest);
-                        shot.age = 1;
+                        shot.age = shotDuration;
                         break;
                     }
                 }
@@ -376,7 +387,7 @@ class Combat
         shots.erase(std::remove_if(shots.begin(), shots.end(),
                                    [](const Shot& shot)
                                    {
-                                       return shot.age >= 1;
+                                       return shot.age >= shotDuration;
                                    }),
                     shots.end());
         for (auto& enemy : enemies)

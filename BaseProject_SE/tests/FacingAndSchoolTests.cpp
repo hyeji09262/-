@@ -26,7 +26,7 @@ int main()
         state.step = MainQuest::Step::Shadows;
         MainQuest::Combat combat;
         combat.Enter(state);
-        // A target behind the player cannot redirect the cast pose or projectile.
+        // Auto-aim redirects the projectile and preserves the pose and wand facing.
         for (auto& enemy : combat.enemies)
         {
             enemy.health = 0;
@@ -36,11 +36,11 @@ int main()
         combat.Attack({10, 10}, facing, state);
         assert(combat.shots.size() == 1);
         const auto& shot = combat.shots.front();
-        assert(std::abs(shot.direction.x - facing.x) < .0001f);
-        assert(std::abs(shot.direction.y - facing.y) < .0001f);
-        assert(std::abs(combat.castDirection.x - shot.direction.x) < .0001f);
-        assert(std::abs(combat.castDirection.y - shot.direction.y) < .0001f);
-        assert(std::abs(combat.mana - 26) < .0001f);
+        assert(std::abs(shot.direction.x + facing.x) < .0001f);
+        assert(std::abs(shot.direction.y + facing.y) < .0001f);
+        assert(combat.castDirection.x == facing.x && combat.castDirection.y == facing.y);
+        assert(shot.wandFacing.x == facing.x && shot.wandFacing.y == facing.y);
+        assert(std::abs(combat.mana - 28) < .0001f);
         combat.attackCooldown = 0;
         combat.enemies.clear();
         combat.Attack({10, 10}, facing, state);

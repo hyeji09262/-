@@ -526,6 +526,8 @@ void DrawHud()
     Performance::Scope scope("cpu.quest_two.hud_ms");
     Panel(22, 20, 1000, 150);
     Text(42, 52, "메인 퀘스트 2 · 학교에 숨어든 것", 25, pink);
+    Text(730, 52, "레벨 " + std::to_string(story.progress.stats.level) + " · 골드 " +
+                      std::to_string(story.progress.coins), 18);
     if (!available)
     {
         Text(42, 90, "F3에서 퀘스트 1과 다음 날 1학년 1반의 마지막 대화를 완료하세요.", 20, gold);
@@ -654,6 +656,14 @@ void DrawHud()
         for (size_t i = 0; i < dialogue.size();)
         {
             unsigned char c = static_cast<unsigned char>(dialogue[i]);
+            if (c == '\n')
+            {
+                Text(225, 505 + row++ * 28.f, line, 19);
+                line.clear();
+                columns = 0;
+                ++i;
+                continue;
+            }
             size_t bytes = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
             int advance = c < 0x80 ? 1 : 2;
             if (columns + advance > 88)
@@ -667,7 +677,7 @@ void DrawHud()
             columns += advance;
         }
         Text(225, 505 + row * 28.f, line, 19);
-        Text(1000, 609, "[E] 계속", 18, gold);
+        Text(950, 609, Finished() ? "[E] 마을로 돌아가기" : "[E] 계속", 18, gold);
     }
     if (transformation.Active())
     {
@@ -743,6 +753,18 @@ bool Defeated()
 const Rpg::Progress& Progress()
 {
     return story.progress;
+}
+
+void SyncGrowth(const Rpg::Progress& source)
+{
+    const auto previous = story.progress.stats;
+    story.progress.SyncGrowth(source);
+    encounter.progress.SyncGrowth(source);
+    if (!combat.Dead())
+    {
+        combat.health += story.progress.stats.maxHealth - previous.maxHealth;
+        combat.mana += story.progress.stats.maxMana - previous.maxMana;
+    }
 }
 
 void Restock(int healthPotions, int manaPotions)
@@ -1046,18 +1068,21 @@ void Update(float dt)
         }
         if (!alive)
         {
-            const bool alreadyRewarded = story.rewardClaimed;
+            const auto previous = story.progress;
             story.Advance(MainQuest::Event::Defeat);
             EnterStep();
-            Talk(
-                "학교 사건 해결",
-                alreadyRewarded
-                    ? "체육관의 악몽을 다시 물리쳤다! 기존 성장과 보상은 유지된다. E로 마을로 돌아가자."
-                    : "체육관의 악몽이 사라졌다! 경험치 180, 골드 150, 물약을 받았다. E로 마을에 돌아가 쇼핑몰의 미아를 만나자.");
+            const auto& progress = story.progress;
+            Talk("학교 사건이 해결되었습니다",
+                 "사냥터 해금 · 별빛 숲\n경험치 +" +
+                     std::to_string(progress.totalExperience - previous.totalExperience) +
+                     " · 골드 +" + std::to_string(progress.coins - previous.coins) +
+                     "\n체력 물약 +" + std::to_string(progress.potions - previous.potions) +
+                     " · 마나 물약 +" +
+                     std::to_string(progress.manaPotions - previous.manaPotions));
         }
         else if (keys[CombatKeys::Attack])
         {
-            combat.Attack(player, facingDirection, encounter, combat.actions.height);
+            combat.Attack(player, facingDirection, encounter, combat.actions.height, Walkable);
         }
     }
     float follow = 1 - std::exp(-8 * dt);
@@ -1073,11 +1098,25 @@ void Draw()
     graph.BeginSync();
     if (available && loaded)
     {
-        if (!story.Fighting() && story.step != Step::Complete && (story.Gym() || schoolRoom == 0) &&
-            Distance(player, RoomExit()) <= 2.1f)
+        if (!transformation.Active() && story.step != Step::Reaction &&
+            (!story.Fighting() || awaitingHall))
         {
             const Point exit = RoomExit();
-            Label("world/exit", {exit.x, exit.y, 75}, "[E] 마을로 나가기", gold);
+            const bool ready = Distance(player, exit) < 2.1f && combat.actions.height <= 0;
+            graph.Place("world/exit/marker", {exit.x, exit.y, 2}, RenderLayer::Shadow,
+                        [ready](const Actor&, const Transform& p)
+                        {
+                            Floor({p.x - .34f, p.y - .34f, p.z}, .68f, .68f,
+                                  {.22f, .17f, .25f, 1.f});
+                            const Color tint = ready ? Color{1.f, .9f, .61f, 1.f} : gold;
+                            Floor({p.x - .27f, p.y - .27f, p.z}, .54f, .54f, tint);
+                        });
+            if (ready && story.step != Step::Complete)
+            {
+                Label("world/exit", {exit.x, exit.y, 47},
+                      story.Gym() || schoolRoom == 0 ? "마을로 나가기 [E]" : "중앙 복도로 [E]",
+                      gold);
+            }
         }
         auto& hero = graph.Place("hero", {player.x, player.y}, RenderLayer::World);
         Model("hero/shadow", {}, ModelId::Shadow, &hero, false, RenderLayer::Shadow);
@@ -1220,7 +1259,7 @@ void Draw()
         for (const auto& shot : combat.shots)
         {
             auto pose = CharacterVisual::FacingSpellPose(shot.position.x, shot.position.y, shot.age,
-                                                         shot.direction.x, shot.direction.y, 40);
+                                                         shot.wandFacing.x, shot.wandFacing.y, 40);
             pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
             Glow("shot/" + std::to_string(shot.id), pose, CharacterVisual::SpellSize);
         }

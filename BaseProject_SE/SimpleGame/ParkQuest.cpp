@@ -66,7 +66,7 @@ bool Fighting()
     return step == Step::ClearShadows || step == Step::FightFlower;
 }
 
-void Say(const char* line)
+void Say(const std::string& line)
 {
     message = line;
     messageTime = 5.f;
@@ -300,10 +300,14 @@ void Interact()
     }
     else if (step == Step::RescueDog && Distance(player, Dog) < InteractRange)
     {
-        encounter.progress.Award(220);
+        const auto previous = encounter.progress.stats;
+        encounter.progress.Award(Rpg::ParkQuestExperience);
+        combat.health += encounter.progress.stats.maxHealth - previous.maxHealth;
+        combat.mana += encounter.progress.stats.maxMana - previous.maxMana;
         encounter.progress.coins = (std::min)(1000000, encounter.progress.coins + 180);
         step = Step::Return;
-        Say("두부를 구하고 검은 조각을 얻었어요! 경험치 +220 · 골드 +180");
+        Say("두부를 구하고 검은 조각을 얻었어요! 경험치 +" +
+            std::to_string(Rpg::ParkQuestExperience) + " · 골드 +180");
     }
 }
 
@@ -315,14 +319,48 @@ void DrawDog(Transform p)
     {
         return Point{s.x + x * scale, s.y + y * scale};
     };
-    const Color fur{.93f, .70f, .44f}, ear{.56f, .33f, .22f};
-    Quad(point(-15, -12), point(8, -16), point(13, -5), point(-10, -2), fur);
-    Quad(point(6, -20), point(19, -16), point(17, -7), point(8, -9), fur);
-    Triangle(point(7, -20), point(12, -25), point(14, -15), ear);
-    Triangle(point(16, -19), point(20, -21), point(19, -13), ear);
-    Triangle(point(-12, -8), point(-10, 2), point(-6, -8), ear);
-    Triangle(point(5, -9), point(10, 0), point(12, -9), ear);
-    Triangle(point(-13, -11), point(-22, -17), point(-17, -9), fur);
+    const Color fur{.93f, .70f, .44f}, darkFur{.64f, .40f, .25f};
+    const Color cream{1.f, .89f, .69f}, nose{.23f, .15f, .19f};
+    const auto oval = [&](float x, float y, float w, float h, Color color)
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            const float a = i * .62831853f, b = (i + 1) * .62831853f;
+            Triangle(point(x, y), point(x + w * std::cos(a), y + h * std::sin(a)),
+                     point(x + w * std::cos(b), y + h * std::sin(b)), color);
+        }
+    };
+    oval(-1, 0, 21, 5, {.10f, .13f, .12f, .36f});
+    const float wag = 2.f * std::sin(clockTime * 11.f);
+    oval(-19, -13 + wag, 7, 3, fur);
+    oval(-11, -4, 3, 6, darkFur);
+    oval(7, -4, 3, 6, darkFur);
+    oval(-3, -10, 16, 8, darkFur);
+    oval(-4, -12, 14, 7, fur);
+    oval(-7, -2, 3, 5, fur);
+    oval(9, -2, 3, 5, cream);
+    oval(10, -13, 5, 6, {.86f, .31f, .42f});
+    oval(13, -20, 9, 8, fur);
+    oval(8, -20, 3, 6, darkFur);
+    oval(20, -16, 6, 4, cream);
+    oval(24, -17, 2.4f, 1.8f, nose);
+    oval(16, -22, 1.5f, 1.7f, nose);
+    oval(16.4f, -22.6f, .55f, .55f, cream);
+}
+
+void DrawTracks(Transform p)
+{
+    for (int i = 0; i < 5; ++i)
+    {
+        const float x = p.x + (i % 2 == 0 ? -.28f : .28f);
+        const float y = p.y + 1.55f - i * .55f;
+        const Color mud{.20f, .13f, .15f};
+        Disc({x, y, p.z}, .14f, mud);
+        for (int toe = -1; toe <= 1; ++toe)
+        {
+            Disc({x + toe * .12f, y - .19f + std::abs(toe) * .035f, p.z}, .058f, mud);
+        }
+    }
 }
 
 void DrawTarget(Point target, float height, const char* title, const char* prompt)
@@ -344,6 +382,8 @@ void DrawHud()
 {
     Panel(22, 20, 800, 121, Ink);
     Text(44, 56, "메인 퀘스트 4 · 공원의 검은 흔적", 25, Pink);
+    Text(600, 56, "레벨 " + std::to_string(encounter.progress.stats.level) + " · 골드 " +
+                       std::to_string(encounter.progress.coins), 17, Gold);
     Text(44, 91, Objective(), 19, Gold);
     Text(44, 121, "E 상호작용 · J 마법 · K 별빛 폭발 (10) · L 별빛 낙하 (8) · F 루미", 16, Gold);
     CombatVitals::Draw(*graphics, screenWidth, screenHeight, combat.health, combat.mana,
@@ -376,8 +416,14 @@ void DrawHud()
 
 void Open(Renderer& renderer, const Hunting::PrimitiveModels& assets, const Rpg::Progress& progress)
 {
+    const auto previous = encounter.progress.stats;
     encounter.progress = progress;
     encounter.progress.Recalculate();
+    if (graphics && !combat.Dead())
+    {
+        combat.health += encounter.progress.stats.maxHealth - previous.maxHealth;
+        combat.mana += encounter.progress.stats.maxMana - previous.maxMana;
+    }
     if (!graphics)
     {
         graphics = &renderer;
@@ -543,7 +589,7 @@ void Update(float dt)
         }
         else if (keys[CombatKeys::Attack])
         {
-            combat.Attack(player, facing, encounter, combat.actions.height);
+            combat.Attack(player, facing, encounter, combat.actions.height, Walkable);
         }
     }
     else
@@ -598,7 +644,14 @@ void Draw()
     if (step == Step::MeetMinho)
         DrawTarget(Minho, 105, "목표 · 민호", "민호에게 말 걸기 [E]");
     else if (step == Step::FindTracks)
+    {
+        scene.Place("park/pawprints", {Tracks.x, Tracks.y, 2}, RenderLayer::Shadow,
+                    [](const Actor&, const Transform& p)
+                    {
+                        DrawTracks(p);
+                    });
         DrawTarget(Tracks, 48, "목표 · 발자국", "발자국 조사 [E]");
+    }
     else if (step == Step::FindDog || step == Step::RescueDog)
         DrawTarget(Dog, 74, "목표 · 두부", "두부에게 다가가기 [E]");
     else if (step == Step::Return || Distance(player, Exit) < InteractRange)
@@ -677,7 +730,7 @@ void Draw()
     for (const auto& shot : combat.shots)
     {
         auto p = CharacterVisual::FacingSpellPose(shot.position.x, shot.position.y, shot.age,
-                                                  shot.direction.x, shot.direction.y, 40);
+                                                  shot.wandFacing.x, shot.wandFacing.y, 40);
         p.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
         scene.Place("spell/" + std::to_string(shot.id), p, RenderLayer::World,
                     [](const Actor&, const Transform& world)

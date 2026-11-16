@@ -103,7 +103,17 @@ def character_raw(name, clip="Idle", frame=1):
         bpy.context.scene.frame_set(frame)
         bpy.context.view_layer.update()
         origin = rig.matrix_world.translation
-        raw = geometry(rig.children, origin)
+        if name == "Gym_EnhancedShadow_Boss" and clip == "Attack":
+            arm_parts = ("UpperArm", "Elbow", "Forearm", "Fist", "Knuckle", "WristWrap")
+            arms = [obj for obj in rig.children
+                    if obj.name.split("__")[-1].startswith(arm_parts)]
+            raw = geometry([obj for obj in rig.children if obj not in arms], origin)
+            # The punch clip swings toward +Y, while the face points toward -Y.
+            # Reflect the swing only and reverse the triangle winding.
+            raw.extend(([Vector((v.x, -v.y, v.z)) for v in reversed(vertices)], color)
+                       for vertices, color in geometry(arms, origin))
+        else:
+            raw = geometry(rig.children, origin)
         socket = None
         if name == "Hero_Magical":
             star = next(o for o in rig.children if "__Equipped_StarWand__Star" in o.name)
@@ -495,6 +505,9 @@ for source, clip, frame in [("Hero_Magical", "Idle", 1)] + [
     for sector in range(8):
         directional.append(bake(character(source, clip, frame, sector * math.pi / 4 + math.pi / 2)[0], 28))
 assert len(direction_sockets) == 32 and all(math.isfinite(v) for v in direction_sockets)
+# Yuna leaves toward world -X in the alley. Store one eight-frame walk cycle.
+for frame in range(1, 30, 4):
+    directional.append(bake(character("Yuna", "Walk", frame, 1.5 * math.pi)[0], 28))
 pose_count = len(directional) // 8
 payload = bytearray(b"MGSRES03" + struct.pack("<III32f", len(names), pose_count, 8, *direction_sockets))
 for info in building_info:

@@ -1,6 +1,7 @@
 // Optional standalone logic checks. Not part of the game executable.
 #include "../SimpleGame/HuntingMap.h"
 #include "../SimpleGame/RpgProgress.h"
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
 
@@ -14,11 +15,23 @@ void Require(bool condition, const char* label)
 
 int main()
 {
+    Rpg::Progress story;
+    story.Award(Rpg::AlleyQuestExperience);
+    story.Award(Rpg::SchoolQuestExperience);
+    story.Award(Rpg::MiaQuestExperience);
+    Require(story.stats.level == 1, "story before the park stays at level 1");
+    story.Award(Rpg::ParkQuestExperience);
+    story.coins = 430;
+    Rpg::Progress hunting;
+    hunting.SyncGrowth(story);
+    Require(hunting.stats.level == 2 && hunting.totalExperience == 45 && hunting.coins == 430,
+            "park completion carries level 2 and gold into hunting");
+
     Rpg::Progress progress;
     Require(!progress.Award(39), "39 XP remains level 1");
     Require(progress.Award(1), "40 XP reaches level 2");
     Require(progress.stats.level == 2 && progress.stats.attack == 13 &&
-                progress.stats.maxHealth == 72 && progress.stats.maxMana == 35 &&
+                progress.stats.maxHealth == 66 && progress.stats.maxMana == 33 &&
                 progress.stats.defense == 2,
             "level 2 stats");
     Require(progress.ExperienceInLevel() == 0, "level boundary remainder");
@@ -74,6 +87,19 @@ int main()
                             "connected passage supports player radius");
                 }
             }
+        }
+    }
+    for (int room = -1; room < 6; ++room)
+    {
+        Hunting::Map map;
+        map.GenerateHuntingRoom(42, room);
+        const auto floorCount = std::count(map.tiles.begin(), map.tiles.end(), Hunting::Tile::Ground);
+        Require(floorCount == (room < 0 ? 440 : 1520), "fourfold walkable area");
+        Require(map.AllFloorConnected(), "hunting room is connected");
+        Require(map.Walkable(map.VillageExit()), "hunting room exit is reachable");
+        if (room >= 0)
+        {
+            Require(map.SpawnLocations().size() >= 8, "hunting room has spawn space");
         }
     }
     std::cout << "Level-one map and progression checks passed.\n";

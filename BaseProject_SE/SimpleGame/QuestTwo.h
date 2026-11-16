@@ -12,6 +12,7 @@ void Pause();
 bool ConsumeWorldRequest();
 bool Defeated();
 const Rpg::Progress& Progress();
+void SyncGrowth(const Rpg::Progress& source);
 void Restock(int healthPotions, int manaPotions);
 bool Finished();
 bool NeedsPotionShop();

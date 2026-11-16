@@ -6,6 +6,10 @@ namespace Rpg
 {
 constexpr int LevelCap = 30;
 constexpr std::int64_t ExperienceLimit = 1000000000;
+constexpr int AlleyQuestExperience = 10;
+constexpr int SchoolQuestExperience = 12;
+constexpr int MiaQuestExperience = 5;
+constexpr int ParkQuestExperience = 18;
 
 struct Stats
 {
@@ -49,6 +53,12 @@ class Progress
     std::int64_t LevelStart() const;
     int ExperienceInLevel() const;
     bool Award(int amount);
+    void SyncGrowth(const Progress& source)
+    {
+        totalExperience = source.totalExperience;
+        coins = source.coins;
+        Recalculate();
+    }
     void Recalculate();
     bool Load();
     bool Save() const;

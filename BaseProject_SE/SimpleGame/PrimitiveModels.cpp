@@ -148,6 +148,12 @@ const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetParkBoss(float x, 
     return mesh.empty() ? Get(ModelId::Shade0) : mesh;
 }
 
+const std::vector<Renderer::ModelVertex>& PrimitiveModels::GetYunaWalk(float elapsed) const
+{
+    const auto& mesh = m_FacingModels[YunaWalkPose][static_cast<size_t>(elapsed * 7.5f) % 8];
+    return mesh.empty() ? GetFacing(ModelId::Yuna, -1.f, 0.f) : mesh;
+}
+
 bool PrimitiveModels::LoadResource()
 {
     Performance::Scope scope("cpu.assets.resource_mesh_load_ms");
@@ -176,7 +182,7 @@ bool PrimitiveModels::LoadResource()
     std::memcpy(counts.data(), bytes.data() + 8, sizeof(counts));
     if (counts[0] != m_Models.size() ||
         (counts[1] != LumiFacingPose && counts[1] != ParkBossFacingPose &&
-         counts[1] != m_FacingModels.size()) || counts[2] != 8)
+         counts[1] != YunaWalkPose && counts[1] != m_FacingModels.size()) || counts[2] != 8)
     {
         return false;
     }

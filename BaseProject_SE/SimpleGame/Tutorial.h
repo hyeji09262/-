@@ -23,6 +23,7 @@
 #include "CompanionFollow.h"
 #include "CombatEffects.h"
 #include "CombatKeys.h"
+#include "AutoTarget.h"
 
 namespace Tutorial
 {
@@ -74,6 +75,7 @@ struct SpellVisual
     bool mirror;
     unsigned int id;
     float launchHeight = 0;
+    Vec wandFacing{};
 };
 
 static std::vector<SpellVisual> spells;
@@ -114,6 +116,7 @@ static int potions = 5;
 static int manaPotions = 5;
 static bool shopOpen = false;
 static Rpg::Progress* recoveryShop = nullptr;
+static Rpg::Progress worldGrowth;
 static float elapsed = 0, clockTime = 0, attackCD = 0, hurtCD = 0, pulse = 0, messageTime = 0,
              finishTime = 0;
 static float walkCycle = 0, healTimer = 0, castPose = 0;
@@ -577,6 +580,7 @@ inline void Key(unsigned char key, bool down)
                 }
                 potions = recoveryShop->potions;
                 manaPotions = recoveryShop->manaPotions;
+                worldGrowth.coins = recoveryShop->coins;
             }
             else
             {
@@ -584,6 +588,7 @@ inline void Key(unsigned char key, bool down)
                 Rpg::Progress inventory;
                 if (QuestTwo::ShopProgress(inventory))
                 {
+                    worldGrowth.coins = inventory.coins;
                     potions = inventory.potions;
                     manaPotions = inventory.manaPotions;
                 }
@@ -795,47 +800,51 @@ inline void Update(float dt)
         attackCD = .5f;
         castPose = CharacterVisual::CastDuration;
         castDirection = facingDirection;
-        float spellDistance = 6.5f;
+        AutoTarget::Selection aim(player.x, player.y, castDirection.x, castDirection.y, 10.f,
+                                  AutoTarget::Mode::Nearest);
         int target = -1;
         bool hitBoss = false;
         {
-            Performance::Scope scope("cpu.combat.forward_hit_ms");
-            const auto intersects = [&](Vec position, float radius)
+            Performance::Scope scope("cpu.combat.auto_target_ms");
+            const auto consider = [&](Vec position)
             {
                 const Vec offset{position.x - player.x, position.y - player.y};
-                const float along = offset.x * castDirection.x + offset.y * castDirection.y;
-                const float side = offset.x * castDirection.y - offset.y * castDirection.x;
-                if (along < 0 || std::abs(side) >= radius)
+                const float distance = Dist(player, position);
+                if (distance >= aim.distance)
                 {
                     return false;
                 }
-                const float entry = (std::max)(0.f, along - std::sqrt(radius * radius - side * side));
-                if (entry >= spellDistance)
+                const int steps = (std::max)(1, static_cast<int>(std::ceil(distance / .2f)));
+                for (int i = 1; i <= steps; ++i)
                 {
-                    return false;
+                    const float fraction = float(i) / steps;
+                    if (!Walkable({player.x + offset.x * fraction, player.y + offset.y * fraction}))
+                    {
+                        return false;
+                    }
                 }
-                spellDistance = entry;
-                return true;
+                return aim.Consider(position.x, position.y, true);
             };
             if (!exploration && stage == 1 && bossHP > 0)
             {
-                hitBoss = intersects(boss, 1.35f);
+                hitBoss = consider(boss);
             }
             for (int i = 0; i < int(monsters.size()); ++i)
             {
-                if (monsters[i].hp > 0 && intersects(monsters[i].p, .85f))
+                if (monsters[i].hp > 0 && consider(monsters[i].p))
                 {
                     target = i;
                     hitBoss = false;
                 }
             }
         }
-        const Vec impact{player.x + castDirection.x * spellDistance,
-                         player.y + castDirection.y * spellDistance};
+        const Vec shotDirection{aim.directionX, aim.directionY};
+        const Vec impact{player.x + shotDirection.x * aim.distance,
+                         player.y + shotDirection.y * aim.distance};
         castMirror = castDirection.x - castDirection.y < 0;
-        spells.push_back({player, castDirection, 0,
-                          (std::max)(.05f, spellDistance / CharacterVisual::SpellSpeed),
-                          castMirror, nextSpellId++, actions.height});
+        spells.push_back({player, shotDirection, 0,
+                          (std::max)(.05f, aim.distance / CharacterVisual::SpellSpeed),
+                          castMirror, nextSpellId++, actions.height, castDirection});
         Burst(impact, 16, teal, 25);
         if (hitBoss)
         {
@@ -960,7 +969,9 @@ inline void DrawHud()
     Text(38, 114,
          exploration && QuestTwo::NeedsPotionShop()
              ? "별빛 편의점에서 체력·마나 물약 구매 가능"
-         : exploration ? "F1 마을 · F2 사냥터 · F3 이야기 · F4 학교 사건 · F7 미아 이야기"
+         : exploration ? "레벨 " + std::to_string(worldGrowth.stats.level) + " · 골드 " +
+                             std::to_string(worldGrowth.coins) +
+                             " · F2 사냥터 · F3 이야기 · F4 학교 · F7 미아"
                        : status,
          {.8f, .83f, .85f, 1}, 16);
     Box(22, 212, 152, 354, {ink.r, ink.g, ink.b, .96f});

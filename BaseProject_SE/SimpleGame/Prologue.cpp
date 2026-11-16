@@ -208,10 +208,10 @@ Actor& PlaceModel(const std::string& name, Transform p, ModelId model,
             Point s = Project(world);
             const bool leaving = name == "yuna/leaving";
             const Point look = combat.cast > 0 ? combat.castDirection : facingDirection;
-            const auto& mesh = model == ModelId::Lumi && quest.step != QuestStep::Lumi
+            const auto& mesh = leaving ? models.GetYunaWalk(farewellTime)
+                               : model == ModelId::Lumi && quest.step != QuestStep::Lumi
                                    ? models.GetFacing(model, look.x, look.y)
-                                   : models.GetFacing(model, leaving ? -1.f : player.x - world.x,
-                                                      leaving ? 0.f : player.y - world.y);
+                                   : models.GetFacing(model, player.x - world.x, player.y - world.y);
             graphics->DrawModel(mesh, s.x, s.y, world.scale * Scale(), world.scale * Scale());
         },
         parent);
@@ -691,6 +691,8 @@ void DrawHud()
          : quest.active         ? quest.Current().text
                                 : story.Objective(),
          19, objectiveColor);
+    Text(42, 121, "레벨 " + std::to_string(quest.progress.stats.level) + " · 골드 " +
+                      std::to_string(quest.progress.coins), 17);
     if (quest.active)
     {
         Panel(22, 212, 152, 354, {.06f, .08f, .15f, .96f});
@@ -719,7 +721,8 @@ void DrawHud()
     {
         Panel(852, 20, 406, 164, {.08f, .10f, .18f, .94f});
         Text(874, 53, "별빛 마법", 23, pink);
-        Text(874, 86, "[J] 기본 공격 · 마나 4", 18);
+        Text(874, 86, "[J] 기본 공격 · 마나 " +
+                          std::to_string(int(PlayerActions::AttackManaCost)), 18);
         Text(874, 125, "[K] 별빛 폭발 · 주변 · 마나 10", 17, pink);
         Text(874, 157, "[L] 별빛 낙하 · 전방 · 마나 8", 17, pink);
     }
@@ -761,8 +764,8 @@ void DrawHud()
             p.x, p.y,
             Distance(player, target) <= 2.3f &&
                     (!quest.active || quest.Current().event == MainQuest::Event::Interact)
-                ? "[E] 상호작용"
-                : "목표",
+                ? (story.step == Step::LeaveHome && !quest.active ? "집 밖으로 [E]" : "[E] 상호작용")
+                : (story.step == Step::LeaveHome && !quest.active ? "집 출구" : "목표"),
             16 * Scale(), 0, 0, 0, true);
     }
     if (story.dialogueOpen)
@@ -792,7 +795,8 @@ void DrawHud()
             Panel(0, 0, 1280, 800, {.06f, .07f, .14f, .97f});
             Text(360, 340, "유나는 무사히 집으로 돌아갔다.", 28, pink);
             Text(360, 392, "그리고 다음 날, 학교…", 25);
-            Text(230, 470, "퀘스트 보상: 검은 조각 +3 / 경험치 +120 / 골드 +100", 20);
+            Text(230, 470, "퀘스트 보상 · 검은 조각 +3 / 경험치 +" +
+                              std::to_string(Rpg::AlleyQuestExperience) + " / 골드 +100", 20);
         }
         else if (!quest.epilogueComplete)
         {
@@ -960,7 +964,7 @@ void DrawQuestActors()
     for (const auto& shot : combat.shots)
     {
         auto pose = CharacterVisual::FacingSpellPose(shot.position.x, shot.position.y, shot.age,
-                                                     shot.direction.x, shot.direction.y, 40);
+                                                     shot.wandFacing.x, shot.wandFacing.y, 40);
         pose.z += shot.launchHeight * (1 - (std::min)(1.f, shot.age / .18f));
         PlaceGlow("shot/" + std::to_string(shot.id), pose, CharacterVisual::SpellSize);
     }
@@ -1019,6 +1023,17 @@ bool Defeated()
 const Rpg::Progress& Progress()
 {
     return quest.progress;
+}
+
+void SyncGrowth(const Rpg::Progress& source)
+{
+    const auto previous = quest.progress.stats;
+    quest.progress.SyncGrowth(source);
+    if (!combat.Dead())
+    {
+        combat.health += quest.progress.stats.maxHealth - previous.maxHealth;
+        combat.mana += quest.progress.stats.maxMana - previous.maxMana;
+    }
 }
 
 void Restock(int healthPotions, int manaPotions)
@@ -1338,7 +1353,7 @@ void Update(float dt)
         looked = looked || cx != 0 || cy != 0;
         if (quest.CanFight() && !EndingSchool() && keys[CombatKeys::Attack])
         {
-            combat.Attack(player, facingDirection, quest, jumpHeight);
+            combat.Attack(player, facingDirection, quest, jumpHeight, Walkable);
         }
         if (story.step == Step::ReachSchool && Distance(player, yuna) < 3)
         {
@@ -1415,6 +1430,18 @@ void Draw()
         PlaceGlow("player/transform", {0, 0, 40}, morph.glow, &actor, RenderLayer::Shadow);
     }
     DrawQuestActors();
+    if (!quest.active && story.step == Step::LeaveHome)
+    {
+        const bool ready = Distance(player, door) < 2.f && jumpHeight <= 0;
+        scene.Place("home/exit/marker", {door.x, door.y, 2}, RenderLayer::Shadow,
+                    [ready](const Actor&, const Transform& p)
+                    {
+                        Floor({p.x - .34f, p.y - .34f, p.z}, .68f, .68f,
+                              {.22f, .17f, .25f, 1.f});
+                        Floor({p.x - .27f, p.y - .27f, p.z}, .54f, .54f,
+                              ready ? Color{1.f, .9f, .61f, 1.f} : Color{.96f, .77f, .38f, 1.f});
+                    });
+    }
     CombatEffects::Recovery(scene, *graphics, actor, combat.actions, jumpHeight, Scale(), Project);
     scene.Place("sunset", {}, RenderLayer::UserInterface,
                 [](const Actor&, const Transform&)

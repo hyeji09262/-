@@ -4,7 +4,7 @@
 // Shared controls: mana-powered attacks, manual 1.2-second recovery, non-evasive jump.
 struct PlayerActions
 {
-    static constexpr float AttackManaCost = 4.f;
+    static constexpr float AttackManaCost = 2.f;
     static constexpr float RecoveryDuration = .65f;
     float reload = 0;
     float height = 0;

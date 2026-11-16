@@ -19,16 +19,16 @@ int main()
     float mana = 30;
     actions.Reload(mana, 30);
     assert(actions.reload == 0);
-    for (int i = 0; i < 7; ++i)
+    for (int i = 0; i < 15; ++i)
     {
         assert(actions.Fire(mana));
     }
-    assert(mana == 2);
+    assert(mana == 0);
     assert(!actions.Fire(mana));
     actions.Reload(mana, 30);
     assert(!actions.Fire(mana));
     actions.Update(.6f, mana, 30);
-    assert(mana == 2);
+    assert(mana == 0);
     actions.Reload(mana, 30);
     assert(actions.reload <= .61f);
     actions.Update(.7f, mana, 30);

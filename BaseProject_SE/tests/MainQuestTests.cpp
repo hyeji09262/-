@@ -33,7 +33,7 @@ int main()
     assert(quest.Emit(Event::Interact));
     assert(quest.Emit(Event::Interact));
     assert(quest.step == Step::Complete && quest.rewardClaimed);
-    assert(quest.fragments == 4 && quest.progress.totalExperience == 120 &&
+    assert(quest.fragments == 4 && quest.progress.totalExperience == Rpg::AlleyQuestExperience &&
            quest.progress.coins == 100);
     assert(std::strcmp(quest.NextQuestId(), "MQ_002_SOMETHING_IN_SCHOOL") == 0);
     assert(!quest.Emit(Event::Interact) && !quest.Emit(Event::Defeat));

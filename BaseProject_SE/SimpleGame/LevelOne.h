@@ -16,6 +16,7 @@ void Resume(bool fromVillage);
 bool ConsumeWorldRequest();
 bool Defeated();
 const Rpg::Progress& Progress();
+void SyncGrowth(const Rpg::Progress& source);
 void Restock(const Rpg::Progress& supplies);
 WorldMonitor::Scene MonitorSnapshot();
 } // namespace LevelOne

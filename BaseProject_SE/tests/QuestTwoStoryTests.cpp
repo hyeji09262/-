@@ -46,7 +46,8 @@ int main()
         assert(state.fragments == 5);
         assert(state.step == Step::Complete);
         assert(std::string(state.Current().id) == "MQ002_COMPLETE");
-        assert(state.progress.totalExperience == 300 && state.progress.coins == 250);
+        assert(state.progress.totalExperience == 120 + Rpg::SchoolQuestExperience &&
+               state.progress.coins == 250);
         assert(state.progress.crystals == 0);
         assert(state.progress.potions == 7 && state.progress.manaPotions == 7);
         assert(!state.Advance(Event::Interact));
@@ -64,7 +65,8 @@ int main()
         }
         assert(state.Advance(Event::Interact));
         assert(state.Advance(Event::Defeat));
-        assert(state.progress.totalExperience == 300 && state.progress.coins == 250);
+        assert(state.progress.totalExperience == 120 + Rpg::SchoolQuestExperience &&
+               state.progress.coins == 250);
         assert(state.fragments == 5 && state.progress.potions == 7);
     } while (std::next_permutation(order.begin(), order.end()));
     for (const auto& site : QuestTwo::Investigations())

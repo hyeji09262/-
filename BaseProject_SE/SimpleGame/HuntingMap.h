@@ -16,7 +16,8 @@ enum class Tile : unsigned char
     Ground,
     Water,
     Tree,
-    Rock
+    Rock,
+    Void
 };
 
 class Map
@@ -28,8 +29,10 @@ class Map
     std::array<Tile, Count> tiles;
     std::uint32_t seed = 0;
     Position camp = {30.5f, 24.5f};
+    float villageExitOffset = 3.f;
 
     void Generate(std::uint32_t newSeed);
+    void GenerateHuntingRoom(std::uint32_t newSeed, int room);
     bool Floor(int x, int y) const;
     bool Walkable(Position p, float radius = 0.23f) const;
     bool Safe(Position p) const;

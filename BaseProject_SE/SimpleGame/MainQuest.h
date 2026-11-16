@@ -73,7 +73,7 @@ inline const std::array<Objective, 15>& Objectives()
         {"MQ001_14_TALK_LUMI", "곁에 있는 루미와 사건을 정리하세요.", Event::Interact, 5, 8, "루미",
          "유나는 날 못 보는구나. 조각의 정체는 나도 몰라. 내일 학교에서 다시 만나자."},
         {"MQ001_COMPLETE", "연락이 끊긴 친구 완료 · 다음 퀘스트 해금", Event::Interact, 5, 8,
-         "퀘스트 완료", "변신·마법 해금 / 검은 조각 3개 / 경험치 120 / 골드 100"},
+         "퀘스트 완료", "변신·마법 해금 / 검은 조각 3개 / 경험치 10 / 골드 100"},
     }};
     return data;
 }
@@ -143,7 +143,7 @@ class State
         if (step == Step::Report && !rewardClaimed)
         {
             fragments += 3;
-            progress.Award(120);
+            progress.Award(Rpg::AlleyQuestExperience);
             progress.coins += 100;
             rewardClaimed = true;
         }

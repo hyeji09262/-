@@ -404,11 +404,8 @@ inline void DrawInterior()
             exploration && building.town == 0 &&
             QuestTwo::SchoolObjective(interiorRoom, player.x, player.y, targetRoom, targetX,
                                       targetY, targetLabel);
-        if (!hasSchoolTarget || interiorRoom == 0 || targetRoom == interiorRoom)
-        {
-            InteriorLabel("inside/exit", {room.width * .5f, room.height - 1.5f},
-                          interiorRoom ? "[E] 중앙 복도로" : "[E] 학교 밖으로");
-        }
+        EntranceMarker("inside/exit", {room.width * .5f, room.height - 1.5f}, BuildingEntryRange,
+                       "출구", interiorRoom ? "중앙 복도로 [E]" : "학교 밖으로 [E]");
         if (interiorRoom == 0)
         {
             for (const auto& door : SchoolLayout::Doors())
@@ -463,7 +460,10 @@ inline void DrawInterior()
             {
                 const std::string roomName = SchoolLayout::Get(targetRoom).name;
                 const std::string action = interiorRoom == 0 ? roomName + " [E]" : "복도로 [E]";
-                ObjectiveLabel("inside/quest-target", target, action, "목표 · " + roomName);
+                if (interiorRoom == 0)
+                {
+                    ObjectiveLabel("inside/quest-target", target, action, "목표 · " + roomName);
+                }
             }
         }
     }
@@ -478,7 +478,8 @@ inline void DrawInterior()
                                                  world.scale);
                                    });
         }
-        InteriorLabel("inside/exit", {10, 16.5f}, "[E] 마을로 나가기");
+        EntranceMarker("inside/exit", {VillageInterior::ExitX, VillageInterior::ExitY},
+                       BuildingEntryRange, "출구", "마을로 나가기 [E]");
         float storyX, storyY;
         int storyPerson;
         std::string storyText;
@@ -842,7 +843,7 @@ inline void DrawWorld()
     if (HuntingEntranceOpen())
     {
         EntranceMarker("world/hunting-entrance", HuntingEntrance, BuildingEntryRange,
-                       "별빛 숲 입구", "사냥터로 이동 [E]");
+                       "별빛 숲 캠프 입구", "별빛 숲 캠프로 [E]");
     }
     else if (exploration)
     {
@@ -971,7 +972,7 @@ inline void DrawWorld()
         auto pose = CharacterVisual::FacingSpellPose(
             spell.origin.x + spell.direction.x * CharacterVisual::SpellSpeed * spell.age,
             spell.origin.y + spell.direction.y * CharacterVisual::SpellSpeed * spell.age, spell.age,
-            spell.direction.x, spell.direction.y);
+            spell.wandFacing.x, spell.wandFacing.y);
         pose.z += spell.launchHeight * (1 - (std::min)(1.f, spell.age / .18f));
         scene.Place("spell/" + std::to_string(spell.id), pose, RenderLayer::World,
                     drawSpell(CharacterVisual::SpellSize));

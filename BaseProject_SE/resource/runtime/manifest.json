@@ -86,7 +86,7 @@
   },
   "format": "MGSRES03",
   "model_count": 1435,
-  "facing_poses": 14,
+  "facing_poses": 15,
   "facing_directions": 8,
   "wand_sockets_pixels": [
     34.85263013839722,
@@ -4368,7 +4368,7 @@
       "triangles": 1552
     },
     "MobFacing11_4_3": {
-      "triangles": 1552
+      "triangles": 1555
     },
     "MobFacing11_4_4": {
       "triangles": 1566
@@ -4380,7 +4380,7 @@
       "triangles": 1566
     },
     "MobFacing11_4_7": {
-      "triangles": 1553
+      "triangles": 1556
     },
     "MobFacing11_5_0": {
       "triangles": 1552
@@ -4392,7 +4392,7 @@
       "triangles": 1552
     },
     "MobFacing11_5_3": {
-      "triangles": 1555
+      "triangles": 1556
     },
     "MobFacing11_5_4": {
       "triangles": 1566
@@ -4404,7 +4404,7 @@
       "triangles": 1566
     },
     "MobFacing11_5_7": {
-      "triangles": 1549
+      "triangles": 1554
     },
     "MobFacing11_6_0": {
       "triangles": 1552
@@ -4440,7 +4440,7 @@
       "triangles": 1552
     },
     "MobFacing11_7_3": {
-      "triangles": 1565
+      "triangles": 1566
     },
     "MobFacing11_7_4": {
       "triangles": 1566
@@ -4464,7 +4464,7 @@
       "triangles": 1552
     },
     "MobFacing11_8_3": {
-      "triangles": 1563
+      "triangles": 1564
     },
     "MobFacing11_8_4": {
       "triangles": 1564
@@ -4476,7 +4476,7 @@
       "triangles": 1567
     },
     "MobFacing11_8_7": {
-      "triangles": 1552
+      "triangles": 1555
     },
     "MobFacing11_9_0": {
       "triangles": 1554
@@ -4488,7 +4488,7 @@
       "triangles": 1552
     },
     "MobFacing11_9_3": {
-      "triangles": 1563
+      "triangles": 1564
     },
     "MobFacing11_9_4": {
       "triangles": 1566
@@ -4837,7 +4837,31 @@
     },
     "facing_111": {
       "triangles": 1794
+    },
+    "facing_112": {
+      "triangles": 1379
+    },
+    "facing_113": {
+      "triangles": 1380
+    },
+    "facing_114": {
+      "triangles": 1378
+    },
+    "facing_115": {
+      "triangles": 1379
+    },
+    "facing_116": {
+      "triangles": 1380
+    },
+    "facing_117": {
+      "triangles": 1380
+    },
+    "facing_118": {
+      "triangles": 1381
+    },
+    "facing_119": {
+      "triangles": 1379
     }
   },
-  "bytes": 102847684
+  "bytes": 103643604
 }

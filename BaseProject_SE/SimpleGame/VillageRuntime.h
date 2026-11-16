@@ -52,9 +52,11 @@ inline void StoreVillagePotions()
     }
 }
 
+static bool huntingShortcut = false;
+
 inline bool HuntingEntranceOpen()
 {
-    return exploration && QuestTwo::Finished();
+    return exploration && (huntingShortcut || QuestTwo::Finished());
 }
 
 inline bool MiaQuestUnlocked()
@@ -107,7 +109,9 @@ inline void TalkToMia()
         miaQuest = MiaQuest::ShowFragment;
         break;
     case MiaQuest::ShowFragment:
-        Say("미아: 이건 그냥 괴물의 일부가 아니야. 별빛 중앙공원에서 같은 마력이 느껴졌어.");
+        worldGrowth.Award(Rpg::MiaQuestExperience);
+        Say("미아: 별빛 중앙공원에서 같은 마력이 느껴졌어. · 경험치 +" +
+            std::to_string(Rpg::MiaQuestExperience));
         miaQuest = MiaQuest::VisitPark;
         break;
     case MiaQuest::VisitPark:
@@ -195,7 +199,7 @@ inline void SetExploration(bool enabled, bool unlocked)
 inline bool SchoolInteraction()
 {
     const auto& room = SchoolLayout::Get(interiorRoom);
-    if (Dist(player, {room.width * .5f, room.height - 1.5f}) < 2.f)
+    if (Dist(player, {room.width * .5f, room.height - 1.5f}) < BuildingEntryRange)
     {
         if (interiorRoom == 0)
         {
@@ -338,7 +342,7 @@ inline bool BuildingInteraction()
     {
         return SchoolInteraction();
     }
-    if (Dist(player, {10, 16.5f}) < 2.f)
+    if (Dist(player, {VillageInterior::ExitX, VillageInterior::ExitY}) < BuildingEntryRange)
     {
         if (interiorRoom != 0)
         {

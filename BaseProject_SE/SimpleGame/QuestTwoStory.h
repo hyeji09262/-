@@ -173,7 +173,7 @@ struct StoryState
         {
             if (!rewardClaimed)
             {
-                progress.Award(180);
+                progress.Award(Rpg::SchoolQuestExperience);
                 progress.coins = (std::min)(1000000, progress.coins + 150);
                 progress.potions = (std::min)(99, progress.potions + 2);
                 progress.manaPotions = (std::min)(99, progress.manaPotions + 2);

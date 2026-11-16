@@ -34,7 +34,28 @@ enum class GameScene
 static GameScene activeScene = GameScene::Prologue;
 static GameScene recoveryScene = GameScene::World;
 static Rpg::Progress huntingRecoveryShop;
-static bool huntingFromVillage = false;
+
+void CaptureGrowth()
+{
+    auto& growth = Tutorial::worldGrowth;
+    switch (activeScene)
+    {
+    case GameScene::Prologue:
+        growth.SyncGrowth(Prologue::Progress());
+        break;
+    case GameScene::QuestTwo:
+        growth.SyncGrowth(QuestTwo::Progress());
+        break;
+    case GameScene::Park:
+        growth.SyncGrowth(ParkQuest::Progress());
+        break;
+    case GameScene::Hunting:
+        growth.SyncGrowth(LevelOne::Progress());
+        break;
+    case GameScene::World:
+        break;
+    }
+}
 
 void LeavePark()
 {
@@ -50,6 +71,11 @@ void LeavePark()
 
 void OpenWorld()
 {
+    CaptureGrowth();
+    if (Tutorial::recoveryShop)
+    {
+        Tutorial::recoveryShop->coins = Tutorial::worldGrowth.coins;
+    }
     Prologue::Pause();
     QuestTwo::Pause();
     LevelOne::Pause();
@@ -58,7 +84,9 @@ void OpenWorld()
     int fragments = 0;
     if (Prologue::QuestTwoStart(progress, fragments))
     {
+        progress.SyncGrowth(Tutorial::worldGrowth);
         QuestTwo::Open(true, progress, fragments);
+        QuestTwo::SyncGrowth(Tutorial::worldGrowth);
         QuestTwo::Pause();
     }
     Tutorial::shopOpen = false;
@@ -119,6 +147,7 @@ void ApplyRestock(GameScene target)
         ParkQuest::Restock(Tutorial::potions, Tutorial::manaPotions);
         break;
     case GameScene::Hunting:
+        huntingRecoveryShop.coins = Tutorial::worldGrowth.coins;
         LevelOne::Restock(huntingRecoveryShop);
         break;
     case GameScene::World:
@@ -130,11 +159,14 @@ void ApplyRestock(GameScene target)
 
 void OpenQuestTwo()
 {
+    CaptureGrowth();
     Rpg::Progress inherited;
     int fragments = 4;
     const bool unlocked = Prologue::QuestTwoStart(inherited, fragments);
+    inherited.SyncGrowth(Tutorial::worldGrowth);
     Prologue::Pause();
     QuestTwo::Open(unlocked, inherited, fragments);
+    QuestTwo::SyncGrowth(Tutorial::worldGrowth);
     if (unlocked)
     {
         ApplyRestock(GameScene::QuestTwo);
@@ -254,6 +286,8 @@ void Tick(double now)
                 }
                 else
                 {
+                    CaptureGrowth();
+                    Prologue::SyncGrowth(Tutorial::worldGrowth);
                     ApplyRestock(GameScene::Prologue);
                     Prologue::ResumeFromWorld();
                     activeScene = GameScene::Prologue;
@@ -271,6 +305,8 @@ void Tick(double now)
             {
                 Rpg::Progress progress = ParkQuest::Progress();
                 QuestTwo::ShopProgress(progress);
+                CaptureGrowth();
+                progress.SyncGrowth(Tutorial::worldGrowth);
                 ParkQuest::Open(*g_Renderer, Tutorial::VisualModels(), progress);
                 ApplyRestock(GameScene::Park);
                 activeScene = GameScene::Park;
@@ -278,9 +314,10 @@ void Tick(double now)
             }
             else if (request == Tutorial::HuntingSceneRequest)
             {
-                huntingFromVillage = true;
-                LevelOne::Resume(true);
+                CaptureGrowth();
+                LevelOne::SyncGrowth(Tutorial::worldGrowth);
                 ApplyRestock(GameScene::Hunting);
+                LevelOne::Resume(true);
                 activeScene = GameScene::Hunting;
                 glfwSetWindowTitle(window, "마법소녀 - 별빛 숲 사냥터");
             }
@@ -303,10 +340,8 @@ void Tick(double now)
             {
                 OpenWorld();
                 Tutorial::LeaveBuilding();
-                if (huntingFromVillage)
-                {
-                    Tutorial::player = Tutorial::HuntingEntrance;
-                }
+                Tutorial::player = {Tutorial::HuntingEntrance.x,
+                                    Tutorial::HuntingEntrance.y - 1.f};
                 Tutorial::Say("마을로 돌아왔습니다.");
             }
         }
@@ -468,23 +503,26 @@ void SpecialKey(int key)
     Tutorial::paused = true;
     Prologue::Pause();
     QuestTwo::Pause();
-    activeScene = key == GLFW_KEY_F2   ? GameScene::Hunting
-                  : key == GLFW_KEY_F3 ? GameScene::Prologue
-                                       : GameScene::QuestTwo;
-    if (activeScene == GameScene::QuestTwo)
+    if (key == GLFW_KEY_F4)
     {
         OpenQuestTwo();
     }
-    else if (activeScene == GameScene::Hunting)
+    else if (key == GLFW_KEY_F2)
     {
-        huntingFromVillage = false;
-        LevelOne::Resume(false);
+        CaptureGrowth();
+        LevelOne::SyncGrowth(Tutorial::worldGrowth);
+        Tutorial::huntingShortcut = true;
         ApplyRestock(GameScene::Hunting);
+        LevelOne::Resume(true);
+        activeScene = GameScene::Hunting;
     }
-    else if (activeScene == GameScene::Prologue)
+    else
     {
+        CaptureGrowth();
+        Prologue::SyncGrowth(Tutorial::worldGrowth);
         ApplyRestock(GameScene::Prologue);
         Prologue::ResumeFromWorld();
+        activeScene = GameScene::Prologue;
     }
     glfwSetWindowTitle(window, activeScene == GameScene::Prologue
                                   ? "마법소녀 - 프롤로그: 평범한 아침"

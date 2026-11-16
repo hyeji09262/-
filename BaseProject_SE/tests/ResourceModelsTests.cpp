@@ -78,6 +78,8 @@ int main()
         const auto& mesh = models.Get(static_cast<Hunting::ModelId>(model));
         assert(!mesh.empty() && mesh.size() % 3 == 0);
     }
+    assert(&models.GetYunaWalk(0.f) != &models.GetYunaWalk(.2f));
+    assert(&models.GetYunaWalk(0.f) != &models.GetFacing(Hunting::ModelId::Yuna, -1.f, 0.f));
     for (int direction = 0; direction < 8; ++direction)
     {
         const float x = std::cos(direction * .7853981634f);
