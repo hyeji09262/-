@@ -84,17 +84,37 @@ void PrimitiveModels::Initialize()
     if (loadedFromResource)
     {
         loadedFromFile = true;
-        m_Initialized = true;
-        return;
     }
-    std::cerr << "Resource mesh pack missing or invalid: resource/runtime/school_models.bin\n";
-    Performance::Profiler::Get().Count("assets.resource_fallback_count");
-    loadedFromFile = Load();
-    if (!loadedFromFile)
+    else
     {
-        Generate();
-        storedToFile = Save();
+        std::cerr << "Resource mesh pack missing or invalid: resource/runtime/school_models.bin\n";
+        Performance::Profiler::Get().Count("assets.resource_fallback_count");
+        loadedFromFile = Load();
+        if (!loadedFromFile)
+        {
+            Generate();
+            storedToFile = Save();
+        }
     }
+
+    // Keep the floor neutral so skin and warm furniture remain easy to distinguish.
+    auto& floor = m_Models[static_cast<int>(ModelId::FloorWood)];
+    for (auto& vertex : floor)
+    {
+        const float shade = (vertex.r + vertex.g + vertex.b) / 3.f;
+        vertex.r = (std::min)(1.f, .76f + shade * .12f);
+        vertex.g = (std::min)(1.f, .71f + shade * .12f);
+        vertex.b = (std::min)(1.f, .62f + shade * .11f);
+    }
+
+    auto& fire = m_Models[static_cast<int>(ModelId::Campfire)];
+    fire.clear();
+    Ellipse(fire, 0, -2, 19, 7, {.25f, .23f, .25f, 1});
+    Rect(fire, -14, -8, 28, 5, {.34f, .20f, .13f, 1});
+    Rect(fire, -11, -10, 22, 3, {.59f, .34f, .19f, 1});
+    Triangle(fire, -8, -9, 0, -38, 7, -9, {.97f, .47f, .18f, 1});
+    Triangle(fire, -4, -9, 7, -30, 12, -9, {.99f, .68f, .22f, 1});
+    Triangle(fire, -3, -9, 1, -26, 5, -9, {1.f, .88f, .48f, 1});
     m_Initialized = true;
 }
 

@@ -476,18 +476,17 @@ void Renderer::DrawFrameStats()
     Text(862 * sx, 321 * sy, performance, 14 * sy, .86f, .90f, 1);
 }
 
-void Renderer::Nameplate(float centerX, float baseline, const std::string& label, float size,
-                         float r, float g, float b, bool objective)
+float Renderer::MeasureText(const std::string& label, float size)
 {
     if (!m_Font || label.empty())
     {
-        return;
+        return 0;
     }
     int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, label.data(),
                                     static_cast<int>(label.size()), nullptr, 0);
     if (count <= 0)
     {
-        return;
+        return 0;
     }
     std::wstring wide(count, L' ');
     MultiByteToWideChar(CP_UTF8, 0, label.data(), static_cast<int>(label.size()), &wide[0], count);
@@ -496,19 +495,31 @@ void Renderer::Nameplate(float centerX, float baseline, const std::string& label
     {
         advance += (m_Font->Get(letter).advance + 1) * size / 28.f;
     }
+    return advance;
+}
+
+void Renderer::Nameplate(float centerX, float baseline, const std::string& label, float size,
+                         float r, float g, float b, bool objective)
+{
+    if (!m_Font || label.empty())
+    {
+        return;
+    }
+    const float advance = MeasureText(label, size);
     float left = centerX - advance * .5f - size * .5f;
     float right = centerX + advance * .5f + size * .5f;
     float top = baseline - size * 1.3f, bottom = baseline + size * .4f;
-    const float backgroundR = MagicalTheme::BackgroundR;
-    const float backgroundG = MagicalTheme::BackgroundG;
-    const float backgroundB = MagicalTheme::BackgroundB;
+    const float backgroundR = objective ? .84f : MagicalTheme::BackgroundR;
+    const float backgroundG = objective ? .70f : MagicalTheme::BackgroundG;
+    const float backgroundB = objective ? .38f : MagicalTheme::BackgroundB;
     const float backgroundAlpha = 1.f;
     Triangle(left, top, right, top, right, bottom, backgroundR, backgroundG, backgroundB,
              backgroundAlpha);
     Triangle(left, top, right, bottom, left, bottom, backgroundR, backgroundG, backgroundB,
              backgroundAlpha);
     Text(centerX - advance * .5f, baseline, label, size,
-         MagicalTheme::TextR, MagicalTheme::TextG, MagicalTheme::TextB);
+         objective ? .12f : MagicalTheme::TextR, objective ? .10f : MagicalTheme::TextG,
+         objective ? .08f : MagicalTheme::TextB);
 }
 
 void Renderer::BeginWorld()

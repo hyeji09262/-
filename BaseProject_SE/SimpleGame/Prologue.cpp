@@ -704,10 +704,10 @@ void DrawHud()
          : quest.active         ? quest.Current().text
                                 : story.Objective(),
          19, objectiveColor);
-    Text(42, 121, "레벨 " + std::to_string(quest.progress.stats.level) + " · 골드 " +
-                      std::to_string(quest.progress.coins), 17);
     if (quest.active)
     {
+        Text(42, 121, "레벨 " + std::to_string(quest.progress.stats.level) + " · 골드 " +
+                          std::to_string(quest.progress.coins), 17);
         Panel(22, 212, 152, 354, {.06f, .08f, .15f, .96f});
         StatusBar(48, 231, "체력", combat.health, float(quest.progress.stats.maxHealth), pink);
         StatusBar(112, 231, "마나", combat.mana, float(quest.progress.stats.maxMana),
@@ -727,7 +727,10 @@ void DrawHud()
     }
     else
     {
-        Text(42, 117, "평범한 학생 · 아직 마법이나 전투 능력이 없습니다", 15, {.70f, .77f, .86f});
+        Text(42, 121, "레벨 " + std::to_string(quest.progress.stats.level) + " · 골드 " +
+                          std::to_string(quest.progress.coins), 17);
+        Text(42, 165, "평범한 학생 · 아직 마법이나 전투 능력이 없습니다", 15,
+             {.70f, .77f, .86f});
     }
 
     if (magicAvailable)

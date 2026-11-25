@@ -47,6 +47,53 @@ void Recovery(Game::SceneGraph& scene, Renderer& renderer, Game::Actor& hero,
                 &hero);
 }
 
+template <typename Project>
+void LevelUp(Game::SceneGraph& scene, Renderer& renderer, Game::Actor& hero, float remaining,
+             float duration, float elevation, float scale, Project project)
+{
+    if (remaining <= 0)
+    {
+        return;
+    }
+
+    const float age = 1.f - remaining / duration;
+    const float fade = (std::min)(1.f, remaining / .35f);
+    scene.Place("hero/level_up_stars", {0, 0, elevation + 32.f}, Game::RenderLayer::Overlay,
+                [&renderer, project, scale, age, fade](const Game::Actor&,
+                                                        const Game::Transform& p)
+                {
+                    const auto center = project(p);
+                    const float radius = (24.f + age * 54.f) * scale;
+                    const Color gold{1.f, .82f, .35f};
+                    const Color lilac{.83f, .66f, 1.f};
+
+                    // A quick central flash makes the level change readable immediately.
+                    const float flash = (std::max)(0.f, 1.f - age * 5.f);
+                    Spark(renderer, center, (14.f + flash * 23.f) * scale,
+                          (18.f + flash * 27.f) * scale, gold, flash * .65f);
+
+                    for (int i = 0; i < 12; ++i)
+                    {
+                        const float angle = i * .52359878f + age * .9f;
+                        auto star = center;
+                        star.x += std::cos(angle) * radius;
+                        star.y += (std::sin(angle) * radius * .48f - age * 26.f * scale);
+                        Spark(renderer, star, (i % 3 == 0 ? 7.f : 4.f) * scale,
+                              (i % 3 == 0 ? 12.f : 7.f) * scale,
+                              i % 2 == 0 ? gold : lilac, fade * (1.f - age * .35f));
+                    }
+
+                    for (int i = 0; i < 6; ++i)
+                    {
+                        auto rising = center;
+                        rising.x += std::sin(i * 2.3999632f) * (12.f + i * 6.f) * scale;
+                        rising.y -= (age * (66.f + i * 9.f) + i * 4.f) * scale;
+                        Spark(renderer, rising, 3.f * scale, 6.f * scale, lilac, fade * .75f);
+                    }
+                },
+                &hero);
+}
+
 template <typename Combat, typename Project>
 void Spells(Game::SceneGraph& scene, Renderer& renderer, const Combat& combat, float scale,
             Project project)

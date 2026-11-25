@@ -47,6 +47,7 @@ class Renderer
     void DrawFrameStats();
     void Nameplate(float centerX, float baseline, const std::string& label, float size, float r = 1,
                    float g = .95f, float b = .86f, bool objective = false);
+    float MeasureText(const std::string& label, float size);
 
     const FrameStats& LastFrameStats() const
     {

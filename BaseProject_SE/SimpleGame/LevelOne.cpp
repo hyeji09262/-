@@ -1060,14 +1060,28 @@ void DrawActors()
     PlaceModel("player/shadow", ModelId::Shadow, {}, &heroine, false, Game::RenderLayer::Shadow);
     if (levelUpTimer > 0)
     {
-        scene.Place("player/level-up", {0, 0, actions.height + 120.f}, Game::RenderLayer::Overlay,
+        CombatEffects::LevelUp(
+            scene, *graphics, heroine, levelUpTimer, LevelUpDuration, actions.height,
+            (std::min)(screenWidth / 1280.f, screenHeight / 800.f),
+            [](const Game::Transform& world)
+            {
+                const Position p = Project({world.x, world.y}, world.z);
+                return Position{p.x * screenWidth / 1280, p.y * screenHeight / 800};
+            });
+        scene.Place("player/level-up", {0, 0, actions.height + 94.f}, Game::RenderLayer::Overlay,
                     [](const Game::Actor&, const Game::Transform& world)
                     {
                         const float age = 1.f - levelUpTimer / LevelUpDuration;
                         const float alpha = (std::min)(1.f, levelUpTimer / .4f);
                         const Position p = Project({world.x, world.y}, world.z + age * 30.f);
-                        Text(p.x - 89, p.y + 2, "LEVEL UP!", {.13f, .08f, .17f, alpha}, 34);
-                        Text(p.x - 91, p.y, "LEVEL UP!", {1.f, .86f, .42f, alpha}, 34);
+                        const float size = 34.f * screenHeight / 800;
+                        const float centerX = p.x * screenWidth / 1280;
+                        const float baseline = p.y * screenHeight / 800;
+                        const float left = centerX - graphics->MeasureText("LEVEL UP!", size) * .5f;
+                        graphics->Text(left + 2, baseline + 2, "LEVEL UP!", size, .13f, .08f,
+                                       .17f, alpha);
+                        graphics->Text(left, baseline, "LEVEL UP!", size, 1.f, .86f, .42f,
+                                       alpha);
                     },
                     &heroine);
     }
